@@ -1,0 +1,73 @@
+#!/bin/sh
+#
+# opennop     This shell script takes care of starting and stopping
+#                    the opennop daemon.
+#
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+
+# Do preliminary checks here, if any
+#### START of preliminary checks #########
+
+
+##### END of preliminary checks #######
+
+
+# Handle manual control parameters like start, stop, status, restart, etc.
+
+case "$1" in
+  start)
+    # Start daemons.
+
+    echo -n $"Starting the opennop daemon: "
+    echo
+    daemon opennopd
+    echo
+    ;;
+
+  stop)
+    # Stop daemons.
+    echo -n $"Shutting down opennop: "
+    killproc opennopd
+    echo
+
+    # Do clean-up works here like removing pid files from /var/run, etc.
+    ;;
+    
+  status)
+    status opennopd
+    ;;
+    
+  restart)
+    $0 stop
+    $0 start
+    ;;
+    
+  setup)
+    # Rebuild the opennop driver here.
+    echo -n $"Extracting opennop driver soruce: "
+    cd /usr/src
+    tar -zxf module.tar.gz
+    cd module
+    echo
+    echo -n $"Building the opennop driver: "
+    make
+    echo
+    echo -n $"Installing the opennop driver: "
+    mkdir /lib/modules/`uname -r`/extra
+    cp opennopdrv.ko /lib/modules/`uname -r`/extra/opennopdrv.ko
+    depmod -a
+    make clean
+    cd /usr/src
+    rm -rf module
+    echo
+    ;;
+
+  *)
+    echo $"Usage: $0 {start|stop|status|restart|setup}"
+    exit 1
+esac
+
+exit 0

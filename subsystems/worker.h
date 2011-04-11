@@ -1,0 +1,203 @@
+void *worker_function (void *dummyPtr)
+{
+	struct worker *me = NULL;
+	struct packet *thispacket = NULL;
+	struct session *thissession = NULL;
+	struct iphdr *iph = NULL;
+	struct tcphdr *tcph = NULL;
+	__u32 largerIP, smallerIP, acceleratorID;
+	__u16 largerIPPort, smallerIPPort, tcplen;	
+	char message [256];
+	me = dummyPtr;
+	
+	me->lzbuffer = calloc(1,BUFSIZE);
+	me->lzfastbuffer = calloc(131072,sizeof(unsigned int));
+
+	if ((me->lzbuffer != NULL) && (me->lzfastbuffer != NULL)){
+	
+		while (me->state >= STOPPING) {
+		
+			/* Lets get the next packet from the queue. */
+			pthread_mutex_lock(&me->queue.lock);  // Grab lock on the queue.
+		
+			if (me->queue.qlen == 0){ // If there is no work wait for some.
+				pthread_cond_wait(&me->signal, &me->queue.lock);
+			}
+		
+			if (me->queue.next != NULL){ // Make sure there is work.
+				
+				if (DEBUG_WORKER == TRUE){
+						sprintf(message, "Worker: Queue has %d packets!\n", me->queue.qlen);
+						logger(message);
+				}
+				
+				thispacket = me->queue.next; // Get the next packet in the queue.
+				me->queue.next = thispacket->next; // Move the next packet forward in the queue.
+				me->queue.qlen -= 1; // Need to decrease the packet cound on this queue.
+				thispacket->next = NULL;
+				thispacket->prev = NULL;
+			}
+		
+			pthread_mutex_unlock(&me->queue.lock);  // Lose lock on the queue.
+		
+			if (thispacket != NULL){ // If a packet was taken from the queue.
+				iph = (struct iphdr *)thispacket->data;
+				tcph = (struct tcphdr *) (((u_int32_t *)iph) + iph->ihl);
+				
+				if (DEBUG_WORKER == TRUE){
+					sprintf(message, "Worker: IP Packet length is: %u\n",ntohs(iph->tot_len));
+					logger(message);
+				}
+				
+				acceleratorID = (__u32)__get_tcp_option((__u8 *)iph,30);
+			
+				/* Check what IP address is larger. */
+				sort_sockets(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
+				iph->saddr,tcph->source,iph->daddr,tcph->dest);
+				
+				if (DEBUG_WORKER == TRUE){
+					sprintf(message, "Worker: Searching for session.\n");
+					logger(message);
+				}
+				
+				thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort);
+				
+				if (thissession != NULL){
+					
+					if (DEBUG_WORKER == TRUE){
+						sprintf(message, "Worker: Found a session.\n");
+						logger(message);
+					}
+					
+					if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0)){
+												
+						if (acceleratorID == 0){ // Accelerator ID was not found.
+				
+							if (iph->saddr == largerIP){ // Set the Accelerator for this source.
+			 					thissession->largerIPAccelerator = localIP;
+			 				}
+							else{
+			 		 			thissession->smallerIPAccelerator = localIP;
+			 				}
+		 		 
+			 				__set_tcp_option((__u8 *)iph,30,6,localIP); // Add the Accelerator ID to this packet.
+		 		
+			 				if ((((iph->saddr == largerIP) &&
+	 							(thissession->largerIPAccelerator == localIP) && 
+	 							(thissession->smallerIPAccelerator != 0) && 
+	 							(thissession->smallerIPAccelerator != localIP)) || 
+	 							((iph->saddr == smallerIP) &&
+	 							(thissession->smallerIPAccelerator == localIP) && 
+	 							(thissession->largerIPAccelerator != 0) && 
+	 							(thissession->largerIPAccelerator != localIP))) &&
+	 							(thissession->state == TCP_ESTABLISHED)){
+		 							
+				 				/*
+				 			 	 * Do some acceleration!
+		 					 	 */
+		 					 	 
+		 					 	if (DEBUG_WORKER == TRUE){
+									sprintf(message, "Worker: Compressing packet.\n");
+									logger(message);
+								}	
+								
+		 					 	tcp_compress((__u8 *)iph,me->lzbuffer,me->lzfastbuffer);
+		 					}
+		 					else{
+		 						
+		 						if (DEBUG_WORKER == TRUE){
+									sprintf(message, "Worker: Not compressing packet.\n");
+									logger(message);
+								}
+		 					}
+						}
+						else{
+				
+							if (iph->saddr == largerIP){ // Set the Accelerator for this source.
+			 					thissession->largerIPAccelerator = acceleratorID;
+			 				}
+		 					else{
+		 						thissession->smallerIPAccelerator = acceleratorID;
+		 					}
+		 		
+		 					if (__get_tcp_option((__u8 *)iph,31) != 0){ // Packet is flagged as compressed.
+		 						
+		 						if (DEBUG_WORKER == TRUE){
+									sprintf(message, "Worker: Packet is compressed.\n");
+									logger(message);
+								}
+								
+			 					if (((iph->saddr == largerIP) && 
+			 						(thissession->smallerIPAccelerator == localIP)) ||
+			 						((iph->saddr == smallerIP) &&
+			 						(thissession->largerIPAccelerator == localIP))){
+							
+									/*
+									 * Decompress this packet!
+									 */
+									if (tcp_decompress((__u8 *)iph,me->lzbuffer,me->lzfastbuffer) == 0){ // Decompression failed if 0.
+										nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
+										free(thispacket);
+										thispacket = NULL;
+									}
+			 					}
+		 					}
+		 				}
+					}
+					
+					if (tcph->rst == 1){ // Session was reset.
+						
+						if (DEBUG_WORKER == TRUE){
+							sprintf(message, "Worker: Session was reset.\n");
+							logger(message);
+						}
+						clearsession(thissession);
+						thissession = NULL;
+						nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
+					}
+					
+					/* Normal session closing sequence. */
+					if (tcph->fin == 1){ // Session is being closed.
+						
+						if (DEBUG_WORKER == TRUE){
+							sprintf(message, "Worker: Session is closing.\n");
+							logger(message);
+						}
+						
+						if (thissession->state ==  TCP_ESTABLISHED){
+							thissession->state = TCP_CLOSING;
+						}
+						
+						if (thissession->state ==  TCP_CLOSING){
+							clearsession(thissession);
+							thissession = NULL;
+						}
+						nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
+					}
+					
+					if (thispacket != NULL){
+						/*
+					 	 * Changing anything requires the IP and TCP
+					 	 * checksum to need recalculated.
+		 			 	 */
+		 				checksum(thispacket->data);
+			 			nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), thispacket->data);
+						free(thispacket);
+						thispacket = NULL;
+					}	
+					 	
+				} /* End NULL session check. */
+				else{ /* Session was NULL. */
+					nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
+					free(thispacket);
+					thispacket = NULL;
+				}
+			} /* End NULL packet check. */		
+		} /* End working loop. */
+	free(me->lzbuffer);
+	free(me->lzfastbuffer);
+	me->lzbuffer = NULL;
+	me->lzfastbuffer = NULL;
+	}
+	return 0;
+}
