@@ -57,7 +57,6 @@ static struct session
 				__u32 smallerIP, __u16 smallerIPPort)
 {
 	struct session *newsession = NULL;
-	struct session *currentsession = NULL;
 	int i;
 	__u16 hash = 0;
 	__u8 queuenum = 0;

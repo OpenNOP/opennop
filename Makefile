@@ -1,8 +1,21 @@
-all:
-	gcc daemon.c -o opennopd -lnfnetlink -lnetfilter_queue -lpthread -lnl
+CC=gcc
+CFLAGS=-c -Wall -Wcast-align
+LDFLAGS=-lnfnetlink -lnetfilter_queue -lpthread -lnl
+SOURCES=daemon.c
+OBJECTS=$(SOURCES:.c=.o)
+EXECUTABLE=opennopd
+
+all: $(SOURCES) $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 	
+.c.o:
+	$(CC) $(CFLAGS) $< -o $@
+
 clean:
-	rm opennopd
+	rm $(OBJECTS)
+	rm $(EXECUTABLE)
 	
 install:
-	install opennopd /usr/local/bin/opennopd
+	install $(EXECUTABLE) /usr/local/bin/$(EXECUTABLE)

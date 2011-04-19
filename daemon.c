@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -18,6 +19,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h> 
 #include <sys/socket.h> // for sending keep-alives
 
 #include <arpa/inet.h> // for getting local ip address
@@ -304,7 +306,7 @@ int main(int argc, char *argv[])
         }
       	
       	for (i = 0; i < numworkers; i++){
-			pthread_create(&workers[i].t_worker, NULL, worker_function, &workers[i]);
+			pthread_create(&workers[i].t_worker, NULL, worker_function, (void *)&workers[i]);
 			pthread_cond_init(&workers[i].signal, NULL); // Initialize the thread signal.
 			workers[i].queue.next = NULL; // Initialize the queue.
 			workers[i].queue.prev = NULL;
@@ -321,9 +323,9 @@ int main(int argc, char *argv[])
          * Create the fetcher thread that retrieves
          * IP packets from the Netfilter Queue.
          */
-		pthread_create(&t_fetcher, NULL, fetcher_function, NULL);
-		pthread_create(&t_cleanup, NULL, cleanup_function, NULL);
-		pthread_create(&t_healthagent, NULL, healthagent_function, NULL);
+		pthread_create(&t_fetcher, NULL, fetcher_function, (void *)NULL);
+		pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
+		pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
 		
 		/*
 		 * Rejoin all threads before we exit!

@@ -6,7 +6,7 @@ void *worker_function (void *dummyPtr)
 	struct iphdr *iph = NULL;
 	struct tcphdr *tcph = NULL;
 	__u32 largerIP, smallerIP, acceleratorID;
-	__u16 largerIPPort, smallerIPPort, tcplen;	
+	__u16 largerIPPort, smallerIPPort;	
 	char message [256];
 	me = dummyPtr;
 	
@@ -153,7 +153,6 @@ void *worker_function (void *dummyPtr)
 						}
 						clearsession(thissession);
 						thissession = NULL;
-						nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
 					}
 					
 					/* Normal session closing sequence. */
@@ -164,15 +163,16 @@ void *worker_function (void *dummyPtr)
 							logger(message);
 						}
 						
-						if (thissession->state ==  TCP_ESTABLISHED){
-							thissession->state = TCP_CLOSING;
+						switch (thissession->state){
+							case TCP_ESTABLISHED:
+								thissession->state = TCP_CLOSING;
+								break;
+							
+							case TCP_CLOSING:
+								clearsession(thissession);
+								thissession = NULL;
+								break;
 						}
-						
-						if (thissession->state ==  TCP_CLOSING){
-							clearsession(thissession);
-							thissession = NULL;
-						}
-						nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
 					}
 					
 					if (thispacket != NULL){
@@ -181,7 +181,7 @@ void *worker_function (void *dummyPtr)
 					 	 * checksum to need recalculated.
 		 			 	 */
 		 				checksum(thispacket->data);
-			 			nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), thispacket->data);
+			 			nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
 						free(thispacket);
 						thispacket = NULL;
 					}	
@@ -199,5 +199,5 @@ void *worker_function (void *dummyPtr)
 	me->lzbuffer = NULL;
 	me->lzfastbuffer = NULL;
 	}
-	return 0;
+	return NULL;
 }
