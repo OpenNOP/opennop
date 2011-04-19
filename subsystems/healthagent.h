@@ -14,7 +14,6 @@
  */
 static int create_nl_socket(int protocol, int groups)
 {
-        socklen_t addr_len;
         int fd;
         struct sockaddr_nl local;
         
@@ -224,11 +223,6 @@ int send_hb()
 	}
 	
 	int id = get_family_id(nl_sd);
-	struct {
-		struct nlmsghdr n;
-		struct genlmsghdr g;
-		char buf[256];
-	} ans;
 
 	struct {
 		struct nlmsghdr n;
@@ -281,4 +275,5 @@ void *healthagent_function (void *dummyPtr)
 		sleep(healthtimer);
 		send_hb();
 	}
+	return NULL;
 }

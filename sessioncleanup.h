@@ -86,7 +86,7 @@ void cleanuplist
 	struct timeval tv; // Used to get the system time.
 	__u64 currenttime; // The current time in seconds.
 	
-	gettimeofday(&tv); // Get the time from hardware.
+	gettimeofday(&tv,NULL); // Get the time from hardware.
 	currenttime = tv.tv_sec - 60; // Set the currenttime minus one minuet.
 	
 	if (currentlist->next != NULL){ // Make sure there is something in the list.
@@ -139,9 +139,7 @@ void cleanuplist
  * It checks each bucket for idle sessions, and
  * will remove the dead ones using the previous function.
  */
-void *cleanup_function
-(void *data){
-	
+void *cleanup_function(void *data){
 	__u32 i = 0;
 	
 	while (servicestate >= STOPPING) {
@@ -153,5 +151,6 @@ void *cleanup_function
     			cleanuplist(&sessiontable[i]);
     		}
 		}
-	} 
+	}
+	return NULL;
 }

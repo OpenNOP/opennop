@@ -6,14 +6,10 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 	struct tcphdr *tcph = NULL;
 	struct session *thissession = NULL;
 	struct nfqnl_msg_packet_hdr *ph;
-	struct nfqnl_msg_packet_hw *hwph;
 	struct timeval tv;
 	__u32 largerIP, smallerIP, acceleratorID;
-	__u16 largerIPPort, smallerIPPort, tcplen, mms;	
-	u_int32_t mark,ifi;
+	__u16 largerIPPort, smallerIPPort, mms;	
 	int ret;
-	int queuenum;
-	int i;
 	char *originalpacket = NULL;
 	char message [256];
 	char strIP [20];
@@ -69,7 +65,7 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 						logger(message);
 					}
 					
-					gettimeofday(&tv); // Get the time from hardware.
+					gettimeofday(&tv,NULL); // Get the time from hardware.
 					thissession->lastactive = tv.tv_sec; // Update the session timestamp.
 					
 					if (iph->saddr == largerIP){ // See what IP this is coming from.
@@ -121,13 +117,13 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 				
 				/* This is the last step for a SYN packet. */
 				/* accept all SYN packets. */
-				return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), originalpacket);
+				return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
 			}
 			else{ // Packet was not a SYN packet.
 				thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort);
 				
 				if (thissession != NULL){
-					gettimeofday(&tv); // Get the time from hardware.
+					gettimeofday(&tv,NULL); // Get the time from hardware.
 					thissession->lastactive = tv.tv_sec; // Update the active timer.
 		 			thissession->deadcounter = 0; // Reset the dead counter.
 					
@@ -192,7 +188,7 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 		 		 		 * checksum to need recalculated.
 		 		 		 */
 		 		 		 checksum(originalpacket);
-						return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), originalpacket);
+						return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
 					}
 					
 						/* This is session traffic of an active session. */
@@ -207,7 +203,7 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 							logger(message);
 						}
 						
-						queue_packet(hq, id, ret, originalpacket, thissession);
+						queue_packet(hq, id, ret, (__u8 *)originalpacket, thissession);
 						return 0;	 
 				}
 				else{ // Session does not exist check if it is being tracked by another Accelerator.
@@ -234,12 +230,12 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 		 		 				else{
 		 		 					thissession->smallerIPAccelerator = acceleratorID;
 		 		 				}
-		 		 				queue_packet(hq, id, ret, originalpacket, thissession);
+		 		 				queue_packet(hq, id, ret, (__u8 *)originalpacket, thissession);
 		 		 				return 0;
 							}
 						}
 					}
-					return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), originalpacket);
+					return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
 				}
 			}
 		}
@@ -262,7 +258,6 @@ void *fetcher_function (void *dummyPtr)
 {
 	struct nfq_handle *h;
 	struct nfq_q_handle *qh;
-	struct nfnl_handle *nh;
 	long sys_pagesofmem = 0; // The pages of memory in this system.
 	long sys_pagesize = 0; // The size of each page in bytes.
 	long sys_bytesofmem = 0; // The total bytes of memory in the system.
@@ -355,9 +350,9 @@ void *fetcher_function (void *dummyPtr)
 	sys_pagesize = sysconf(_SC_PAGESIZE);
 	
 	if (DEBUG_FETCHER == TRUE){
-			sprintf(message, "Fetcher: There are %i pages of memory.\n", sys_pagesofmem);
+			sprintf(message, "Fetcher: There are %li pages of memory.\n", sys_pagesofmem);
 			logger(message);
-			sprintf(message, "Fetcher: There are %i bytes per page.\n", sys_pagesize);
+			sprintf(message, "Fetcher: There are %li bytes per page.\n", sys_pagesize);
 			logger(message);
 		}
 	
@@ -374,18 +369,18 @@ void *fetcher_function (void *dummyPtr)
 	nfqneededbuffer = (sys_bytesofmem / 100) * 10;
 	
 	if (DEBUG_FETCHER == TRUE){
-			sprintf(message, "Fetcher: NFQ needs %i bytes of memory.\n", nfqneededbuffer);
+			sprintf(message, "Fetcher: NFQ needs %li bytes of memory.\n", nfqneededbuffer);
 		logger(message);
 	}
 	nfqlength = nfqneededbuffer / BUFSIZE;
 		
 		if (DEBUG_FETCHER == TRUE){
-			sprintf(message, "Fetcher: NFQ lenth will be %i.\n", nfqlength);
+			sprintf(message, "Fetcher: NFQ lenth will be %li.\n", nfqlength);
 			logger(message);
 		}
 		
 		if (DEBUG_FETCHER == TRUE) {
-			sprintf(message, "Fetcher: NFQ cache  will be %d.MB\n", ((nfqlength * 2048) /1024) / 1024);
+			sprintf(message, "Fetcher: NFQ cache  will be %ld.MB\n", ((nfqlength * 2048) /1024) / 1024);
 			logger(message);
 		}
 		
@@ -449,4 +444,5 @@ void *fetcher_function (void *dummyPtr)
 		logger(message);
 	}
 	nfq_close(h);
+	return NULL;
 }
