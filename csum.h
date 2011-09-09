@@ -59,7 +59,7 @@ unsigned short ip_sum_calc(unsigned short len_ip_header, unsigned short *buff){
 	return htons(((unsigned short) sum));
 }
 
-void checksum(char *packet)
+void checksum(unsigned char *packet)
 {
 	struct iphdr *iph = NULL;
 	struct tcphdr *tcph = NULL;

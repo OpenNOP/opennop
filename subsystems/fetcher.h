@@ -10,7 +10,7 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 	__u32 largerIP, smallerIP, acceleratorID;
 	__u16 largerIPPort, smallerIPPort, mms;	
 	int ret;
-	char *originalpacket = NULL;
+	unsigned char *originalpacket = NULL;
 	char message [256];
 	char strIP [20];
 	//struct packet *newpacket = NULL;

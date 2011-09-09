@@ -93,7 +93,7 @@ struct packet {
 	struct packet *prev; // Points to the previous packet.
 	struct nfq_q_handle *hq; // The Queue Handle to the Netfilter Queue.
 	u_int32_t id; // The ID of this packet in the Netfilter Queue.
-	char data[BUFSIZE]; // Stores the actual IP packet.
+	unsigned char data[BUFSIZE]; // Stores the actual IP packet.
 };
 
 /* Structure contains the worker thread, queue, and status. */

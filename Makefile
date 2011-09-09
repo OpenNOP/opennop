@@ -8,7 +8,7 @@ EXECUTABLE=opennopd
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 	
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
