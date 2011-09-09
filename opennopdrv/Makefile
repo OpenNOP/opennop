@@ -13,9 +13,9 @@ PWD             := $(shell pwd)
 
 all modules:        
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
+	
 clean:        
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
-	rm Module.symvers Module.markers
 	
 install:
 	install -d -v /usr/local/lib/modules/`uname -r`/misc/
