@@ -72,8 +72,12 @@ int opennop_echo(struct sk_buff *skb_2, struct genl_info *info)
          *  skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
          */
          
-         /* Rewrittenf or kernel 2.6.18. */
-         skb = nlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+		/* Rewritten for kernel < and >= 2.6.20 */
+		#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
+			skb = nlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+		#else
+			skb = genlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
+		#endif
          
 	if (skb == NULL)
 		goto out;
@@ -91,9 +95,14 @@ int opennop_echo(struct sk_buff *skb_2, struct genl_info *info)
          * For kernel 2.6.20 or greater.
          * msg_head = genlmsg_put(skb, 0, info->snd_seq+1, &doc_exmpl_gnl_family, 0, DOC_EXMPL_C_ECHO); 
          */
-		/* Rewritten for kernel 2.6.18. */        
-        msg_head = genlmsg_put(skb, 0, info->snd_seq+1, opennop_family.id, 0, 0, OPENNOP_C_ECHO, opennop_family.version);
          
+		/* Rewritten for kernel < and >= 2.6.20 */
+		#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
+			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, opennop_family.id, 0, 0, OPENNOP_C_ECHO, opennop_family.version);
+ 		#else
+ 			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, &opennop_family, 0, OPENNOP_C_ECHO);
+		#endif
+ 
 	if (msg_head == NULL) {
 		rc = -ENOMEM;
 		goto out;
@@ -103,11 +112,17 @@ int opennop_echo(struct sk_buff *skb_2, struct genl_info *info)
 	if (rc != 0)
 		goto out;
 	
-        /* finalize the message */
-	genlmsg_end(skb, msg_head);
+		/* finalize the message */
+		genlmsg_end(skb, msg_head);
 
         /* send the message back */
-	rc = genlmsg_unicast(skb,info->snd_pid );
+		/* Rewritten for kernel < and >= 2.6.20 */
+		#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
+			rc = genlmsg_unicast(skb,info->snd_pid );
+		#else
+			rc = genlmsg_unicast(NULL,skb,info->snd_pid );
+		#endif
+			
 	if (rc != 0)
 		goto out;
 	return 0;
