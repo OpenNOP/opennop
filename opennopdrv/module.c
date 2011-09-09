@@ -7,6 +7,7 @@
 #include <linux/inetdevice.h>
 #include <linux/netdevice.h>
 #include <linux/timer.h> // to monitor the health of the daemon
+#include <linux/version.h> // to test kernel version
 
 
 #include <linux/skbuff.h> // for access to sk_buffs
@@ -69,12 +70,30 @@ static void daemonmonitor_function(unsigned long data){
 mod_timer(&daemonmonitor, jiffies + (hbintervals * HBINTERVAL) * HZ); // Update the timer for the next run.
 }
 
+/*
+ * The structure for netfilter queue functions changed sometime
+ * around kernel version 2.6.20 to handle this there are two different
+ * declarations of struct sk_buff depending on what kernel version
+ * is present on the system.
+ */
+
+/* Rewritten for kernel < and >= 2.6.20 */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
 static unsigned int
-queue_function(unsigned int hooknum, 
-struct sk_buff **skb, 
-const struct net_device *in, 
-const struct net_device *out, 
-int (*okfn)(struct sk_buff *)){
+	queue_function(unsigned int hooknum, 
+	struct sk_buff **skb,
+	const struct net_device *in, 
+	const struct net_device *out, 
+	int (*okfn)(struct sk_buff *)){
+#else
+static unsigned int
+	queue_function(unsigned int hooknum, 
+	struct sk_buff *skb,
+	const struct net_device *in, 
+	const struct net_device *out, 
+	int (*okfn)(struct sk_buff *)){
+#endif
+
 	struct iphdr *iph = NULL;
 
 	/*
@@ -85,10 +104,19 @@ int (*okfn)(struct sk_buff *)){
 	 *
 	 * This limits processing packets to in-bound traffic only!
 	 */
-	if ((skb != NULL) && 
+	 
+	 /* Rewritten for kernel < and >= 2.6.20 */
+	#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
+		 if ((skb != NULL) && 
 		((*skb)->pkt_type == PACKET_HOST) && 
 		((*skb)->protocol == htons(ETH_P_IP))){
 		iph = ip_hdr((*skb)); // access ip header.
+	#else
+		if ((skb != NULL) && 
+		((skb)->pkt_type == PACKET_HOST) && 
+		((skb)->protocol == htons(ETH_P_IP))){
+		iph = ip_hdr((skb)); // access ip header.
+	#endif
 
 		/*
 		 * yaple: Process only TCP segments.
@@ -110,7 +138,13 @@ int (*okfn)(struct sk_buff *)){
 
 static struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
 	.hook = queue_function, // Function that executes.
-	.hooknum = NF_IP_FORWARD, // For routed traffic only.
+	
+	/* Rewritten for kernel < and >= 2.6.20 */
+	#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
+		.hooknum = NF_IP_FORWARD, // For routed traffic only.
+	#else
+		.hooknum = NF_INET_FORWARD, // For routed ip traffic only.
+	#endif
 	.pf = PF_INET, // Only for IP packets.
 	.priority = NF_IP_PRI_FIRST, // My hook executes first.
 };
@@ -136,25 +170,19 @@ opennopdrv_init(void){
 	}
 	
 	nf_register_hook(&opennop_hook);
-	
 	init_timer(&daemonmonitor);
 	daemonmonitor.expires = jiffies + (timespan * HZ);
 	daemonmonitor.data = 0;
 	daemonmonitor.function = daemonmonitor_function;
 	add_timer(&daemonmonitor);
 	return 0;
-	
 } 
 
 static void __exit 
 opennopdrv_exit(void){
-	
 	genl_unregister_family(&opennop_family);
-
 	nf_unregister_hook(&opennop_hook);
-	
 	del_timer_sync(&daemonmonitor);
-
 }
 
 module_init(opennopdrv_init);
