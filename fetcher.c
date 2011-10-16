@@ -1,4 +1,31 @@
-static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <unistd.h>
+
+#include <sys/time.h> 
+
+#include <arpa/inet.h> // for getting local ip address
+
+#include <netinet/ip.h> // for tcpmagic and TCP options
+#include <netinet/tcp.h> // for tcpmagic and TCP options
+
+#include <linux/netfilter.h> // for NF_ACCEPT
+
+#include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
+
+#include "fetcher.h"
+#include "queuemanager.h"
+#include "sessionmanager.h"
+#include "logger.h"
+#include "tcpoptions.h"
+#include "csum.h"
+#include "packet.h"
+#include "daemon.h"
+
+int DEBUG_FETCHER = false; 
+
+int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 			  struct nfq_data *nfa, void *data)
 {
 	u_int32_t id = 0;
@@ -40,10 +67,10 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 							
 			acceleratorID = (__u32)__get_tcp_option((__u8 *)originalpacket,30);
 			
-			if (DEBUG_FETCHER == TRUE){
+			if (DEBUG_FETCHER == true){
 				inet_ntop(AF_INET, &acceleratorID, strIP, INET_ADDRSTRLEN);
 				sprintf(message, "Fetcher: The accellerator ID is:%s.\n", strIP);
-				logger(message);
+				logger(LOG_INFO, message);
 			}
 			
 			/* Check if this a SYN packet to identify a new session. */
@@ -60,9 +87,9 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 				/* that a record for the session was created */
 				if (thissession != NULL){
 					
-					if (DEBUG_FETCHER == TRUE){
+					if (DEBUG_FETCHER == true){
 						sprintf(message, "Fetcher: The session manager created a new session.\n");
-						logger(message);
+						logger(LOG_INFO, message);
 					}
 					
 					gettimeofday(&tv,NULL); // Get the time from hardware.
@@ -193,14 +220,14 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 					
 						/* This is session traffic of an active session. */
 						/* This packet will be placed in a queue to be processed */
-						if (DEBUG_FETCHER == TRUE){
+						if (DEBUG_FETCHER == true){
 							sprintf(message, "Fetcher: Sending the packet to a queue.\n");
-							logger(message);
+							logger(LOG_INFO, message);
 						}
 						
-						if (DEBUG_FETCHER == TRUE){
+						if (DEBUG_FETCHER == true){
 							sprintf(message, "Fetcher: Packet ID: %u.\n", id);
-							logger(message);
+							logger(LOG_INFO, message);
 						}
 						
 						queue_packet(hq, id, ret, (__u8 *)originalpacket, thissession);
@@ -208,9 +235,9 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 				}
 				else{ // Session does not exist check if it is being tracked by another Accelerator.
 					
-					if (DEBUG_FETCHER == TRUE){
+					if (DEBUG_FETCHER == true){
 						sprintf(message, "Fetcher: The session manager did not find a session.\n");
-						logger(message);
+						logger(LOG_INFO, message);
 					}
 					
 					/* We only want to create new sessions for active sessions. */
@@ -245,9 +272,9 @@ static int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 	}
 	else{ /* Daemon is not in a running state so return packets. */
 		
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: The service is not running.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 		}
 		return nfq_set_verdict(hq, id, NF_ACCEPT, 0, NULL);
 	}
@@ -268,99 +295,99 @@ void *fetcher_function (void *dummyPtr)
 	char buf[BUFSIZE] __attribute__ ((aligned));
 	char message [256];
 	
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Initialzing opening library handle.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 	}
 	
 	h = nfq_open();
 	
 	if (!h){
 		
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Initialzing error opening library handle.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		exit(EXIT_FAILURE);
 	}
         
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Initialzing unbinding existing nf_queue for AF_INET.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 	}
         
 	if (nfq_unbind_pf(h, AF_INET) < 0){
         	
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Initialzing error unbinding nf_queue.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		exit(EXIT_FAILURE);
 	}
         
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Initialzing binding to nf_queue.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 	}
         
 	if (nfq_bind_pf(h, AF_INET) < 0){
         	
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Initialzing error binding to nf_queue.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		exit(EXIT_FAILURE);
 	}
 		
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Initialzing binding to queue '0'.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 	}
 	qh = nfq_create_queue(h, 0, &fetcher_callback, NULL);
 		
 	if (!qh){
 			
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Initialzing error binding to queue '0'.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		exit(EXIT_FAILURE);
 	}
 		
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Initialzing setting copy mode.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 	}
 		
 	if (nfq_set_mode(qh, NFQNL_COPY_PACKET, BUFSIZE) < 0){ // range/BUFSIZE was 0xffff
 			
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Initialzing error setting copy mode.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		exit(EXIT_FAILURE);
 	}
 		
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Initialzing setting queue length.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 	}
 	
 	sys_pagesofmem = sysconf(_SC_PHYS_PAGES);
 	sys_pagesize = sysconf(_SC_PAGESIZE);
 	
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: There are %li pages of memory.\n", sys_pagesofmem);
-			logger(message);
+			logger(LOG_INFO, message);
 			sprintf(message, "Fetcher: There are %li bytes per page.\n", sys_pagesize);
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 	
 	if ((sys_pagesofmem <= 0) || (sys_pagesize <= 0)) {
 		
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Initialzing error failed checking system memory.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		exit(EXIT_FAILURE);
 	}
@@ -368,27 +395,27 @@ void *fetcher_function (void *dummyPtr)
 	sys_bytesofmem = (sys_pagesofmem * sys_pagesize);
 	nfqneededbuffer = (sys_bytesofmem / 100) * 10;
 	
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: NFQ needs %li bytes of memory.\n", nfqneededbuffer);
-		logger(message);
+		logger(LOG_INFO, message);
 	}
 	nfqlength = nfqneededbuffer / BUFSIZE;
 		
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: NFQ lenth will be %li.\n", nfqlength);
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		
-		if (DEBUG_FETCHER == TRUE) {
+		if (DEBUG_FETCHER == true) {
 			sprintf(message, "Fetcher: NFQ cache  will be %ld.MB\n", ((nfqlength * 2048) /1024) / 1024);
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		
 	if (nfq_set_queue_maxlen(qh, nfqlength) < 0) {
 			
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Initialzing error setting queue length.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		exit(EXIT_FAILURE);
 	}	
@@ -397,9 +424,9 @@ void *fetcher_function (void *dummyPtr)
 		
 	while ((servicestate >= STOPPING) && ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0)) {
 		
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Received a packet.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		
 		/* 
@@ -418,12 +445,12 @@ void *fetcher_function (void *dummyPtr)
 	if (rv == -1){
 		servicestate = STOPPING;
 		sprintf(message, "Fetcher: Stopping last rv value: %i.\n", rv);
-		logger(message);
+		logger(LOG_INFO, message);
 	} 
 	
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Stopping unbinding from queue '0'.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 	}
 	
 
@@ -432,16 +459,16 @@ void *fetcher_function (void *dummyPtr)
         
 	#ifdef INSANE
 		
-		if (DEBUG_FETCHER == TRUE){
+		if (DEBUG_FETCHER == true){
 			sprintf(message, "Fetcher: Fatal unbinding from queue '0'.\n");
-			logger(message);
+			logger(LOG_INFO, message);
 		}
 		nfa_unbind_pf(h, AF_INET);
 	#endif
 
-	if (DEBUG_FETCHER == TRUE){
+	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Stopping closing library handle.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 	}
 	nfq_close(h);
 	return NULL;

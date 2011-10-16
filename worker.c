@@ -1,3 +1,29 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <pthread.h> // for multi-threading
+
+#include <netinet/ip.h> // for tcpmagic and TCP options
+#include <netinet/tcp.h> // for tcpmagic and TCP options
+
+#include <linux/types.h>
+#include <linux/netfilter.h> // for NF_ACCEPT
+
+#include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
+
+#include "worker.h"
+#include "daemon.h"
+#include "packet.h"
+#include "compression.h"
+#include "csum.h"
+#include "sessionmanager.h"
+#include "tcpoptions.h"
+#include "logger.h"
+
+struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
+unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
+int DEBUG_WORKER = false;
+
 void *worker_function (void *dummyPtr)
 {
 	struct worker *me = NULL;
@@ -26,9 +52,9 @@ void *worker_function (void *dummyPtr)
 		
 			if (me->queue.next != NULL){ // Make sure there is work.
 				
-				if (DEBUG_WORKER == TRUE){
+				if (DEBUG_WORKER == true){
 						sprintf(message, "Worker: Queue has %d packets!\n", me->queue.qlen);
-						logger(message);
+						logger(LOG_INFO, message);
 				}
 				
 				thispacket = me->queue.next; // Get the next packet in the queue.
@@ -44,9 +70,9 @@ void *worker_function (void *dummyPtr)
 				iph = (struct iphdr *)thispacket->data;
 				tcph = (struct tcphdr *) (((u_int32_t *)iph) + iph->ihl);
 				
-				if (DEBUG_WORKER == TRUE){
+				if (DEBUG_WORKER == true){
 					sprintf(message, "Worker: IP Packet length is: %u\n",ntohs(iph->tot_len));
-					logger(message);
+					logger(LOG_INFO, message);
 				}
 				
 				acceleratorID = (__u32)__get_tcp_option((__u8 *)iph,30);
@@ -55,18 +81,18 @@ void *worker_function (void *dummyPtr)
 				sort_sockets(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
 				iph->saddr,tcph->source,iph->daddr,tcph->dest);
 				
-				if (DEBUG_WORKER == TRUE){
+				if (DEBUG_WORKER == true){
 					sprintf(message, "Worker: Searching for session.\n");
-					logger(message);
+					logger(LOG_INFO, message);
 				}
 				
 				thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort);
 				
 				if (thissession != NULL){
 					
-					if (DEBUG_WORKER == TRUE){
+					if (DEBUG_WORKER == true){
 						sprintf(message, "Worker: Found a session.\n");
-						logger(message);
+						logger(LOG_INFO, message);
 					}
 					
 					if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0)){
@@ -96,18 +122,18 @@ void *worker_function (void *dummyPtr)
 				 			 	 * Do some acceleration!
 		 					 	 */
 		 					 	 
-		 					 	if (DEBUG_WORKER == TRUE){
+		 					 	if (DEBUG_WORKER == true){
 									sprintf(message, "Worker: Compressing packet.\n");
-									logger(message);
+									logger(LOG_INFO, message);
 								}	
 								
 		 					 	tcp_compress((__u8 *)iph,me->lzbuffer,me->lzfastbuffer);
 		 					}
 		 					else{
 		 						
-		 						if (DEBUG_WORKER == TRUE){
+		 						if (DEBUG_WORKER == true){
 									sprintf(message, "Worker: Not compressing packet.\n");
-									logger(message);
+									logger(LOG_INFO, message);
 								}
 		 					}
 						}
@@ -122,9 +148,9 @@ void *worker_function (void *dummyPtr)
 		 		
 		 					if (__get_tcp_option((__u8 *)iph,31) != 0){ // Packet is flagged as compressed.
 		 						
-		 						if (DEBUG_WORKER == TRUE){
+		 						if (DEBUG_WORKER == true){
 									sprintf(message, "Worker: Packet is compressed.\n");
-									logger(message);
+									logger(LOG_INFO, message);
 								}
 								
 			 					if (((iph->saddr == largerIP) && 
@@ -147,9 +173,9 @@ void *worker_function (void *dummyPtr)
 					
 					if (tcph->rst == 1){ // Session was reset.
 						
-						if (DEBUG_WORKER == TRUE){
+						if (DEBUG_WORKER == true){
 							sprintf(message, "Worker: Session was reset.\n");
-							logger(message);
+							logger(LOG_INFO, message);
 						}
 						clearsession(thissession);
 						thissession = NULL;
@@ -158,9 +184,9 @@ void *worker_function (void *dummyPtr)
 					/* Normal session closing sequence. */
 					if (tcph->fin == 1){ // Session is being closed.
 						
-						if (DEBUG_WORKER == TRUE){
+						if (DEBUG_WORKER == true){
 							sprintf(message, "Worker: Session is closing.\n");
-							logger(message);
+							logger(LOG_INFO, message);
 						}
 						
 						switch (thissession->state){

@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-c -Wall -Wcast-align
 LDFLAGS=-lnfnetlink -lnetfilter_queue -lpthread -lnl
 SOURCES=daemon.c
-OBJECTS=$(SOURCES:.c=.o)
+OBJECTS=$(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.c,%.o,$(wildcard */*.c))
 EXECUTABLE=opennopd
 
 all: $(SOURCES) $(EXECUTABLE)
