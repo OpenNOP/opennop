@@ -1,147 +1,38 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <poll.h>
-#include <syslog.h> // for error messages
+#include <stdbool.h>
 #include <string.h>
-#include <assert.h>
-#include <signal.h> // for service signaling
+#include <signal.h>
 #include <pthread.h> // for multi-threading
 #include <unistd.h> // for sleep function
 #include <ifaddrs.h> // for getting ip addresses
 #include <netdb.h>
-#include <time.h> // for session cleanup
 
-#include <arpa/inet.h>
-
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/time.h> 
-#include <sys/socket.h> // for sending keep-alives
+#include <sys/types.h>
 
 #include <arpa/inet.h> // for getting local ip address
 
-#include <netinet/in.h>
-#include <netinet/ip.h> // for tcpmagic and TCP options
-#include <netinet/tcp.h> // for tcpmagic and TCP options
-
 #include <linux/types.h>
-#include <linux/netfilter.h> // for NF_ACCEPT
 
-#include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
-#include <linux/genetlink.h> 
+#include "daemon.h"
+#include "fetcher.h"
+#include "logger.h"
+#include "sessioncleanup.h"
+#include "sessionmanager.h"
+#include "help.h"
+#include "signal.h"
+#include "worker.h"
+#include "healthagent.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
-#define MAXWORKERS 255 // Maximum number of workers to process packets.
-#define BUFSIZE 2048 // Size of buffer used to store IP packets.
-#define SESSIONBUCKETS 65536 // Number of buckets in the hash table for sessoin.
 #define LOOPBACKIP 16777343UL // Loopback IP address 127.0.0.1.
-
-/* Define states for worker threads. */
-#define STOPPED -1
-#define STOPPING 0
-#define RUNNING 1
-
-/* Define bool values. */
-#define FALSE 0
-#define TRUE 1
-
-/* Structure used for the head of a session list. */
-struct session_head {
-	struct session *next; /* Points to the first session of the list. */
-	struct session *prev; /* Points to the last session of the list. */
-	u_int32_t len; // Total number of sessions in the list.
-	pthread_mutex_t lock; // Lock for this session bucket.
-};
-
-/* Structure used to store TCP session info. */
-struct session {
-	struct session_head *head; // Points to the head of this list.
-	struct session *next; // Points to the next session in the list.
-	struct session *prev; // Points to the previous session in the list.
-	__u32 largerIP; // Stores the larger IP address.
-	__u16 largerIPPort; // Stores the larger IP port #.
-	__u32 largerIPStartSEQ; // Stores the starting SEQ number.
-	__u32 largerIPseq; // Stores the TCP SEQ from the largerIP.
-	__u32 largerIPAccelerator; // Stores the AcceleratorIP of the largerIP.
-	__u32 smallerIP; // Stores the smaller IP address.
-	__u16 smallerIPPort; // Stores the smaller IP port #.
-	__u32 smallerIPStartSEQ; // Stores the starting SEQ number.
-	__u32 smallerIPseq; // Stores the TCP SEQ from the smallerIP.
-	__u32 smallerIPAccelerator; // Stores the AcceleratorIP of the smallerIP.
-	__u64 lastactive; // Stores the time this session was last active.
-	__u8 deadcounter; // Stores how many counts the session has been idle.
-	__u8 state; // Stores the TCP session state.
-	__u8 queue; // What worker queue the packets for this session go to.
-};
-
-/* Structure used for the head of a packet queue.. */
-struct packet_head{
-	struct packet *next; // Points to the first packet of the list.
-	struct packet *prev; // Points to the last packet of the list.
-	u_int32_t qlen; // Total number of packets in the list.
-	pthread_mutex_t lock; // Lock for this queue.
-};
-
-struct packet {
-	struct packet_head *head; // Points to the head of this list.
-	struct packet *next; // Points to the next packet.
-	struct packet *prev; // Points to the previous packet.
-	struct nfq_q_handle *hq; // The Queue Handle to the Netfilter Queue.
-	u_int32_t id; // The ID of this packet in the Netfilter Queue.
-	unsigned char data[BUFSIZE]; // Stores the actual IP packet.
-};
-
-/* Structure contains the worker thread, queue, and status. */
-struct worker {
-	pthread_t t_worker; // Is the thread for this worker.
-	pthread_cond_t signal; // Condition signal used to wake-up thread.
-	__u32 packets; // Number of packets this worker has processed.
-	__u8 *lzbuffer; // Buffer used for LZ compression.
-	__u8 *lzfastbuffer; // Buffer used for FastLZ compression.
-	u_int32_t sessions; // Number of sessions assigned to the worker.
-	struct packet_head queue; // Points to the queue for this worker.
-	int state;	// Marks this thread as active. 1=running, 0=stopping, -1=stopped.
-	pthread_mutex_t lock; // Lock for this worker.
-};
 
 /* Global Variables. */
 int servicestate = RUNNING; // Current state of the service. 
-int rawsock = 0; // Used to send keep-alive messages.
-int healthtimer = 5; // Time in seconds between healthagent updates to the kernel module.  Kernel module check in 5 second increments.
-struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
-struct session_head sessiontable[SESSIONBUCKETS]; // Setup the session hashtable.
-unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
 __u32 localIP = 0; // Variable to store eth0 IP address used as the device ID.
-int isdaemon = TRUE; // Determines how to log the messages and errors.
-
-/* Debug Variables */
-int DEBUG_FETCHER = FALSE; 
-int DEBUG_HEALTHAGENT = FALSE;
-int DEBUG_HEARTBEAT = FALSE;
-int DEBUG_SESSIONMANAGER_INSERT = FALSE;
-int DEBUG_SESSIONMANAGER_GET = FALSE;
-int DEBUG_SESSIONMANAGER_REMOVE = FALSE;
-int DEBUG_WORKER = FALSE;
-int DEBUG_TCPOPTIONS = FALSE;
-
-#include "utilities.h"
-#include "queuemanager.h"
-#include "lib/lz.h"
-#include "csum.h"
-#include "tcpoptions.h"
-#include "compression.h"
-#include "sessionmanager.h"
-#include "sessioncleanup.h"
-#include "subsystems/fetcher.h"
-#include "help.h"
-#include "signal.h"
-#include "subsystems/worker.h"
-#include "subsystems/healthagent.h"
+int isdaemon = true; // Determines how to log the messages and errors.
 
 int main(int argc, char *argv[])
 {
@@ -152,8 +43,6 @@ int main(int argc, char *argv[])
 	__u32 tempIP;
 	int s;
 	int i;
-	int one = 1;
-	const int *val = &one;
 	char message [256];
 	char strIP [20];
 	char host[NI_MAXHOST];
@@ -179,7 +68,7 @@ int main(int argc, char *argv[])
 				break;
 			case 'n':
 				daemonize = 0;
-				isdaemon = FALSE;
+				isdaemon = false;
 				break;
 			default:
 				PrintUsage(argc, argv);
@@ -188,7 +77,7 @@ int main(int argc, char *argv[])
 	}
 	
 	sprintf(message, "Initialization: %s daemon starting up.\n", DAEMON_NAME);
-	logger(message);
+	logger(LOG_INFO, message);
 	
 	/*
 	 * Get the numerically highest local IP address.
@@ -196,7 +85,7 @@ int main(int argc, char *argv[])
 	 */
 	if (getifaddrs(&ifaddr) == -1){
 		sprintf(message, "Initialization: Error opening interfaces.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 		exit(EXIT_FAILURE);
 	}
 	
@@ -210,7 +99,7 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 			
-			tempIP = in_aton((char *)&host);  // convert string to decimal.
+			inet_pton(AF_INET,(char *)&host, &tempIP);  // convert string to decimal.
 			
 			/* 
 			 * Lets fine the largest local IP, and use that as accelleratorID
@@ -225,21 +114,7 @@ int main(int argc, char *argv[])
 	if (localIP == 0){ // fail if no usable IP found.
 		inet_ntop(AF_INET, &tempIP, strIP, INET_ADDRSTRLEN);
 		sprintf(message, "Initialization: No usable IP Address. %s\n",strIP);
-		logger(message);
-		exit(EXIT_FAILURE);
-	}
-	
-	rawsock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
-	
-	if (rawsock < 0){
-		sprintf(message, "Initialization: Error opening raw socket.\n");
-		logger(message);
-		exit(EXIT_FAILURE);
-	}
-	
-	if(setsockopt(rawsock, IPPROTO_IP, IP_HDRINCL, val, sizeof(one)) < 0){
-		sprintf(message, "Initialization: Error setting socket options.\n");
-		logger(message);
+		logger(LOG_INFO, message);
 		exit(EXIT_FAILURE);
 	}
 
@@ -255,7 +130,7 @@ int main(int argc, char *argv[])
         pid_t pid, sid;
         if (daemonize) {
         	sprintf(message, "Initialization: Daemonizing the %s process.\n", DAEMON_NAME);
-			logger(message);
+			logger(LOG_INFO, message);
         	
         	/* Fork off the parent process */
         	pid = fork();
@@ -343,23 +218,17 @@ int main(int argc, char *argv[])
         	pthread_join(workers[i].t_worker, NULL);
         }
         
-        /*
-         * Free any allocated resources before exiting
-         */
-        close(rawsock); // close the socket used for sending keepalives.
-        rawsock = 0;
-        
         for (i = 0; i < SESSIONBUCKETS; i++){ // Initialize all the slots in the hashtable to NULL.
         	if (sessiontable[i].next != NULL){
 				freemem(&sessiontable[i]);
 				sprintf(message, "Exiting: Freeing sessiontable %d!\n",i);
-				logger(message);
+				logger(LOG_INFO, message);
         	}
 			
 		}
 		
         sprintf(message, "Exiting: %s daemon exiting", DAEMON_NAME);
-		logger(message);
+		logger(LOG_INFO, message);
         
    exit(EXIT_SUCCESS);
 }

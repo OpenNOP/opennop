@@ -1,4 +1,15 @@
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h> // for sleep function
 
+#include <sys/socket.h> // for sending keep-alives
+
+#include <linux/genetlink.h> 
+
+#include "healthagent.h"
+#include "daemon.h"
 /*
  * Generic macros for dealing with netlink sockets. Might be duplicated
  * elsewhere. It is recommended that commercial grade applications use
@@ -8,6 +19,11 @@
 #define GENLMSG_PAYLOAD(glh) (NLMSG_PAYLOAD(glh, 0) - GENL_HDRLEN)
 #define NLA_DATA(na) ((void *)((char*)(na) + NLA_HDRLEN))
 //#define NLA_PAYLOAD(len) (len - NLA_HDRLEN)
+
+int healthtimer = 5; // Time in seconds between healthagent updates to the kernel module.  Kernel module check in 5 second increments.
+
+int DEBUG_HEALTHAGENT = false;
+int DEBUG_HEARTBEAT = false;
 
 /*
  * Create a raw netlink socket and bind
@@ -103,7 +119,7 @@ int get_family_id(int sd)
 	rep_len = recv(sd, &ans, sizeof(ans), 0);
         if (rep_len < 0){
         	
-        	if (DEBUG_HEALTHAGENT == TRUE){
+        	if (DEBUG_HEALTHAGENT == true){
 				perror("recv");
         	}
 		return -1;
@@ -112,7 +128,7 @@ int get_family_id(int sd)
         /* Validate response message */
         if (!NLMSG_OK((&ans.n), rep_len)){
         	
-        	if (DEBUG_HEALTHAGENT == TRUE){
+        	if (DEBUG_HEALTHAGENT == true){
 				fprintf(stderr, "invalid reply message\n");
         	}
 		return -1;
@@ -120,7 +136,7 @@ int get_family_id(int sd)
 
         if (ans.n.nlmsg_type == NLMSG_ERROR) { /* error */
         	
-        	if (DEBUG_HEALTHAGENT == TRUE){
+        	if (DEBUG_HEALTHAGENT == true){
                 fprintf(stderr, "received error\n");
         	}
             return -1;
