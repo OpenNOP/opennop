@@ -38,7 +38,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 	__u16 largerIPPort, smallerIPPort, mms;	
 	int ret;
 	unsigned char *originalpacket = NULL;
-	char message [256];
+	char message [LOGSZ];
 	char strIP [20];
 	//struct packet *newpacket = NULL;
 	
@@ -293,7 +293,7 @@ void *fetcher_function (void *dummyPtr)
 	int fd;
 	int rv;
 	char buf[BUFSIZE] __attribute__ ((aligned));
-	char message [256];
+	char message [LOGSZ];
 	
 	if (DEBUG_FETCHER == true){
 		sprintf(message, "Fetcher: Initialzing opening library handle.\n");

@@ -76,7 +76,7 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 	int i;
 	__u16 hash = 0;
 	__u8 queuenum = 0;
-	char message [256];
+	char message [LOGSZ];
 
 	hash = sessionhash(largerIP, smallerIP, largerIPPort, smallerIPPort);
 	
@@ -174,7 +174,7 @@ struct session *getsession(__u32 largerIP, __u16 largerIPPort,
 __u32 smallerIP, __u16 smallerIPPort){
 	struct session *currentsession = NULL;
 	__u16 hash = 0;
-	char message [256];
+	char message [LOGSZ];
 	
 	hash = sessionhash(largerIP, smallerIP, largerIPPort, smallerIPPort);
 	
@@ -236,7 +236,7 @@ __u32 smallerIP, __u16 smallerIPPort){
  * Resets the sessionindex, and session. 
  */
 void clearsession(struct session *currentsession){
-	char message [256];
+	char message [LOGSZ];
 		
 	if (currentsession != NULL){ // Make sure session is not NULL.
 		pthread_mutex_lock(&currentsession->head->lock); // Grab lock on the session bucket.

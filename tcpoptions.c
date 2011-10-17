@@ -91,7 +91,7 @@ int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
 	struct iphdr *iph;
 	__u16 tcplen;
 	__u8 i, optspace, addoff, spaceneeded, bytefield, count, *opt;
-	char message [256];
+	char message [LOGSZ];
 
 	iph = (struct iphdr *)ippacket;
 	tcph = (struct tcphdr *) (((u_int32_t *)ippacket) + iph->ihl);

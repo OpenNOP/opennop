@@ -33,7 +33,7 @@ void *worker_function (void *dummyPtr)
 	struct tcphdr *tcph = NULL;
 	__u32 largerIP, smallerIP, acceleratorID;
 	__u16 largerIPPort, smallerIPPort;	
-	char message [256];
+	char message [LOGSZ];
 	me = dummyPtr;
 	
 	me->lzbuffer = calloc(1,BUFSIZE);

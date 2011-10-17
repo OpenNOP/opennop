@@ -24,6 +24,7 @@
 #include "signal.h"
 #include "worker.h"
 #include "healthagent.h"
+#include "cli.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -39,18 +40,19 @@ int main(int argc, char *argv[])
 	pthread_t t_fetcher; // thread for getting packets out of Netfilter Queue.
 	pthread_t t_cleanup; // thread for cleaning up dead sessions.
 	pthread_t t_healthagent; // thread for health agent. 
+	pthread_t t_cli; // thread for cli.
 	struct ifaddrs *ifaddr, *ifa;
 	__u32 tempIP;
 	int s;
 	int i;
-	char message [256];
+	char message [LOGSZ];
 	char strIP [20];
 	char host[NI_MAXHOST];
 
 	#if defined(DEBUG)
-		int daemonize = 0;
+		int daemonize = false;
 	#else
-		int daemonize = 1;
+		int daemonize = true;
 	#endif
 	
 	/* Setup signal handling */
@@ -201,6 +203,7 @@ int main(int argc, char *argv[])
 		pthread_create(&t_fetcher, NULL, fetcher_function, (void *)NULL);
 		pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
 		pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
+		pthread_create(&t_cli, NULL, cli_function, (void *)NULL);
 		
 		/*
 		 * Rejoin all threads before we exit!
@@ -208,6 +211,7 @@ int main(int argc, char *argv[])
         pthread_join(t_fetcher, NULL);
         pthread_join(t_cleanup, NULL);
         pthread_join(t_healthagent, NULL);
+        pthread_join(t_cli, NULL);
         
         for (i = 0; i < numworkers; i++){
         	
