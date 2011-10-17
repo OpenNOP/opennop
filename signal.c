@@ -9,7 +9,7 @@
 
 void signal_handler(int sig) 
 {
-	char message [256];
+	char message [LOGSZ];
 
 	switch(sig){
 		case SIGHUP:

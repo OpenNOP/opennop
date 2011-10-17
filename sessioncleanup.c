@@ -28,8 +28,7 @@ int rawsock = 0; // Used to send keep-alive messages.
  */
 void sendkeepalive
 (__u32 saddr, __u16 source, __u32 seq,
-__u32 daddr, __u16 dest, __u32 ack_seq
-){
+__u32 daddr, __u16 dest, __u32 ack_seq){
 	char packet[BUFSIZE];
 	struct iphdr *iph = NULL;
 	struct tcphdr *tcph = NULL;
@@ -102,8 +101,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq
  * fail to respond to the keepalive messages twice the session
  * is removed from its list. 
  */
-void cleanuplist
-(struct session_head *currentlist){
+void cleanuplist (struct session_head *currentlist){
 	struct session *currentsession = NULL;
 	struct timeval tv; // Used to get the system time.
 	__u64 currenttime; // The current time in seconds.
@@ -164,7 +162,7 @@ void cleanuplist
 void *cleanup_function(void *data){
 	int one = 1;
 	const int *val = &one;
-	char message [256];
+	char message [LOGSZ];
 	__u32 i = 0;
 	
 	rawsock = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
