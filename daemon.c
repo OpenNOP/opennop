@@ -25,6 +25,7 @@
 #include "worker.h"
 #include "healthagent.h"
 #include "cli.h"
+#include "eventmanager.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -41,6 +42,7 @@ int main(int argc, char *argv[])
 	pthread_t t_cleanup; // thread for cleaning up dead sessions.
 	pthread_t t_healthagent; // thread for health agent. 
 	pthread_t t_cli; // thread for cli.
+	pthread_t t_eventmanager; // thread for eventmanager.
 	struct ifaddrs *ifaddr, *ifa;
 	__u32 tempIP;
 	int s;
@@ -204,6 +206,7 @@ int main(int argc, char *argv[])
 		pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
 		pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
 		pthread_create(&t_cli, NULL, cli_function, (void *)NULL);
+		pthread_create(&t_eventmanager, NULL, eventmanager_function, (void *)NULL);
 		
 		/*
 		 * Rejoin all threads before we exit!
@@ -212,6 +215,7 @@ int main(int argc, char *argv[])
         pthread_join(t_cleanup, NULL);
         pthread_join(t_healthagent, NULL);
         pthread_join(t_cli, NULL);
+        pthread_join(t_eventmanager, NULL);
         
         for (i = 0; i < numworkers; i++){
         	
