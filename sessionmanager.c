@@ -140,7 +140,7 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 			 */
 			pthread_mutex_lock(&sessiontable[hash].lock); // Grab lock on the session bucket.
 	
-			if (sessiontable[hash].len == 0){ // Check if any session are in this bucket.
+			if (sessiontable[hash].qlen == 0){ // Check if any session are in this bucket.
 				sessiontable[hash].next = newsession; // Session Head next will point to the new session.
 				sessiontable[hash].prev = newsession; // Session Head prev will point to the new session.
 			}
@@ -150,10 +150,10 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 				sessiontable[hash].prev = newsession; // Make this new session the last session in the session bucket.
 			}
 		
-			sessiontable[hash].len += 1; // Need to increase the session count in this session bucket.	
+			sessiontable[hash].qlen += 1; // Need to increase the session count in this session bucket.	
 	
 			if (DEBUG_SESSIONMANAGER_INSERT == true){
-				sprintf(message, "Session Manager: There are %u sessions in this bucket now.\n", sessiontable[hash].len);
+				sprintf(message, "Session Manager: There are %u sessions in this bucket now.\n", sessiontable[hash].qlen);
 				logger(LOG_INFO, message);
 			}
 	
@@ -261,10 +261,10 @@ void clearsession(struct session *currentsession){
 			currentsession->next->prev = currentsession->prev; // Sets the next session previous to the previous session.
 		}
 		
-		currentsession->head->len -= 1; // Need to increase the session count in this session bucket.	
+		currentsession->head->qlen -= 1; // Need to increase the session count in this session bucket.	
 	
 		if (DEBUG_SESSIONMANAGER_REMOVE == true){
-			sprintf(message, "Session Manager: There are %u sessions in this bucket now.\n", currentsession->head->len);
+			sprintf(message, "Session Manager: There are %u sessions in this bucket now.\n", currentsession->head->qlen);
 			logger(LOG_INFO, message);
 		}
 		
