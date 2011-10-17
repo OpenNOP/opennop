@@ -7,7 +7,7 @@
 struct session_head {
 	struct session *next; /* Points to the first session of the list. */
 	struct session *prev; /* Points to the last session of the list. */
-	u_int32_t len; // Total number of sessions in the list.
+	u_int32_t qlen; // Total number of sessions in the list.
 	pthread_mutex_t lock; // Lock for this session bucket.
 };
 
