@@ -33,7 +33,7 @@ void *cli_function (void *dummyPtr){
 	 * "name" 1234, which was created by
 	 * the server.
 	 */
-	key = 1234;
+	key = ftok("/var/opennop",'o');
     
     sprintf(message, "\nmsgget: Calling msgget(%#x, %#o)\n", key, msgflg);
 	logger(LOG_INFO, message);
