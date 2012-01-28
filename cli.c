@@ -9,10 +9,9 @@
 
 #include <linux/types.h>
 
+#include "cli.h"
 #include "daemon.h"
 #include "logger.h"
-
-#define MSGSZ     128
 
 typedef struct msgbuf {
          long    mtype;
@@ -25,7 +24,6 @@ void *cli_function (void *dummyPtr){
     int msgflg = IPC_CREAT | 0666;
     key_t key;
     message_buf sbuf;
-    size_t buf_length;
     char message [LOGSZ];
     
 	/*
@@ -33,13 +31,19 @@ void *cli_function (void *dummyPtr){
 	 * "name" 1234, which was created by
 	 * the server.
 	 */
-	key = ftok("/var/opennop",'o');
+	if ((key = ftok("/var/opennop",'o')) == -1) { /* Create the opennop key */
+		sprintf(message, "Could not create the opennop message queue key.");
+        logger(LOG_INFO, message);
+        sprintf(message, "Does /var/opennop exist?");
+        logger(LOG_INFO, message);
+        exit(1);
+	}
     
     sprintf(message, "\nmsgget: Calling msgget(%#x, %#o)\n", key, msgflg);
 	logger(LOG_INFO, message);
 	
-	if ((msqid = msgget(key, msgflg )) < 0) {
-        sprintf(message, "msgget");
+	if ((msqid = msgget(key, msgflg )) == -1) { /* Connect to the message queue */
+        sprintf(message, "Could not connect to the message queue.");
         logger(LOG_INFO, message);
         exit(1);
     }else{
@@ -57,6 +61,19 @@ void *cli_function (void *dummyPtr){
 		 * command line events/messages should be processed.
 		 */
 		
+		if (msgrcv(msqid, &sbuf, sizeof(sbuf.mtext), 0, 0) == -1) {
+       	 	sprintf(message, "Error receiving message.");
+        	logger(LOG_INFO, message);
+        	exit(1);
+		}else{
+			sprintf(message, sbuf.mtext);
+        	logger(LOG_INFO, message);
+		}			
+		
+		/*
+		 * 
+		 * This is for getting a message from the queue.
+		size_t buf_length;
 		sbuf.mtype = 1;
 		//fprintf(stderr,"msgget: msgget succeeded: msqid = %d\n", msqid);
 		strcpy(sbuf.mtext, "Did you get this?");
@@ -72,6 +89,8 @@ void *cli_function (void *dummyPtr){
       		logger(LOG_INFO, message);
 		}
 		sleep(15); // Sleeping for 15 seconds.
+		
+		*/
 	}
 	return NULL;
 }
