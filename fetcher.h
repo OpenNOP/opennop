@@ -5,6 +5,7 @@
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
 extern int DEBUG_FETCHER;
+extern int G_SCALEWINDOW;
 
 int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 			  struct nfq_data *nfa, void *data);

@@ -24,6 +24,7 @@
 #include "daemon.h"
 
 int DEBUG_FETCHER = false; 
+int G_SCALEWINDOW = 7;
 
 int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 			  struct nfq_data *nfa, void *data)
@@ -114,6 +115,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 						if (mms > 60){
 							__set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
 							__set_tcp_option((__u8 *)originalpacket,30,6,localIP); // Add the Accelerator ID to this packet.
+							__set_tcp_option((__u8 *)originalpacket,3,8,G_SCALEWINDOW); // Enable window scale.
 							
 							if (iph->saddr == largerIP){ // Set the Accelerator for this source.
 		 							thissession->largerIPAccelerator = localIP;
