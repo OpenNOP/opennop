@@ -188,7 +188,7 @@ static int _LZ_ReadVarSize( unsigned int * x, unsigned char * buf )
 * The function returns the size of the compressed data.
 *************************************************************************/
 
-int LZ_Compress( unsigned char *in, unsigned char *out,
+unsigned int LZ_Compress( unsigned char *in, unsigned char *out,
     unsigned int insize )
 {
     unsigned char marker, symbol;
@@ -326,7 +326,7 @@ int LZ_Compress( unsigned char *in, unsigned char *out,
 * The function returns the size of the compressed data.
 *************************************************************************/
 
-int LZ_CompressFast( unsigned char *in, unsigned char *out,
+unsigned int LZ_CompressFast( unsigned char *in, unsigned char *out,
     unsigned int insize, unsigned int *work )
 {
     unsigned char marker, symbol;
@@ -484,6 +484,7 @@ int LZ_CompressFast( unsigned char *in, unsigned char *out,
 *  out     - Output (uncompressed) buffer. This buffer must be large
 *            enough to hold the uncompressed data.
 *  insize  - Number of input bytes.
+* The function returns the size of the uncompressed data.
 *************************************************************************/
 
 unsigned int LZ_Uncompress( unsigned char *in, unsigned char *out,
