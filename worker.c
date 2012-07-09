@@ -12,7 +12,7 @@
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
 #include "worker.h"
-#include "daemon.h"
+#include "opennopd.h"
 #include "packet.h"
 #include "compression.h"
 #include "csum.h"

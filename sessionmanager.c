@@ -6,7 +6,7 @@
 #include <linux/types.h>
 
 #include "sessionmanager.h"
-#include "daemon.h"
+#include "opennopd.h"
 #include "logger.h"
 #include "worker.h"
 #include "session.h"

@@ -12,7 +12,7 @@
 
 #include "sessioncleanup.h"
 #include "sessionmanager.h"
-#include "daemon.h"
+#include "opennopd.h"
 #include "packet.h"
 #include "tcpoptions.h"
 #include "csum.h"

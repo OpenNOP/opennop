@@ -2,7 +2,7 @@
 #include <pthread.h>
 
 #include "eventmanager.h"
-#include "daemon.h"
+#include "opennopd.h"
 
 pthread_cond_t g_eventmanager_signal;
 struct event_head g_eventmanager_queue;

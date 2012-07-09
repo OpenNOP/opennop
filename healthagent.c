@@ -9,7 +9,7 @@
 #include <linux/genetlink.h> 
 
 #include "healthagent.h"
-#include "daemon.h"
+#include "opennopd.h"
 /*
  * Generic macros for dealing with netlink sockets. Might be duplicated
  * elsewhere. It is recommended that commercial grade applications use

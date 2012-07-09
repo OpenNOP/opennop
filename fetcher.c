@@ -21,7 +21,7 @@
 #include "tcpoptions.h"
 #include "csum.h"
 #include "packet.h"
-#include "daemon.h"
+#include "opennopd.h"
 
 int DEBUG_FETCHER = false; 
 int G_SCALEWINDOW = 7;
