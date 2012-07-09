@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "signal.h"
-#include "daemon.h"
+#include "opennopd.h"
 #include "logger.h"
 
 void signal_handler(int sig) 

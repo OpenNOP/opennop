@@ -10,7 +10,7 @@
 #include <linux/types.h>
 
 #include "cli.h"
-#include "daemon.h"
+#include "opennopd.h"
 #include "logger.h"
 
 typedef struct msgbuf {

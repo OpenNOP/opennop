@@ -5,7 +5,7 @@
 #include <linux/types.h>
 
 #include "logger.h"
-#include "daemon.h"
+#include "opennopd.h"
 
 /*
  * Logs a message to either the screen or to syslog.

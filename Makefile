@@ -1,7 +1,7 @@
 CC=gcc
-CFLAGS=-c -Wall -Wcast-align
+CFLAGS=-c -Wall -Wcast-align -Wcast-qual
 LDFLAGS=-lnfnetlink -lnetfilter_queue -lpthread -lnl
-SOURCES=daemon.c
+SOURCES=opennopd.c
 OBJECTS=$(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.c,%.o,$(wildcard */*.c))
 EXECUTABLE=opennopd
 DESTDIR?=/usr/local/bin
