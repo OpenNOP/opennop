@@ -9,21 +9,18 @@
 
 #include <linux/types.h>
 
-#include "cli.h"
-#include "opennopd.h"
-#include "logger.h"
+#include "../../include/cli.h"
+#include "../../include/opennopd.h"
+#include "../../include/logger.h"
 
-typedef struct msgbuf {
-         long    mtype;
-         char    mtext[MSGSZ];
- } message_buf;
+
 
 
 void *cli_function (void *dummyPtr){
 	int msqid;
     int msgflg = IPC_CREAT | 0666;
     key_t key;
-    message_buf sbuf;
+    message_buf rbuf;
     char message [LOGSZ];
     
 	/*
@@ -61,20 +58,42 @@ void *cli_function (void *dummyPtr){
 		 * command line events/messages should be processed.
 		 */
 		
-		if (msgrcv(msqid, &sbuf, sizeof(sbuf.mtext), 0, 0) == -1) {
-       	 	sprintf(message, "Error receiving message.");
-        	logger(LOG_INFO, message);
-        	exit(1);
-		}else{
-			sprintf(message, sbuf.mtext);
-        	logger(LOG_INFO, message);
-		}			
+		
+		/*
+		 * Receive an answer of message type 1.
+		 */
+		if (msgrcv(msqid, &rbuf, MSGSZ, 1, 0) < 0) {
+			perror("msgrcv");
+			exit(1);
+		}
+
+		/*
+		 * Print the answer.
+		 */
+		sprintf(message,"%s\n", rbuf.mtext);
+		logger(LOG_INFO, message);
+		
+		
+		/*
+		 * This seems to be for sending a message.
+		 * I'll need to use this to reply back to the user interface.
+		 */
+		
+		//if (msgrcv(msqid, &sbuf, sizeof(sbuf.mtext), 0, 0) == -1) {
+       	// 	sprintf(message, "Error receiving message.");
+        //	logger(LOG_INFO, message);
+        //	exit(1);
+		//}else{
+		//	sprintf(message, sbuf.mtext);
+        //	logger(LOG_INFO, message);
+		//}			
 		
 		/*
 		 * 
 		 * This is for getting a message from the queue.
+		 
 		size_t buf_length;
-		sbuf.mtype = 1;
+		sbuf.mtype = 1; //TWhen we use this it will be the PID of the CLI.
 		//fprintf(stderr,"msgget: msgget succeeded: msqid = %d\n", msqid);
 		strcpy(sbuf.mtext, "Did you get this?");
     	//fprintf(stderr,"msgget: msgget succeeded: msqid = %d\n", msqid);
@@ -88,9 +107,10 @@ void *cli_function (void *dummyPtr){
       		sprintf(message, "Message: \"%s\" Sent\n", sbuf.mtext);
       		logger(LOG_INFO, message);
 		}
-		sleep(15); // Sleeping for 15 seconds.
-		
 		*/
+		
+		
+		
 	}
 	return NULL;
 }

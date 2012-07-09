@@ -4,9 +4,9 @@
 
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
-#include "queuemanager.h"
-#include "packet.h"
-#include "worker.h"
+#include "../include/queuemanager.h"
+#include "../include/packet.h"
+#include "../include/worker.h"
 
 int queue_packet(struct nfq_q_handle *hq, u_int32_t id, int ret, __u8 *originalpacket, struct session *thissession){
 struct packet *newpacket = NULL;

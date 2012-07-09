@@ -4,8 +4,8 @@
 #include <netinet/in.h>
 #include <linux/types.h>
 
-#include "logger.h"
-#include "opennopd.h"
+#include "../include/logger.h"
+#include "../include/opennopd.h"
 
 /*
  * Logs a message to either the screen or to syslog.
