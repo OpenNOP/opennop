@@ -1,23 +1,30 @@
 CC=gcc
 CFLAGS=-c -Wall -Wcast-align -Wcast-qual
 LDFLAGS=-lnfnetlink -lnetfilter_queue -lpthread -lnl
-SOURCES=opennopd.c
-OBJECTS=$(patsubst %.c,%.o,$(wildcard *.c)) $(patsubst %.c,%.o,$(wildcard */*.c))
-EXECUTABLE=opennopd
+SOURCES=opennop/opennop opennopd/opennopd
+OPENNOPD_OBJS=$(patsubst %.c,%.o,$(wildcard opennopd/*.c)) $(patsubst %.c,%.o,$(wildcard opennopd/subsystems/*.c)) $(patsubst %.c,%.o,$(wildcard opennopd/bcl/*.c))
+OPENNOP_OBJS=$(patsubst %.c,%.o,$(wildcard opennop/*.c))
+OPENNOP=opennop
+OPENNOPD=opennopd
 DESTDIR?=/usr/local/bin
 
-all: $(SOURCES) $(EXECUTABLE)
+all: $(SOURCES)
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+opennop/opennop: $(OPENNOP_OBJS) $(OPENNOP)
+	$(CC) $(OPENNOP_OBJS) -o $@
+
+opennopd/opennopd: $(OPENNOPD_OBJS) $(OPENNOPD)
+	$(CC) $(OPENNOPD_OBJS) -o $@ $(LDFLAGS)
 	
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm $(OBJECTS)
-	rm $(EXECUTABLE)
+	rm $(OPENNOP_OBJS)
+	rm $(OPENNOPD_OBJS)
+	rm $(SOURCES)
 	
 install:
 	mkdir -p $(DESTDIR)
-	install $(EXECUTABLE) $(DESTDIR)/$(EXECUTABLE)
+	install opennop/opennop $(DESTDIR)/opennop
+	install opennopd/opennopd $(DESTDIR)/opennopd

@@ -3,7 +3,7 @@
 
 #include <linux/types.h>
 
-#include "csum.h"
+#include "../include/csum.h"
 
 /* Original function from http://www.bloof.de/tcp_checksumming */
 /* also from http://www.netfor2.com/tcpsum.htm */

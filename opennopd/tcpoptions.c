@@ -6,8 +6,8 @@
 #include <netinet/ip.h> // for tcpmagic and TCP options
 #include <netinet/tcp.h> // for tcpmagic and TCP options
 
-#include "tcpoptions.h"
-#include "logger.h"
+#include "../include/tcpoptions.h"
+#include "../include/logger.h"
 
 int DEBUG_TCPOPTIONS = false;
 
@@ -76,8 +76,6 @@ __u64 __get_tcp_option(__u8 *ippacket, __u8 tcpoptnum){
 	}
 	return 0;
 }
-
-#include "tcpoptions.h"
 
 /*
  * yaplej: This function will attempt to update,

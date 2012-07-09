@@ -14,14 +14,14 @@
 
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
-#include "fetcher.h"
-#include "queuemanager.h"
-#include "sessionmanager.h"
-#include "logger.h"
-#include "tcpoptions.h"
-#include "csum.h"
-#include "packet.h"
-#include "opennopd.h"
+#include "../../include/fetcher.h"
+#include "../../include/queuemanager.h"
+#include "../../include/sessionmanager.h"
+#include "../../include/logger.h"
+#include "../../include/tcpoptions.h"
+#include "../../include/csum.h"
+#include "../../include/packet.h"
+#include "../../include/opennopd.h"
 
 int DEBUG_FETCHER = false; 
 int G_SCALEWINDOW = 7;

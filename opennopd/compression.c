@@ -3,9 +3,9 @@
 #include <netinet/ip.h> // for tcpmagic and TCP options
 #include <netinet/tcp.h> // for tcpmagic and TCP options
 
-#include "compression.h"
+#include "../include/compression.h"
 #include "bcl/lz.h"
-#include "tcpoptions.h"
+#include "../include/tcpoptions.h"
 
 /*
  * Compresses the TCP data of an SKB.
