@@ -1,9 +1,10 @@
 CC=gcc
 CFLAGS=-c -Wall -Wcast-align -Wcast-qual
-LDFLAGS=-lnfnetlink -lnetfilter_queue -lpthread -lnl
+OPENNOPDLDFLAGS=-lnfnetlink -lnetfilter_queue -lpthread -lnl
+OPENNOPLDFLAGS=-pthread -lncurses
 SOURCES=opennop/opennop opennopd/opennopd
 OPENNOPD_OBJS=$(patsubst %.c,%.o,$(wildcard opennopd/*.c)) $(patsubst %.c,%.o,$(wildcard opennopd/subsystems/*.c)) $(patsubst %.c,%.o,$(wildcard opennopd/bcl/*.c))
-OPENNOP_OBJS=$(patsubst %.c,%.o,$(wildcard opennop/*.c))
+OPENNOP_OBJS=$(patsubst %.c,%.o,$(wildcard opennop/*.c)) $(patsubst %.c,%.o,$(wildcard opennop/subsystems/*.c))
 OPENNOP=opennop
 OPENNOPD=opennopd
 DESTDIR?=/usr/local/bin
@@ -11,10 +12,10 @@ DESTDIR?=/usr/local/bin
 all: $(SOURCES)
 
 opennop/opennop: $(OPENNOP_OBJS) $(OPENNOP)
-	$(CC) $(OPENNOP_OBJS) -o $@
+	$(CC) $(OPENNOP_OBJS) -o $@ $(OPENNOPLDFLAGS)
 
 opennopd/opennopd: $(OPENNOPD_OBJS) $(OPENNOPD)
-	$(CC) $(OPENNOPD_OBJS) -o $@ $(LDFLAGS)
+	$(CC) $(OPENNOPD_OBJS) -o $@ $(OPENNOPDLDFLAGS)
 	
 .c.o:
 	$(CC) $(CFLAGS) $< -o $@
