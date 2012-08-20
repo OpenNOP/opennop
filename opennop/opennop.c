@@ -10,7 +10,7 @@
 #include <sys/msg.h>
 
 
-#include "../include/cli.h"
+#include "../include/messages.h"
 
 int main()
 {
@@ -25,7 +25,7 @@ int main()
     int msqid;
     int msgflg = IPC_CREAT | 0666;
     key_t key;
-    message_buf sbuf;
+    struct msgbuf sbuf;
     size_t buf_length;
 
     /*
@@ -65,18 +65,18 @@ int main()
 
     fprintf(stderr,"msgget: msgget succeeded: msqid = %d\n", msqid);
 
-    buf_length = sizeof(message_buf) - sizeof(long);
+    buf_length = sizeof(struct msgbuf) - sizeof(long);
 
-    pthread_t t_cli; // thread for cli.
+    pthread_t t_message; // thread for passing messages.
 
     fprintf(stderr,"opennop: Starting listener thread.\n");
-    pthread_create(&t_cli, NULL, cli_function, (void *)NULL);
+    pthread_create(&t_message, NULL, messages_function, (void *)NULL);
 
     while (quit != true)
     {
 
         fputs("enter some text: ", stdout);
-        fflush(stdout); /* http://c-faq.com/stdio/fflush.html */
+        fflush(stdout); /* http://c-faq.com/_stdio/fflush.html */
 
         if (fgets(text, sizeof text, stdin) != NULL)
         {
@@ -122,7 +122,7 @@ int main()
     /*
      * I dont want to wait for the thread to end just stop it.
      */
-    //pthread_join(t_cli, NULL);
+    //pthread_join(t_messages, NULL);
 
     return 0;
 }

@@ -9,15 +9,15 @@
 
 #include <linux/types.h>
 
-#include "../../include/cli.h"
+#include "../../include/messages.h"
 
-void *cli_function (void *dummyPtr)
+void *messages_function (void *dummyPtr)
 {
     pid_t pid;
     int msqid;
     int msgflg = IPC_CREAT | 0666;
     key_t key;
-    message_buf rbuf;
+    struct msgbuf rbuf;
     size_t buf_length;
 
     /*
@@ -50,7 +50,7 @@ void *cli_function (void *dummyPtr)
         printf("msgget: msgget succeeded: msqid = %d\n", msqid);
     }
 
-    buf_length = sizeof(message_buf) - sizeof(long);
+    buf_length = sizeof(struct msgbuf) - sizeof(long);
 
     for (;;)
     {

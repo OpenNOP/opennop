@@ -9,20 +9,20 @@
 
 #include <linux/types.h>
 
-#include "../../include/cli.h"
+#include "../../include/messages.h"
 #include "../../include/opennopd.h"
 #include "../../include/logger.h"
 
 
 
 
-void *cli_function (void *dummyPtr)
+void *messages_function (void *dummyPtr)
 {
     int msqid;
     int msgflg = IPC_CREAT | 0666;
     key_t key;
-    message_buf rbuf;
-    message_buf sbuf;
+    struct msgbuf rbuf;
+    struct msgbuf sbuf;
     char message [LOGSZ];
     size_t buf_length;
     int stringcompare;
@@ -56,7 +56,7 @@ void *cli_function (void *dummyPtr)
         logger(LOG_INFO, message);
     }
 
-    buf_length = sizeof(message_buf) - sizeof(long);
+    buf_length = sizeof(struct msgbuf) - sizeof(long);
 
     while (servicestate >= STOPPING)
     {
