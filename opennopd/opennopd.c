@@ -24,7 +24,7 @@
 #include "../include/signal.h"
 #include "../include/worker.h"
 #include "../include/healthagent.h"
-#include "../include/cli.h"
+#include "../include/messages.h"
 #include "../include/eventmanager.h"
 
 #define DAEMON_NAME "opennopd"
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
 	pthread_t t_fetcher; // thread for getting packets out of Netfilter Queue.
 	pthread_t t_cleanup; // thread for cleaning up dead sessions.
 	pthread_t t_healthagent; // thread for health agent. 
-	pthread_t t_cli; // thread for cli.
+	pthread_t t_messages; // thread for messages.
 	pthread_t t_eventmanager; // thread for eventmanager.
 	struct ifaddrs *ifaddr, *ifa;
 	__u32 tempIP;
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 		pthread_create(&t_fetcher, NULL, fetcher_function, (void *)NULL);
 		pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
 		pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
-		pthread_create(&t_cli, NULL, cli_function, (void *)NULL);
+		pthread_create(&t_messages, NULL, messages_function, (void *)NULL);
 		pthread_create(&t_eventmanager, NULL, eventmanager_function, (void *)NULL);
 		
 		/*
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
         pthread_join(t_fetcher, NULL);
         pthread_join(t_cleanup, NULL);
         pthread_join(t_healthagent, NULL);
-        pthread_join(t_cli, NULL);
+        pthread_join(t_messages, NULL);
         pthread_join(t_eventmanager, NULL);
         
         for (i = 0; i < numworkers; i++){
