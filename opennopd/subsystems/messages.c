@@ -85,6 +85,15 @@ void *messages_function (void *dummyPtr)
          */
         sprintf(message,"%i,%s\n",rbuf.sender, rbuf.mtext);
         logger(LOG_INFO, message);
+        
+        /*
+         * TODO:
+         * I need to parse the rbuf.mtext into an array of arguments
+         * that can be digested by a linked list of functions.  The
+         * list will be a collection of functions that are will
+         * get registered by each module for processing the
+         * array of arguments.
+         */
 
 
         /*
