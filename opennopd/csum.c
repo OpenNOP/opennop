@@ -1,8 +1,7 @@
 #include <netinet/ip.h> // for tcpmagic and TCP options
 #include <netinet/tcp.h> // for tcpmagic and TCP options
-
 #include <linux/types.h>
-
+#include <stdlib.h>	
 #include "../include/csum.h"
 
 /* Original function from http://www.bloof.de/tcp_checksumming */
