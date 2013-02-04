@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "../include/help.h"
+#include "help.h"
 void PrintUsage(int argc, char * argv[]) {
 	if (argc >=1) {
 		printf("Usage: %s -h -n\n", argv[0]);

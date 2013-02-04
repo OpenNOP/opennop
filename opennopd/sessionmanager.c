@@ -5,11 +5,11 @@
 
 #include <linux/types.h>
 
-#include "../include/sessionmanager.h"
-#include "../include/opennopd.h"
-#include "../include/logger.h"
-#include "../include/worker.h"
-#include "../include/session.h"
+#include "sessionmanager.h"
+#include "opennopd.h"
+#include "logger.h"
+#include "worker.h"
+#include "session.h"
 
 
 struct session_head sessiontable[SESSIONBUCKETS]; // Setup the session hashtable.

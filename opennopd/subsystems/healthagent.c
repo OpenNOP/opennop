@@ -8,8 +8,8 @@
 
 #include <linux/genetlink.h> 
 
-#include "../../include/healthagent.h"
-#include "../../include/opennopd.h"
+#include "healthagent.h"
+#include "opennopd.h"
 /*
  * Generic macros for dealing with netlink sockets. Might be duplicated
  * elsewhere. It is recommended that commercial grade applications use
@@ -273,7 +273,6 @@ int send_hb()
 	/*send message*/
 	struct sockaddr_nl nladdr;
         int r;
-        
         memset(&nladdr, 0, sizeof(nladdr));
         nladdr.nl_family = AF_NETLINK;
     

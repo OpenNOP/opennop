@@ -10,7 +10,7 @@
 #include <sys/msg.h>
 
 
-#include "../include/messages.h"
+#include "messages.h"
 
 int main()
 {
