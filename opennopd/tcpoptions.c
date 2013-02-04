@@ -6,8 +6,8 @@
 #include <netinet/ip.h> // for tcpmagic and TCP options
 #include <netinet/tcp.h> // for tcpmagic and TCP options
 
-#include "../include/tcpoptions.h"
-#include "../include/logger.h"
+#include "tcpoptions.h"
+#include "logger.h"
 
 int DEBUG_TCPOPTIONS = false;
 

@@ -6,10 +6,10 @@
 
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
-#include "../include/queuemanager.h"
-#include "../include/packet.h"
-#include "../include/worker.h"
-#include "../include/logger.h"
+#include "queuemanager.h"
+#include "packet.h"
+#include "worker.h"
+#include "logger.h"
 
 int DEBUG_QUEUEMANAGER = false;
 

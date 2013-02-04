@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "../include/packet.h"
+#include "packet.h"
 
 struct packet *newpacket(void)
 {

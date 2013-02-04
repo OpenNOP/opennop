@@ -1,4 +1,6 @@
 CC=gcc
+PWD=$(shell pwd)
+INCLUDE_DIR= $(PWD)/include
 CFLAGS=-c -Wall -Wcast-align -Wcast-qual
 OPENNOPDLDFLAGS=-lnfnetlink -lnetfilter_queue -lpthread -lnl -lcrypt
 OPENNOPLDFLAGS=-pthread -lncurses
@@ -12,13 +14,13 @@ DESTDIR?=/usr/local/bin
 all: $(SOURCES)
 
 opennop/opennop: $(OPENNOP_OBJS) $(OPENNOP)
-	$(CC) $(OPENNOP_OBJS) -o $@ $(OPENNOPLDFLAGS)
+	$(CC) -I $(INCLUDE_DIR) $(OPENNOP_OBJS) -o $@ $(OPENNOPLDFLAGS)
 
 opennopd/opennopd: $(OPENNOPD_OBJS) $(OPENNOPD)
-	$(CC) $(OPENNOPD_OBJS) -o $@ $(OPENNOPDLDFLAGS)
+	$(CC) -I $(INCLUDE_DIR) $(OPENNOPD_OBJS) -o $@ $(OPENNOPDLDFLAGS)
 	
 .c.o:
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) -I $(INCLUDE_DIR) $(CFLAGS) $< -o $@
 
 clean:
 	rm $(OPENNOP_OBJS)

@@ -9,7 +9,7 @@
 
 #include <linux/types.h>
 
-#include "../../include/messages.h"
+#include "messages.h"
 
 void *messages_function (void *dummyPtr)
 {
