@@ -6,7 +6,7 @@
 
 #include <linux/types.h>
 
-#include "../include/commands.h"
+#include "commands.h"
 
 /* Structure used for the head of a command list.. */
 struct command_head

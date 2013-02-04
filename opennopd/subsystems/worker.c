@@ -11,15 +11,15 @@
 
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
-#include "../../include/worker.h"
-#include "../../include/opennopd.h"
-#include "../../include/packet.h"
-#include "../../include/compression.h"
-#include "../../include/csum.h"
-#include "../../include/sessionmanager.h"
-#include "../../include/queuemanager.h"
-#include "../../include/tcpoptions.h"
-#include "../../include/logger.h"
+#include "queuemanager.h"
+#include "worker.h"
+#include "opennopd.h"
+#include "packet.h"
+#include "compression.h"
+#include "csum.h"
+#include "sessionmanager.h"
+#include "tcpoptions.h"
+#include "logger.h"
 
 struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.

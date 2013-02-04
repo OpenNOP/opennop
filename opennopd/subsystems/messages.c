@@ -9,9 +9,9 @@
 
 #include <linux/types.h>
 
-#include "../../include/messages.h"
-#include "../../include/opennopd.h"
-#include "../../include/logger.h"
+#include "messages.h"
+#include "opennopd.h"
+#include "logger.h"
 
 
 

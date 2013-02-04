@@ -15,17 +15,17 @@
 
 #include <linux/types.h>
 
-#include "../include/opennopd.h"
-#include "../include/fetcher.h"
-#include "../include/logger.h"
-#include "../include/sessioncleanup.h"
-#include "../include/sessionmanager.h"
-#include "../include/help.h"
-#include "../include/signal.h"
-#include "../include/worker.h"
-#include "../include/healthagent.h"
-#include "../include/messages.h"
-#include "../include/eventmanager.h"
+#include "opennopd.h"
+#include "fetcher.h"
+#include "logger.h"
+#include "sessioncleanup.h"
+#include "sessionmanager.h"
+#include "help.h"
+#include "signals.h"
+#include "worker.h"
+#include "healthagent.h"
+#include "messages.h"
+#include "eventmanager.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"

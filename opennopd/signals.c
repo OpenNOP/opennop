@@ -3,9 +3,9 @@
 #include <signal.h>
 #include <string.h>
 
-#include "../include/signal.h"
-#include "../include/opennopd.h"
-#include "../include/logger.h"
+#include "signals.h"
+#include "opennopd.h"
+#include "logger.h"
 
 void signal_handler(int sig) 
 {

@@ -10,13 +10,13 @@
 
 #include <linux/types.h>
 
-#include "../../include/sessioncleanup.h"
-#include "../../include/sessionmanager.h"
-#include "../../include/opennopd.h"
-#include "../../include/packet.h"
-#include "../../include/tcpoptions.h"
-#include "../../include/csum.h"
-#include "../../include/logger.h"
+#include "sessioncleanup.h"
+#include "sessionmanager.h"
+#include "opennopd.h"
+#include "packet.h"
+#include "tcpoptions.h"
+#include "csum.h"
+#include "logger.h"
 
 int rawsock = 0; // Used to send keep-alive messages.
 

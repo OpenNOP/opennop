@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#include "../include/eventmanager.h"
-#include "../include/opennopd.h"
+#include "eventmanager.h"
+#include "opennopd.h"
 
 pthread_cond_t g_eventmanager_signal;
 struct event_head g_eventmanager_queue;
