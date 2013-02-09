@@ -18,6 +18,5 @@ clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
 	
 install:
-	install -d -v /usr/local/lib/modules/`uname -r`/misc/
-	install $(MODULE).ko /usr/local/lib/modules/`uname -r`/misc/$(MODULE).ko
+	$(MAKE) -C $(KDIR) M=$(PWD) modules_install
 	
