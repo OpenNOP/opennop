@@ -11,9 +11,8 @@ libnl_CFLAGS=`pkg-config --cflags libnl-1`
 ncurses_LIBS=`pkg-config --libs ncurses`
 ncurses_CFLAGS=`pkg-config --cflags ncurses`
 OPENNOPDLDFLAGS=-lpthread -lcrypt $(libnfnetlink_LIBS) $(libnetfilter_queue_LIBS) $(libnl_LIBS)
-OPENNOPDCFLAGS=$(libnfnetlink_CFLAGS) $(libnetfilter_queue_CFLAGS) $(libnl_CFLAGS)
 OPENNOPLDFLAGS= -lpthread $(ncurses_LIBS)
-OPENNOPCFLAGS=$(ncurses_CFLAGS)
+CFLAGS=$(libnfnetlink_CFLAGS) $(libnetfilter_queue_CFLAGS) $(libnl_CFLAGS) $(ncurses_CFLAGS)
 SOURCES=opennop/opennop opennopd/opennopd
 OPENNOPD_OBJS=$(patsubst %.c,%.o,$(wildcard opennopd/*.c)) $(patsubst %.c,%.o,$(wildcard opennopd/subsystems/*.c)) $(patsubst %.c,%.o,$(wildcard opennopd/bcl/*.c)) $(patsubst %.c,%.o,$(wildcard opennopd/libcli/*.c))
 OPENNOP_OBJS=$(patsubst %.c,%.o,$(wildcard opennop/*.c)) $(patsubst %.c,%.o,$(wildcard opennop/subsystems/*.c))
@@ -24,13 +23,13 @@ DESTDIR?=/usr/local/bin
 all: $(SOURCES)
 
 opennop/opennop: $(OPENNOP_OBJS) $(OPENNOP)
-	$(CC) $(OPENNOPCFLAGS) -I $(INCLUDE_DIR) $(OPENNOP_OBJS) -o $@ $(OPENNOPLDFLAGS)
+	$(CC) $(CFLAGS) -I $(INCLUDE_DIR) $(OPENNOP_OBJS) -o $@ $(OPENNOPLDFLAGS)
 
 opennopd/opennopd: $(OPENNOPD_OBJS) $(OPENNOPD)
-	$(CC) $(OPENNOPDCFLAGS) -I $(INCLUDE_DIR) $(OPENNOPD_OBJS) -o $@ $(OPENNOPDLDFLAGS)
+	$(CC) $(CFLAGS) -I $(INCLUDE_DIR) $(OPENNOPD_OBJS) -o $@ $(OPENNOPDLDFLAGS)
 	
 .c.o:
-	$(CC) -I $(INCLUDE_DIR) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) -I $(INCLUDE_DIR) $(CFLAGS) $< -o $@
 
 clean:
 	rm $(OPENNOP_OBJS)
