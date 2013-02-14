@@ -29,7 +29,7 @@ opennopd/opennopd: $(OPENNOPD_OBJS) $(OPENNOPD)
 	$(CC) $(CFLAGS) -I $(INCLUDE_DIR) $(OPENNOPD_OBJS) -o $@ $(OPENNOPDLDFLAGS)
 	
 .c.o:
-	$(CC) $(CFLAGS) -I $(INCLUDE_DIR) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) -I $(INCLUDE_DIR) $< -o $@
 
 clean:
 	rm $(OPENNOP_OBJS)
