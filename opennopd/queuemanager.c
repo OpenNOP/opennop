@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <pthread.h> // for multi-threading
-
+#include <stdint.h> // Sharwan Joram:  uint32_t etc./ are defined in this
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
 #include "queuemanager.h"
