@@ -20,6 +20,7 @@
 #include "sessionmanager.h"
 #include "tcpoptions.h"
 #include "logger.h"
+#include "quicklz.h"
 
 struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
@@ -35,12 +36,18 @@ void *worker_function (void *dummyPtr)
     __u32 largerIP, smallerIP, acceleratorID;
     __u16 largerIPPort, smallerIPPort;
     char message [LOGSZ];
+	qlz_state_compress *state_compress = (qlz_state_compress *)malloc(sizeof(qlz_state_compress));
+	qlz_state_decompress *state_decompress = (qlz_state_decompress *)malloc(sizeof(qlz_state_decompress));
     me = dummyPtr;
 
-    me->lzbuffer = calloc(1,BUFSIZE);
-    me->lzfastbuffer = calloc(131072,sizeof(unsigned int));
+    me->lzbuffer = calloc(1,sizeof(BUFSIZE) + 400);
+	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
+	if ( NULL == me->lzbuffer){
+		sprintf(message, "Worker: Couldn't allocate buffer");
+		exit(1);
+	}
 
-    if ((me->lzbuffer != NULL) && (me->lzfastbuffer != NULL))
+    if (me->lzbuffer != NULL) 
     {
 
         while (me->state >= STOPPING)
@@ -119,8 +126,7 @@ void *worker_function (void *dummyPtr)
                                     sprintf(message, "Worker: Compressing packet.\n");
                                     logger(LOG_INFO, message);
                                 }
-
-                                tcp_compress((__u8 *)iph,me->lzbuffer,me->lzfastbuffer);
+	                            tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
                             }
                             else
                             {
@@ -162,7 +168,7 @@ void *worker_function (void *dummyPtr)
                                     /*
                                      * Decompress this packet!
                                      */
-                                    if (tcp_decompress((__u8 *)iph,me->lzbuffer,me->lzfastbuffer) == 0)
+                                    if (tcp_decompress((__u8 *)iph, me->lzbuffer, state_decompress) == 0)
                                     { // Decompression failed if 0.
                                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
                                         free(thispacket);
@@ -230,9 +236,9 @@ void *worker_function (void *dummyPtr)
             } /* End NULL packet check. */
         } /* End working loop. */
         free(me->lzbuffer);
-        free(me->lzfastbuffer);
+		free(state_compress);
+		free(state_decompress);
         me->lzbuffer = NULL;
-        me->lzfastbuffer = NULL;
     }
     return NULL;
 }
