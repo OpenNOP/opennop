@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
         workers[i].queue.next = NULL; // Initialize the queue.
         workers[i].queue.prev = NULL;
         workers[i].lzbuffer = NULL;
-        workers[i].lzfastbuffer = NULL;
+        //workers[i].lzfastbuffer = NULL;
         workers[i].sessions = 0;
         workers[i].queue.qlen = 0;
         pthread_mutex_init(&workers[i].queue.lock, NULL); // Initialize the queue lock.
