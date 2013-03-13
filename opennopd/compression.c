@@ -67,8 +67,10 @@ unsigned int tcp_decompress(__u8 *ippacket, __u8 *lzbuffer, qlz_state_decompress
 	__u8 *tcpdata = NULL; /* Starting location for the TCP data. */
 	char message [LOGSZ];
 	
-	sprintf(message, "[OpenNOP]: Entering into TCP DECOMPRESS \n");
-	logger(LOG_INFO, message);
+	if (DEBUG_COMPRESSION == 1){
+		sprintf(message, "[OpenNOP]: Entering into TCP DECOMPRESS \n");
+		logger(LOG_INFO, message);
+	}
 
 	if ((ippacket != NULL) &&( NULL != state_decompress)){ // If the skb or state_decompress is NULL abort compression.
 		iph = (struct iphdr *)ippacket; // Access ip header.
