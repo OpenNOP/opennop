@@ -40,7 +40,8 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 			tcpdata = (__u8 *) tcph + tcph->doff * 4; // Find starting location of the TCP data.
 
 			if (DEBUG_COMPRESSION == true) {
-				sprintf(message, "Compression: Old IP Packet length is: %u\n",
+				sprintf(message,
+						"Compression: Original TCP data length is: %u\n",
 						oldsize);
 				logger(LOG_INFO, message);
 			}
@@ -51,11 +52,16 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 				if (lzbuffer != NULL) {
 					newsize = qlz_compress((char *) tcpdata, (char *) lzbuffer,
 							oldsize, state_compress);
+				} else {
+					if (DEBUG_COMPRESSION == true) {
+						sprintf(message, "Compression: lzbuffer was NULL!\n");
+						logger(LOG_INFO, message);
+					}
 				}
 
 				if (DEBUG_COMPRESSION == true) {
 					sprintf(message,
-							"Compression: New IP Packet length is: %u\n",
+							"Compression: New TCP data length is: %u\n",
 							newsize);
 					logger(LOG_INFO, message);
 				}
