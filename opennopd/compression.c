@@ -50,9 +50,16 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 				newsize = (oldsize * 2);
 
 				if (lzbuffer != NULL) {
+
+					if (DEBUG_COMPRESSION == true) {
+						sprintf(message, "Compression: Begin compression.\n");
+						logger(LOG_INFO, message);
+					}
+
 					newsize = qlz_compress((char *) tcpdata, (char *) lzbuffer,
 							oldsize, state_compress);
 				} else {
+
 					if (DEBUG_COMPRESSION == true) {
 						sprintf(message, "Compression: lzbuffer was NULL!\n");
 						logger(LOG_INFO, message);
