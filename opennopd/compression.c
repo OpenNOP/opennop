@@ -39,19 +39,18 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 					* 4;
 			tcpdata = (__u8 *) tcph + tcph->doff * 4; // Find starting location of the TCP data.
 
+			if (DEBUG_COMPRESSION == true) {
+				sprintf(message, "Compression: Old IP Packet length is: %u\n",
+						oldsize);
+				logger(LOG_INFO, message);
+			}
+
 			if (oldsize > 0) { // Only compress if there is any data.
 				newsize = (oldsize * 2);
 
 				if (lzbuffer != NULL) {
 					newsize = qlz_compress((char *) tcpdata, (char *) lzbuffer,
 							oldsize, state_compress);
-				}
-
-				if (DEBUG_COMPRESSION == true) {
-					sprintf(message,
-							"Compression: Old IP Packet length is: %u\n",
-							oldsize);
-					logger(LOG_INFO, message);
 				}
 
 				if (DEBUG_COMPRESSION == true) {
