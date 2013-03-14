@@ -40,7 +40,7 @@ void *worker_function (void *dummyPtr)
 	qlz_state_decompress *state_decompress = (qlz_state_decompress *)malloc(sizeof(qlz_state_decompress));
     me = dummyPtr;
 
-    me->lzbuffer = calloc(1,sizeof(BUFSIZE) + 400);
+    me->lzbuffer = calloc(1,BUFSIZE + 400);
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
 	if ( NULL == me->lzbuffer){
 		sprintf(message, "Worker: Couldn't allocate buffer");
