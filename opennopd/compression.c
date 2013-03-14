@@ -47,6 +47,20 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 							oldsize, state_compress);
 				}
 
+				if (DEBUG_COMPRESSION == true) {
+					sprintf(message,
+							"Compression: Old IP Packet length is: %u\n",
+							oldsize);
+					logger(LOG_INFO, message);
+				}
+
+				if (DEBUG_COMPRESSION == true) {
+					sprintf(message,
+							"Compression: New IP Packet length is: %u\n",
+							newsize);
+					logger(LOG_INFO, message);
+				}
+
 				if (newsize < oldsize) {
 					memmove(tcpdata, lzbuffer, newsize); // Move compressed data to packet.
 					//pskb_trim(skb,skb->len - (oldsize - newsize)); // Remove extra space from skb.
