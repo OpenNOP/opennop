@@ -23,6 +23,11 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 	__u8 *tcpdata = NULL; /* Starting location for the TCP data. */
 	char message[LOGSZ];
 
+	if (DEBUG_COMPRESSION == true) {
+		sprintf(message, "[OpenNOP]: Entering into TCP COMPRESS \n");
+		logger(LOG_INFO, message);
+	}
+
 	// If the skb or state_compress is NULL abort compression.
 	if ((ippacket != NULL) && (NULL != state_compress)) {
 		iph = (struct iphdr *) ippacket; // Access ip header.
@@ -56,6 +61,11 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 								oldsize, newsize);
 						logger(LOG_INFO, message);
 					}
+				}
+
+				if (DEBUG_COMPRESSION == true) {
+					sprintf(message, "[OpenNOP]: Leaving TCP COMPRESS \n");
+					logger(LOG_INFO, message);
 				}
 			}
 		}
