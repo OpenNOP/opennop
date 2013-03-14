@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include <netinet/ip.h> // for tcpmagic and TCP options
@@ -10,7 +11,7 @@
 #include "tcpoptions.h"
 #include "logger.h"
 
-int	DEBUG_COMPRESSION=0;
+int	DEBUG_COMPRESSION=false;
 
 /*
  * Compresses the TCP data of an SKB.
@@ -45,7 +46,7 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer, qlz_state_compress *st
  					__set_tcp_option((__u8 *)iph,31,3,1); // Set compression flag.
  					tcph->seq = htonl(ntohl(tcph->seq) + 8000); // Increase SEQ number.
 	
-					if (DEBUG_COMPRESSION == 1){
+					if (DEBUG_COMPRESSION == true){
 						sprintf(message, "Compressing [%d] size of data to [%d] \n", oldsize, newsize);
 						logger(LOG_INFO, message);
 					}
@@ -67,7 +68,7 @@ unsigned int tcp_decompress(__u8 *ippacket, __u8 *lzbuffer, qlz_state_decompress
 	__u8 *tcpdata = NULL; /* Starting location for the TCP data. */
 	char message [LOGSZ];
 	
-	if (DEBUG_COMPRESSION == 1){
+	if (DEBUG_COMPRESSION == true){
 		sprintf(message, "[OpenNOP]: Entering into TCP DECOMPRESS \n");
 		logger(LOG_INFO, message);
 	}
@@ -90,7 +91,7 @@ unsigned int tcp_decompress(__u8 *ippacket, __u8 *lzbuffer, qlz_state_decompress
 	 			__set_tcp_option((__u8 *)iph,31,3,0); // Set compression flag to 0.
 	 			tcph->seq = htonl(ntohl(tcph->seq) - 8000); // Decrease SEQ number.
 
-				if (DEBUG_COMPRESSION == 1){
+				if (DEBUG_COMPRESSION == true){
 					sprintf(message,"[OpenNOP] Decompressing [%d] size of data to [%d] \n", oldsize, newsize);
 					logger(LOG_INFO, message);
 				}
