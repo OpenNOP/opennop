@@ -17,7 +17,8 @@
 //Global root nodes for CLI.
 struct cli_command *CLI_SHOW;
 struct cli_command *CLI_DEBUG;
-struct cli_def *cli;
+struct cli_def *CLI;
+
 int DEBUG_MESSAGES = false;
 
 //This function enables/disables debug logging for the messages module.
@@ -46,17 +47,17 @@ void *messages_function(void *dummyPtr) {
 	int stringcompare;
 
 	//Setup CLI.
-	cli = cli_init();
+	CLI = cli_init();
 
-	//Register show & debug nodes.
-	CLI_SHOW = cli_register_command(cli, NULL, "show", NULL,
+	//Register the global show & debug nodes.
+	CLI_SHOW = cli_register_command(CLI, NULL, "show", NULL,
 			PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
-	CLI_DEBUG = cli_register_command(cli, NULL, "debug", NULL,
+	CLI_DEBUG = cli_register_command(CLI, NULL, "debug", NULL,
 			PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
 
 	//Register local debug node.  Calls cmd_debug_messages().
 	struct cli_command *CLI_DEBUG_MESSAGES;
-	CLI_DEBUG_MESSAGES = cli_register_command(cli, CLI_DEBUG, "messages",
+	CLI_DEBUG_MESSAGES = cli_register_command(CLI, CLI_DEBUG, "messages",
 			cmd_debug_messages, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
 
 	/*
@@ -113,7 +114,7 @@ void *messages_function(void *dummyPtr) {
 		if (msgrcv(msqid, &rbuf, buf_length, 1, 0) < 0) {
 
 			if (DEBUG_MESSAGES == true) {
-				sprintf(message, "msgrcv");
+				sprintf(message, "Messages: Message received.");
 				logger(LOG_INFO, message);
 			}
 			exit(1);
@@ -128,10 +129,9 @@ void *messages_function(void *dummyPtr) {
 		}
 
 		//Run the command through the libcli parser.
-		cli_run_command(cli, rbuf.mtext);
+		cli_run_command(CLI, rbuf.mtext);
 
 		if (stringcompare == 0) {
-
 
 			/*
 			 * TODO: Send a message back to the CLI.
@@ -141,7 +141,7 @@ void *messages_function(void *dummyPtr) {
 			 * This will need registered with each command.
 			 */
 
-			sbuf.mtype = rbuf.sender; //TWhen we use this it will be the PID of the CLI.
+			sbuf.mtype = rbuf.sender; //When we use this it will be the PID of the CLI.
 			strcpy(sbuf.mtext, "OK\n");
 
 			if (msgsnd(msqid, &sbuf, buf_length, IPC_NOWAIT) < 0) {
