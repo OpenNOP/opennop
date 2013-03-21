@@ -90,80 +90,80 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 	 */ 
 	queuenum = 0;
 
-		for (i=0; i<numworkers;i++){
+	for (i=0; i<numworkers;i++){
 				
-			if (DEBUG_SESSIONMANAGER_INSERT == true){
-				sprintf(message, "Session Manager: Queue #%d has %d sessions.\n", i, workers[i].sessions);
-				logger(LOG_INFO, message);
-			}
-			
-			if (workers[queuenum].sessions > workers[i].sessions){
-				
-				if (i < numworkers){
-					queuenum = i;
-				}
-			}
-		}
-					
 		if (DEBUG_SESSIONMANAGER_INSERT == true){
-			sprintf(message, "Session Manager: Assigning session to queue #: %d!\n", queuenum);
+			sprintf(message, "Session Manager: Queue #%d has %d sessions.\n", i, workers[i].sessions);
 			logger(LOG_INFO, message);
 		}
+			
+		if (workers[queuenum].sessions > workers[i].sessions){
+			
+			if (i < numworkers){
+				queuenum = i;
+			}
+		}
+	}
+					
+	if (DEBUG_SESSIONMANAGER_INSERT == true){
+		sprintf(message, "Session Manager: Assigning session to queue #: %d!\n", queuenum);
+		logger(LOG_INFO, message);
+	}
 	
 	newsession = calloc(1,sizeof(struct session)); // Allocate a new session.
 
-		if (newsession != NULL){ // Write data to this new session.
-			newsession->head = &sessiontable[hash]; // Pointer to the head of this list.
-			newsession->next = NULL;
-			newsession->prev = NULL;
-			newsession->queue = queuenum;	
-			newsession->largerIP = largerIP; // Assign values and initialize this session.
-			newsession->largerIPPort = largerIPPort;
-			newsession->largerIPAccelerator = 0;
-			newsession->largerIPseq = 0;
-			newsession->smallerIP = smallerIP;
-			newsession->smallerIPPort = smallerIPPort;
-			newsession->smallerIPseq = 0;
-			newsession->smallerIPAccelerator = 0;
-			newsession->deadcounter = 0;
-			newsession->state = 0;
-			
-			/*
-			 * Increase the counter for number of sessions assigned to this worker.
-			 */
-			pthread_mutex_lock(&workers[queuenum].lock); // Grab lock on worker.
-			workers[queuenum].sessions += 1;
-			pthread_mutex_unlock(&workers[queuenum].lock); // Lose lock on worker.
-	
-			/* 
-			 * Lets add the new packet to the session bucket. 
-			 */
-			pthread_mutex_lock(&sessiontable[hash].lock); // Grab lock on the session bucket.
-	
-			if (sessiontable[hash].qlen == 0){ // Check if any session are in this bucket.
-				sessiontable[hash].next = newsession; // Session Head next will point to the new session.
-				sessiontable[hash].prev = newsession; // Session Head prev will point to the new session.
-			}
-			else{
-				newsession->prev = sessiontable[hash].prev; // Session prev will point at the last packet in the session bucket.
-				newsession->prev->next = newsession;
-				sessiontable[hash].prev = newsession; // Make this new session the last session in the session bucket.
-			}
+	if (newsession != NULL){ // Write data to this new session.
+		newsession->head = &sessiontable[hash]; // Pointer to the head of this list.
+		newsession->next = NULL;
+		newsession->prev = NULL;
+		newsession->queue = queuenum;	
+		newsession->largerIP = largerIP; // Assign values and initialize this session.
+		newsession->largerIPPort = largerIPPort;
+		newsession->largerIPAccelerator = 0;
+		newsession->largerIPseq = 0;
+		newsession->smallerIP = smallerIP;
+		newsession->smallerIPPort = smallerIPPort;
+		newsession->smallerIPseq = 0;
+		newsession->smallerIPAccelerator = 0;
+		newsession->deadcounter = 0;
+		newsession->state = 0;
 		
-			sessiontable[hash].qlen += 1; // Need to increase the session count in this session bucket.	
+		/*
+		 * Increase the counter for number of sessions assigned to this worker.
+		 */
+		pthread_mutex_lock(&workers[queuenum].lock); // Grab lock on worker.
+		workers[queuenum].sessions += 1;
+		pthread_mutex_unlock(&workers[queuenum].lock); // Lose lock on worker.
 	
-			if (DEBUG_SESSIONMANAGER_INSERT == true){
-				sprintf(message, "Session Manager: There are %u sessions in this bucket now.\n", sessiontable[hash].qlen);
-				logger(LOG_INFO, message);
-			}
+		/* 
+		 * Lets add the new packet to the session bucket. 
+		 */
+		pthread_mutex_lock(&sessiontable[hash].lock); // Grab lock on the session bucket.
 	
-			pthread_mutex_unlock(&sessiontable[hash].lock); // Lose lock on session bucket.
-	
-			return newsession;	
+		if (sessiontable[hash].qlen == 0){ // Check if any session are in this bucket.
+			sessiontable[hash].next = newsession; // Session Head next will point to the new session.
+			sessiontable[hash].prev = newsession; // Session Head prev will point to the new session.
 		}
 		else{
-			return NULL; // Failed to assign memory for newsession.
+			newsession->prev = sessiontable[hash].prev; // Session prev will point at the last packet in the session bucket.
+			newsession->prev->next = newsession;
+			sessiontable[hash].prev = newsession; // Make this new session the last session in the session bucket.
 		}
+	
+		sessiontable[hash].qlen += 1; // Need to increase the session count in this session bucket.	
+	
+		if (DEBUG_SESSIONMANAGER_INSERT == true){
+			sprintf(message, "Session Manager: There are %u sessions in this bucket now.\n", sessiontable[hash].qlen);
+			logger(LOG_INFO, message);
+		}
+	
+		pthread_mutex_unlock(&sessiontable[hash].lock); // Lose lock on session bucket.
+
+		return newsession;	
+	}
+	else{
+		return NULL; // Failed to assign memory for newsession.
+	}
 }
 
 /*
