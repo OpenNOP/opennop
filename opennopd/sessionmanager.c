@@ -75,12 +75,6 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 
 	hash = sessionhash(largerIP, smallerIP, largerIPPort, smallerIPPort);
 
-	if (DEBUG_SESSIONMANAGER_INSERT == true) {
-		sprintf(message,
-				"Session Manager: Assigning session to bucket #: %u!\n", hash);
-		logger(LOG_INFO, message);
-	}
-
 	/*
 	 * What queue will the packets for this session go to?
 	 */
@@ -138,6 +132,13 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 		 * Lets add the new session to the session bucket.
 		 */
 		pthread_mutex_lock(&sessiontable[hash].lock); // Grab lock on the session bucket.
+
+		if (DEBUG_SESSIONMANAGER_INSERT == true) {
+			sprintf(message,
+					"Session Manager: Assigning session to bucket #: %u!\n",
+					hash);
+			logger(LOG_INFO, message);
+		}
 
 		if (sessiontable[hash].qlen == 0) { // Check if any session are in this bucket.
 			sessiontable[hash].next = newsession; // Session Head next will point to the new session.
