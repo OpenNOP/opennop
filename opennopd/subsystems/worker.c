@@ -45,6 +45,7 @@ void *optimization_function (void *dummyPtr)
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
 	if ((me->optimization.lzbuffer == NULL) || (me->deoptimization.lzbuffer == NULL)){
 		sprintf(message, "Worker: Couldn't allocate buffer");
+		logger(LOG_INFO, message);
 		exit(1);
 	}
 
@@ -265,6 +266,7 @@ void *deoptimization_function (void *dummyPtr)
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
 	if ((me->optimization.lzbuffer == NULL) || (me->deoptimization.lzbuffer == NULL)){
 		sprintf(message, "Worker: Couldn't allocate buffer");
+		logger(LOG_INFO, message);
 		exit(1);
 	}
 
