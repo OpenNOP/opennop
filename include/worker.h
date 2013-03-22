@@ -5,24 +5,39 @@
 #include <linux/types.h>
 
 #include "packet.h"
+#include "counters.h"
+
 
 #define MAXWORKERS 255 // Maximum number of workers to process packets.
 
-/* Structure contains the worker thread, queue, and status. */
+/*
+ * This structure is a member of the worker structure.
+ * It contains the thread for optimization or de-optimization of packets,
+ * the counters for this thread, the threads packet queue
+ * and the buffer used for QuickLZ.
+ */
+struct processor
+{
+	pthread_t t_processor;
+	struct counters metrics;
+	struct packet_head queue;
+	__u8 *lzbuffer; // Buffer used for QuickLZ.
+};
+
+/* Structure contains the worker threads, queue, and status. */
 struct worker
 {
-    pthread_t t_worker; // Is the thread for this worker.
-    __u32 packets; // Number of packets this worker has processed.
-    __u8 *lzbuffer; // Buffer used for LZ compression.
+    struct processor optimization; //Thread that will do all optimizations(input).  Coming from LAN.
+    struct processor deoptimization; //Thread that will undo optimizations(output).  Coming from WAN.
     u_int32_t sessions; // Number of sessions assigned to the worker.
-    struct packet_head queue; // Points to the queue for this worker.
     int state;	// Marks this thread as active. 1=running, 0=stopping, -1=stopped.
-    pthread_mutex_t lock; // Lock for this worker.
+    pthread_mutex_t lock; // Lock for this worker when adding sessions.
 };
 
 extern struct worker workers[MAXWORKERS];
 extern unsigned char numworkers;
 
-void *worker_function (void *dummyPtr);
+void *optimization_function (void *dummyPtr);
+void *deoptimization_function (void *dummyPtr);
 
 #endif /*WORKER_H_*/
