@@ -37,19 +37,17 @@ void *optimization_function (void *dummyPtr)
     __u16 largerIPPort, smallerIPPort;
     char message [LOGSZ];
 	qlz_state_compress *state_compress = (qlz_state_compress *)malloc(sizeof(qlz_state_compress));
-	qlz_state_decompress *state_decompress = (qlz_state_decompress *)malloc(sizeof(qlz_state_decompress));
     me = dummyPtr;
 
     me->optimization.lzbuffer = calloc(1,BUFSIZE + 400);
-    me->deoptimization.lzbuffer = calloc(1,BUFSIZE + 400);
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
-	if ((me->optimization.lzbuffer == NULL) || (me->deoptimization.lzbuffer == NULL)){
+	if (me->optimization.lzbuffer == NULL){
 		sprintf(message, "Worker: Couldn't allocate buffer");
 		logger(LOG_INFO, message);
 		exit(1);
 	}
 
-    if ((me->optimization.lzbuffer != NULL) && (me->deoptimization.lzbuffer != NULL))
+    if (me->optimization.lzbuffer != NULL)
     {
 
         while (me->state >= STOPPING)
@@ -140,45 +138,6 @@ void *optimization_function (void *dummyPtr)
                                 }
                             }
                         }
-                        else
-                        {
-
-                            if (iph->saddr == largerIP)
-                            { // Set the Accelerator for this source.
-                                thissession->largerIPAccelerator = acceleratorID;
-                            }
-                            else
-                            {
-                                thissession->smallerIPAccelerator = acceleratorID;
-                            }
-
-                            if (__get_tcp_option((__u8 *)iph,31) != 0)
-                            { // Packet is flagged as compressed.
-
-                                if (DEBUG_WORKER == true)
-                                {
-                                    sprintf(message, "Worker: Packet is compressed.\n");
-                                    logger(LOG_INFO, message);
-                                }
-
-                                if (((iph->saddr == largerIP) &&
-                                        (thissession->smallerIPAccelerator == localIP)) ||
-                                        ((iph->saddr == smallerIP) &&
-                                         (thissession->largerIPAccelerator == localIP)))
-                                {
-
-                                    /*
-                                     * Decompress this packet!
-                                     */
-                                    if (tcp_decompress((__u8 *)iph, me->deoptimization.lzbuffer, state_decompress) == 0)
-                                    { // Decompression failed if 0.
-                                        nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
-                                        free(thispacket);
-                                        thispacket = NULL;
-                                    }
-                                }
-                            }
-                        }
                     }
 
                     if (tcph->rst == 1)
@@ -238,11 +197,8 @@ void *optimization_function (void *dummyPtr)
             } /* End NULL packet check. */
         } /* End working loop. */
         free(me->optimization.lzbuffer);
-        free(me->deoptimization.lzbuffer);
 		free(state_compress);
-		free(state_decompress);
         me->optimization.lzbuffer = NULL;
-        me->deoptimization.lzbuffer = NULL;
     }
     return NULL;
 }
@@ -257,24 +213,20 @@ void *deoptimization_function (void *dummyPtr)
     __u32 largerIP, smallerIP, acceleratorID;
     __u16 largerIPPort, smallerIPPort;
     char message [LOGSZ];
-	qlz_state_compress *state_compress = (qlz_state_compress *)malloc(sizeof(qlz_state_compress));
 	qlz_state_decompress *state_decompress = (qlz_state_decompress *)malloc(sizeof(qlz_state_decompress));
     me = dummyPtr;
 
-    me->optimization.lzbuffer = calloc(1,BUFSIZE + 400);
     me->deoptimization.lzbuffer = calloc(1,BUFSIZE + 400);
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
-	if ((me->optimization.lzbuffer == NULL) || (me->deoptimization.lzbuffer == NULL)){
+	if (me->deoptimization.lzbuffer == NULL){
 		sprintf(message, "Worker: Couldn't allocate buffer");
 		logger(LOG_INFO, message);
 		exit(1);
 	}
 
-    if ((me->optimization.lzbuffer != NULL) && (me->deoptimization.lzbuffer != NULL))
-    {
+    if (me->deoptimization.lzbuffer != NULL){
 
-        while (me->state >= STOPPING)
-        {
+        while (me->state >= STOPPING){
 
             thispacket = dequeue_packet(&me->deoptimization.queue, true);
 
@@ -315,54 +267,7 @@ void *deoptimization_function (void *dummyPtr)
                     if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0))
                     {
 
-                        if (acceleratorID == 0)
-                        { // Accelerator ID was not found.
-
-                            if (iph->saddr == largerIP)
-                            { // Set the Accelerator for this source.
-                                thissession->largerIPAccelerator = localIP;
-                            }
-                            else
-                            {
-                                thissession->smallerIPAccelerator = localIP;
-                            }
-
-                            __set_tcp_option((__u8 *)iph,30,6,localIP); // Add the Accelerator ID to this packet.
-
-                            if ((((iph->saddr == largerIP) &&
-                                    (thissession->largerIPAccelerator == localIP) &&
-                                    (thissession->smallerIPAccelerator != 0) &&
-                                    (thissession->smallerIPAccelerator != localIP)) ||
-                                    ((iph->saddr == smallerIP) &&
-                                     (thissession->smallerIPAccelerator == localIP) &&
-                                     (thissession->largerIPAccelerator != 0) &&
-                                     (thissession->largerIPAccelerator != localIP))) &&
-                                    (thissession->state == TCP_ESTABLISHED))
-                            {
-
-                                /*
-                                	 * Do some acceleration!
-                                	 */
-
-                                if (DEBUG_WORKER == true)
-                                {
-                                    sprintf(message, "Worker: Compressing packet.\n");
-                                    logger(LOG_INFO, message);
-                                }
-	                            tcp_compress((__u8 *)iph, me->optimization.lzbuffer,state_compress);
-                            }
-                            else
-                            {
-
-                                if (DEBUG_WORKER == true)
-                                {
-                                    sprintf(message, "Worker: Not compressing packet.\n");
-                                    logger(LOG_INFO, message);
-                                }
-                            }
-                        }
-                        else
-                        {
+                        if (acceleratorID != 0){
 
                             if (iph->saddr == largerIP)
                             { // Set the Accelerator for this source.
@@ -458,11 +363,8 @@ void *deoptimization_function (void *dummyPtr)
                 }
             } /* End NULL packet check. */
         } /* End working loop. */
-        free(me->optimization.lzbuffer);
         free(me->deoptimization.lzbuffer);
-		free(state_compress);
 		free(state_decompress);
-		me->optimization.lzbuffer = NULL;
 		me->deoptimization.lzbuffer = NULL;
     }
     return NULL;
