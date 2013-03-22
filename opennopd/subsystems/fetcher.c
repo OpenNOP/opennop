@@ -276,7 +276,12 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                     thispacket = newpacket();
                     save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
-                    queue_packet(&workers[thissession->queue].queue,thispacket);
+
+                    if (acceleratorID == 0){
+                    	queue_packet(&workers[thissession->queue].optimization.queue,thispacket);
+                    }else{
+                    	queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
+                    }
                     return 0;
                 }
                 else
@@ -313,7 +318,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                                 thispacket = newpacket();
                                 save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
-                                queue_packet(&workers[thissession->queue].queue,thispacket);
+                                queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
 
                                 return 0;
                             }

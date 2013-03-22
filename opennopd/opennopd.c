@@ -204,15 +204,24 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < numworkers; i++)
     {
-        pthread_create(&workers[i].t_worker, NULL, worker_function, (void *)&workers[i]);
-        pthread_cond_init(&workers[i].queue.signal, NULL); // Initialize the thread signal.
-        workers[i].queue.next = NULL; // Initialize the queue.
-        workers[i].queue.prev = NULL;
-        workers[i].lzbuffer = NULL;
+        pthread_create(&workers[i].optimization.t_processor, NULL, optimization_function, (void *)&workers[i]);
+        pthread_create(&workers[i].deoptimization.t_processor, NULL, deoptimization_function, (void *)&workers[i]);
+        pthread_cond_init(&workers[i].optimization.queue.signal, NULL); // Initialize the thread signal.
+        pthread_cond_init(&workers[i].deoptimization.queue.signal, NULL); // Initialize the thread signal.
+        workers[i].optimization.queue.next = NULL; // Initialize the queue.
+        workers[i].optimization.queue.prev = NULL;
+        workers[i].optimization.lzbuffer = NULL;
+        workers[i].optimization.queue.qlen = 0;
+        pthread_mutex_init(&workers[i].optimization.queue.lock, NULL); // Initialize the queue lock.
+        workers[i].deoptimization.queue.next = NULL; // Initialize the queue.
+        workers[i].deoptimization.queue.prev = NULL;
+        workers[i].deoptimization.lzbuffer = NULL;
+        workers[i].deoptimization.queue.qlen = 0;
+        pthread_mutex_init(&workers[i].deoptimization.queue.lock, NULL); // Initialize the queue lock.
         //workers[i].lzfastbuffer = NULL;
         workers[i].sessions = 0;
-        workers[i].queue.qlen = 0;
-        pthread_mutex_init(&workers[i].queue.lock, NULL); // Initialize the queue lock.
+
+
         workers[i].state = RUNNING;
         pthread_mutex_init(&workers[i].lock, NULL); // Initialize the worker lock.
     }
@@ -240,10 +249,14 @@ int main(int argc, char *argv[])
     {
 
         workers[i].state = STOPPED;
-        pthread_mutex_lock(&workers[i].queue.lock);
-        pthread_cond_signal(&workers[i].queue.signal);
-        pthread_mutex_unlock(&workers[i].queue.lock);
-        pthread_join(workers[i].t_worker, NULL);
+        pthread_mutex_lock(&workers[i].optimization.queue.lock);
+        pthread_cond_signal(&workers[i].optimization.queue.signal);
+        pthread_mutex_unlock(&workers[i].optimization.queue.lock);
+        pthread_join(workers[i].optimization.t_processor, NULL);
+        pthread_mutex_lock(&workers[i].deoptimization.queue.lock);
+        pthread_cond_signal(&workers[i].deoptimization.queue.signal);
+        pthread_mutex_unlock(&workers[i].deoptimization.queue.lock);
+        pthread_join(workers[i].deoptimization.t_processor, NULL);
     }
 
     for (i = 0; i < SESSIONBUCKETS; i++)
