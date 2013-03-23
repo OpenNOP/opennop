@@ -194,6 +194,7 @@ void *optimization_function (void *dummyPtr)
                     free(thispacket);
                     thispacket = NULL;
                 }
+                me->optimization.metrics.packets++;
             } /* End NULL packet check. */
         } /* End working loop. */
         free(me->optimization.lzbuffer);
@@ -361,6 +362,7 @@ void *deoptimization_function (void *dummyPtr)
                     free(thispacket);
                     thispacket = NULL;
                 }
+                me->deoptimization.metrics.packets++;
             } /* End NULL packet check. */
         } /* End working loop. */
         free(me->deoptimization.lzbuffer);
