@@ -24,4 +24,7 @@ struct counters {
 	__u16 B, KB, MB, GB;
 };
 
+void *counters_function (void *dummyPtr);
+int calculate_ppsbps(__u32 previouscount, __u32 currentcount);
+
 #endif /*COUNTERS_H_*/
