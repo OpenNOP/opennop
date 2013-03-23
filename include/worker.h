@@ -2,6 +2,8 @@
 #define WORKER_H_
 #define _GNU_SOURCE
 
+#include <sys/types.h>
+
 #include <linux/types.h>
 
 #include "packet.h"

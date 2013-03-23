@@ -1,6 +1,8 @@
 #ifndef SESSION_H_
 #define SESSION_H_
 
+#include <sys/types.h>
+
 #include <linux/types.h>
 
 /* Structure used for the head of a session list. */
