@@ -26,6 +26,7 @@
 #include "healthagent.h"
 #include "messages.h"
 #include "eventmanager.h"
+#include "counters.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -43,6 +44,7 @@ int main(int argc, char *argv[])
     pthread_t t_healthagent; // thread for health agent.
     pthread_t t_messages; // thread for messages.
     pthread_t t_eventmanager; // thread for eventmanager.
+    pthread_t t_counters; // thread for performance counters.
     struct ifaddrs *ifaddr, *ifa;
     __u32 tempIP;
     int s;
@@ -235,6 +237,7 @@ int main(int argc, char *argv[])
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
     pthread_create(&t_messages, NULL, messages_function, (void *)NULL);
     pthread_create(&t_eventmanager, NULL, eventmanager_function, (void *)NULL);
+    pthread_create(&t_counters, NULL, counters_function, (void *)NULL);
 
     /*
      * Rejoin all threads before we exit!
@@ -244,6 +247,7 @@ int main(int argc, char *argv[])
     pthread_join(t_healthagent, NULL);
     pthread_join(t_messages, NULL);
     pthread_join(t_eventmanager, NULL);
+    pthread_join(t_counters, NULL);
 
     for (i = 0; i < numworkers; i++)
     {
