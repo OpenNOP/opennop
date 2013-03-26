@@ -4,12 +4,23 @@
 
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
+#include "counters.h"
+
 extern int DEBUG_FETCHER;
 extern int G_SCALEWINDOW;
 
-int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
-			  struct nfq_data *nfa, void *data);
+struct fetcher {
+	pthread_t t_fetcher;
+	struct counters metrics;
+	int state; // Marks this thread as active. 1=running, 0=stopping, -1=stopped.
+	pthread_mutex_t lock; // Lock for the fetcher when changing state.
+};
 
-void *fetcher_function (void *dummyPtr);
+extern struct fetcher thefetcher;
+
+int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
+		struct nfq_data *nfa, void *data);
+
+void *fetcher_function(void *dummyPtr);
 
 #endif /*FETCHER_H_*/

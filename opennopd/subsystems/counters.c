@@ -6,6 +6,7 @@
 
 #include "opennopd.h"
 #include "logger.h"
+#include "fetcher.h"
 #include "worker.h"
 #include "counters.h"
 
@@ -15,16 +16,6 @@ int DEBUG_COUNTERS = true;
  * Time in seconds before updating the counters.
  */
 int UPDATECOUNTERSTIMER = 5;
-
-/*
- * Store the performance statistics.
- */
-__u32 fetcherbps;
-__u32 fetcherbps;
-__u32 optimizationpps[MAXWORKERS];
-__u32 deoptimizationpps[MAXWORKERS];
-__u32 optimizationbps[MAXWORKERS];
-__u32 deoptimizationbps[MAXWORKERS];
 
 void *counters_function(void *dummyPtr) {
 	__u32 ppsbps; //Temp storage for calculating pps & bps.
@@ -36,7 +27,7 @@ void *counters_function(void *dummyPtr) {
 	 */
 	struct counters prevoptimizationmetrics[MAXWORKERS];
 	struct counters prevdeoptimizationmetrics[MAXWORKERS];
-	struct counters prevfetcherpmetrics;
+	struct counters prevfetchermetrics;
 
 	/*
 	 * Storage for the current thread metrics.
@@ -48,63 +39,66 @@ void *counters_function(void *dummyPtr) {
 	/*
 	 * Initialize previous thread storage.
 	 */
+	prevfetchermetrics = thefetcher.metrics;
 	for (i = 0; i < numworkers; i++) {
-		optimizationmetrics[i] = workers[i].optimization.metrics;
-		deoptimizationmetrics[i] = workers[i].deoptimization.metrics;
+		prevoptimizationmetrics[i] = workers[i].optimization.metrics;
+		prevdeoptimizationmetrics[i] = workers[i].deoptimization.metrics;
 	}
 
 	while (servicestate >= STOPPING) {
-		sleep(UPDATECOUNTERSTIMER); // Sleeping for seconds.
+		sleep(UPDATECOUNTERSTIMER); // Sleeping for a few seconds.
 
 		/*
-		 * We get the current metrics for each thread.
+		 * Get current fetcher metrics,
+		 * calculate the pps metrics,
+		 * and save them.
 		 */
+		fetchermetrics = thefetcher.metrics;
+		thefetcher.metrics.pps = calculate_ppsbps(prevfetchermetrics.packets,
+				fetchermetrics.packets);
+		prevfetchermetrics = fetchermetrics;
+
+		if (DEBUG_COUNTERS == true) {
+			sprintf(message, "Counters: Fetcher: %u pps\n",
+					thefetcher.metrics.pps);
+			logger(LOG_INFO, message);
+		}
+
 		for (i = 0; i < numworkers; i++) {
+			/*
+			 * We get the current metrics for each thread.
+			 */
 			optimizationmetrics[i] = workers[i].optimization.metrics;
 			deoptimizationmetrics[i] = workers[i].deoptimization.metrics;
-		}
-
-		/*
-		 * Next we compare them to the saved metrics.
-		 */
-		for (i = 0; i < numworkers; i++) {
 
 			/*
-			 * Make sure previous optimization metrics are less then current.  Did they roll?
+			 * Calculate the pps metrics,
+			 * and save them.
 			 */
-			ppsbps = calculate_ppsbps(prevoptimizationmetrics[i].packets,optimizationmetrics[i].packets);
+			workers[i].optimization.metrics.pps = calculate_ppsbps(
+					prevoptimizationmetrics[i].packets,
+					optimizationmetrics[i].packets);
+
+			workers[i].deoptimization.metrics.pps = calculate_ppsbps(
+					prevdeoptimizationmetrics[i].packets,
+					deoptimizationmetrics[i].packets);
 
 			/*
-			 * Save the optimization performance statistics.
+			 * Last we move the current metrics into the previous metrics.
 			 */
-			optimizationpps[i] = ppsbps;
-
-
-			ppsbps = calculate_ppsbps(prevdeoptimizationmetrics[i].packets,deoptimizationmetrics[i].packets);
-
-			/*
-			 * Save the optimization performance statistics.
-			 */
-			deoptimizationpps[i] = ppsbps;
-
-		}
-
-		/*
-		 * Last we move the current metrics into the previous metrics.
-		 */
-		for (i = 0; i < numworkers; i++) {
 			prevoptimizationmetrics[i] = optimizationmetrics[i];
 			prevdeoptimizationmetrics[i] = deoptimizationmetrics[i];
+
 		}
 
 		if (DEBUG_COUNTERS == true) {
 
 			for (i = 0; i < numworkers; i++) {
 				sprintf(message, "Counters: Optimization: %u pps\n",
-						optimizationpps[i]);
+						workers[i].optimization.metrics.pps);
 				logger(LOG_INFO, message);
 				sprintf(message, "Counters: Deoptimization: %u pps\n",
-						deoptimizationpps[i]);
+						workers[i].deoptimization.metrics.pps);
 				logger(LOG_INFO, message);
 			}
 		}
@@ -118,7 +112,7 @@ void *counters_function(void *dummyPtr) {
 }
 
 /*
- * This function c
+ * This function calculates pps or bps.
  */
 int calculate_ppsbps(__u32 previouscount, __u32 currentcount) {
 	int ppsbps;
@@ -137,7 +131,7 @@ int calculate_ppsbps(__u32 previouscount, __u32 currentcount) {
 		 * Can we use sizeof() * 8bit^32???
 		 * This rolls the counters half way around so current > previous.
 		 */
-		scale = (1UL << (sizeof(__u32)*8))/2;
+		scale = (1UL << (sizeof(__u32 ) * 8)) / 2;
 		ppsbps = ((currentcount + scale) - (previouscount + scale))
 				/ UPDATECOUNTERSTIMER;
 
