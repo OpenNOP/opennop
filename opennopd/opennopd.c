@@ -39,7 +39,7 @@ int isdaemon = true; // Determines how to log the messages and errors.
 
 int main(int argc, char *argv[])
 {
-    pthread_t t_fetcher; // thread for getting packets out of Netfilter Queue.
+    //pthread_t t_fetcher; // thread for getting packets out of Netfilter Queue.
     pthread_t t_cleanup; // thread for cleaning up dead sessions.
     pthread_t t_healthagent; // thread for health agent.
     pthread_t t_messages; // thread for messages.
@@ -232,7 +232,8 @@ int main(int argc, char *argv[])
      * Create the fetcher thread that retrieves
      * IP packets from the Netfilter Queue.
      */
-    pthread_create(&t_fetcher, NULL, fetcher_function, (void *)NULL);
+    //pthread_create(&t_fetcher, NULL, fetcher_function, (void *)NULL);
+    pthread_create(&thefetcher.t_fetcher, NULL, fetcher_function, (void *)NULL);
     pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
     pthread_create(&t_messages, NULL, messages_function, (void *)NULL);
@@ -242,7 +243,8 @@ int main(int argc, char *argv[])
     /*
      * Rejoin all threads before we exit!
      */
-    pthread_join(t_fetcher, NULL);
+    //pthread_join(t_fetcher, NULL);
+    pthread_join(thefetcher.t_fetcher, NULL);
     pthread_join(t_cleanup, NULL);
     pthread_join(t_healthagent, NULL);
     pthread_join(t_messages, NULL);
