@@ -182,6 +182,7 @@ void *optimization_function (void *dummyPtr)
                         	 * checksum to need recalculated.
                          	 */
                         checksum(thispacket->data);
+                        me->optimization.metrics.bytes += ntohs(iph->tot_len);
                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
                         free(thispacket);
                         thispacket = NULL;
@@ -190,6 +191,7 @@ void *optimization_function (void *dummyPtr)
                 } /* End NULL session check. */
                 else
                 { /* Session was NULL. */
+                	me->optimization.metrics.bytes += ntohs(iph->tot_len);
                     nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
                     free(thispacket);
                     thispacket = NULL;
@@ -350,6 +352,7 @@ void *deoptimization_function (void *dummyPtr)
                         	 * checksum to need recalculated.
                          	 */
                         checksum(thispacket->data);
+                        me->deoptimization.metrics.bytes += ntohs(iph->tot_len);
                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
                         free(thispacket);
                         thispacket = NULL;
@@ -358,6 +361,7 @@ void *deoptimization_function (void *dummyPtr)
                 } /* End NULL session check. */
                 else
                 { /* Session was NULL. */
+                	me->deoptimization.metrics.bytes += ntohs(iph->tot_len);
                     nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
                     free(thispacket);
                     thispacket = NULL;
