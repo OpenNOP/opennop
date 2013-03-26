@@ -56,11 +56,17 @@ void *counters_function(void *dummyPtr) {
 		fetchermetrics = thefetcher.metrics;
 		thefetcher.metrics.pps = calculate_ppsbps(prevfetchermetrics.packets,
 				fetchermetrics.packets);
+		thefetcher.metrics.bps = calculate_ppsbps(prevfetchermetrics.bytes,
+				fetchermetrics.bytes);
 		prevfetchermetrics = fetchermetrics;
 
-		if (DEBUG_COUNTERS == true) {
+		if ((DEBUG_COUNTERS == true) && (thefetcher.metrics.pps != 0)
+				&& (thefetcher.metrics.bps != 0)) {
 			sprintf(message, "Counters: Fetcher: %u pps\n",
 					thefetcher.metrics.pps);
+			logger(LOG_INFO, message);
+			sprintf(message, "Counters: Fetcher: %u bps\n",
+					thefetcher.metrics.bps);
 			logger(LOG_INFO, message);
 		}
 
@@ -78,10 +84,16 @@ void *counters_function(void *dummyPtr) {
 			workers[i].optimization.metrics.pps = calculate_ppsbps(
 					prevoptimizationmetrics[i].packets,
 					optimizationmetrics[i].packets);
+			workers[i].optimization.metrics.bps = calculate_ppsbps(
+					prevoptimizationmetrics[i].bytes,
+					optimizationmetrics[i].bytes);
 
 			workers[i].deoptimization.metrics.pps = calculate_ppsbps(
 					prevdeoptimizationmetrics[i].packets,
 					deoptimizationmetrics[i].packets);
+			workers[i].deoptimization.metrics.bps = calculate_ppsbps(
+					prevdeoptimizationmetrics[i].bytes,
+					deoptimizationmetrics[i].bytes);
 
 			/*
 			 * Last we move the current metrics into the previous metrics.
@@ -94,12 +106,24 @@ void *counters_function(void *dummyPtr) {
 		if (DEBUG_COUNTERS == true) {
 
 			for (i = 0; i < numworkers; i++) {
-				sprintf(message, "Counters: Optimization: %u pps\n",
-						workers[i].optimization.metrics.pps);
-				logger(LOG_INFO, message);
-				sprintf(message, "Counters: Deoptimization: %u pps\n",
-						workers[i].deoptimization.metrics.pps);
-				logger(LOG_INFO, message);
+
+				if ((workers[i].optimization.metrics.pps != 0)
+						&& (workers[i].optimization.metrics.bps != 0)
+						&& (workers[i].deoptimization.metrics.pps != 0)
+						&& (workers[i].deoptimization.metrics.bps != 0)) {
+					sprintf(message, "Counters: Optimization: %u pps\n",
+							workers[i].optimization.metrics.pps);
+					logger(LOG_INFO, message);
+					sprintf(message, "Counters: Optimization: %u bps\n",
+							workers[i].optimization.metrics.bps);
+					logger(LOG_INFO, message);
+					sprintf(message, "Counters: Deoptimization: %u pps\n",
+							workers[i].deoptimization.metrics.pps);
+					logger(LOG_INFO, message);
+					sprintf(message, "Counters: Deoptimization: %u bps\n",
+							workers[i].deoptimization.metrics.bps);
+					logger(LOG_INFO, message);
+				}
 			}
 		}
 
