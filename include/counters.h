@@ -8,6 +8,7 @@ struct counters {
 	 * should increment at end of main loop after each packet is finished processing.
 	 */
 	__u32 packets;
+	__u32 pps; // Where the calculated pps are stored.
 
 	/*
 	 * number of bytes entering process.
@@ -15,6 +16,7 @@ struct counters {
 	 * should increment as beginning of main loop after packet is received from queue.
 	 */
 	__u32 bytes;
+	__u32 bps; // Where the calculated bps are stored.
 
 	/*
 	 * traffic optimized/un-optimized counters.

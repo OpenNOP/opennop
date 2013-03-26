@@ -24,6 +24,8 @@
 #include "opennopd.h"
 #include "worker.h"
 
+struct fetcher thefetcher;
+
 int DEBUG_FETCHER = false;
 int G_SCALEWINDOW = 7;
 
@@ -165,6 +167,9 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     thissession->state = TCP_SYN_SENT;
                 }
 
+                /* Before we return let increment the packets counter. */
+                thefetcher.metrics.packets++;
+
                 /* This is the last step for a SYN packet. */
                 /* accept all SYN packets. */
                 return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
@@ -257,6 +262,9 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                          * checksum to need recalculated.
                          */
                         checksum(originalpacket);
+
+                        /* Before we return let increment the packets counter. */
+                        thefetcher.metrics.packets++;
                         return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
                     }
 
@@ -282,6 +290,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     }else{
                     	queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
                     }
+                    /* Before we return let increment the packets counter. */
+                    thefetcher.metrics.packets++;
                     return 0;
                 }
                 else
@@ -320,16 +330,22 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                                 save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
                                 queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
 
+                                /* Before we return let increment the packets counter. */
+                                thefetcher.metrics.packets++;
                                 return 0;
                             }
                         }
                     }
+                    /* Before we return let increment the packets counter. */
+                    thefetcher.metrics.packets++;
                     return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
                 }
             }
         }
         else
         { /* Packet was not a TCP Packet or ID was 0. */
+        	/* Before we return let increment the packets counter. */
+        	thefetcher.metrics.packets++;
             return nfq_set_verdict(hq, id, NF_ACCEPT, 0, NULL);
         }
     }
@@ -341,8 +357,16 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
             sprintf(message, "Fetcher: The service is not running.\n");
             logger(LOG_INFO, message);
         }
+        /* Before we return let increment the packets counter. */
+        thefetcher.metrics.packets++;
         return nfq_set_verdict(hq, id, NF_ACCEPT, 0, NULL);
     }
+    /*
+     * If we get here there was a major problem.
+     */
+
+    /* Before we return let increment the packets counter. */
+    thefetcher.metrics.packets++;
     return 0;
 }
 
