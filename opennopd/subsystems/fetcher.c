@@ -60,7 +60,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
     {
         iph = (struct iphdr *) originalpacket;
 
-        thefetcher.metrics.bytes += ntohs(iph->tot_len);
+        thefetcher.metrics.bytesin += ntohs(iph->tot_len);
 
         /* We need to double check that only TCP packets get accelerated. */
         /* This is because we are working from the Netfilter QUEUE. */

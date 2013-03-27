@@ -65,7 +65,7 @@ void *optimization_function (void *dummyPtr)
                     sprintf(message, "Worker: IP Packet length is: %u\n",ntohs(iph->tot_len));
                     logger(LOG_INFO, message);
                 }
-
+                me->optimization.metrics.bytesin += ntohs(iph->tot_len);
                 acceleratorID = (__u32)__get_tcp_option((__u8 *)iph,30);
 
                 /* Check what IP address is larger. */
@@ -182,7 +182,7 @@ void *optimization_function (void *dummyPtr)
                         	 * checksum to need recalculated.
                          	 */
                         checksum(thispacket->data);
-                        me->optimization.metrics.bytes += ntohs(iph->tot_len);
+                        me->optimization.metrics.bytesout += ntohs(iph->tot_len);
                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
                         free(thispacket);
                         thispacket = NULL;
@@ -191,7 +191,7 @@ void *optimization_function (void *dummyPtr)
                 } /* End NULL session check. */
                 else
                 { /* Session was NULL. */
-                	me->optimization.metrics.bytes += ntohs(iph->tot_len);
+                	me->optimization.metrics.bytesout += ntohs(iph->tot_len);
                     nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
                     free(thispacket);
                     thispacket = NULL;
@@ -243,7 +243,7 @@ void *deoptimization_function (void *dummyPtr)
                     sprintf(message, "Worker: IP Packet length is: %u\n",ntohs(iph->tot_len));
                     logger(LOG_INFO, message);
                 }
-
+                me->deoptimization.metrics.bytesin += ntohs(iph->tot_len);
                 acceleratorID = (__u32)__get_tcp_option((__u8 *)iph,30);
 
                 /* Check what IP address is larger. */
@@ -352,7 +352,7 @@ void *deoptimization_function (void *dummyPtr)
                         	 * checksum to need recalculated.
                          	 */
                         checksum(thispacket->data);
-                        me->deoptimization.metrics.bytes += ntohs(iph->tot_len);
+                        me->deoptimization.metrics.bytesout += ntohs(iph->tot_len);
                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
                         free(thispacket);
                         thispacket = NULL;
@@ -361,7 +361,7 @@ void *deoptimization_function (void *dummyPtr)
                 } /* End NULL session check. */
                 else
                 { /* Session was NULL. */
-                	me->deoptimization.metrics.bytes += ntohs(iph->tot_len);
+                	me->deoptimization.metrics.bytesout += ntohs(iph->tot_len);
                     nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
                     free(thispacket);
                     thispacket = NULL;
