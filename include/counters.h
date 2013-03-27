@@ -15,8 +15,10 @@ struct counters {
 	 * used for bps calculation. can roll.
 	 * should increment as beginning of main loop after packet is received from queue.
 	 */
-	__u32 bytes;
-	__u32 bps; // Where the calculated bps are stored.
+	__u32 bytesin;
+	__u32 bpsin; // Where the calculated bps are stored.
+	__u32 bytesout;
+	__u32 bpsout; // Where the calculated bps are stored.
 
 	/*
 	 * traffic optimized/un-optimized counters.
