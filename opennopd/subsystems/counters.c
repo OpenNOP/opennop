@@ -18,7 +18,6 @@ int DEBUG_COUNTERS = true;
 int UPDATECOUNTERSTIMER = 5;
 
 void *counters_function(void *dummyPtr) {
-	__u32 ppsbps; //Temp storage for calculating pps & bps.
 	int i;
 	char message[LOGSZ];
 
@@ -56,17 +55,17 @@ void *counters_function(void *dummyPtr) {
 		fetchermetrics = thefetcher.metrics;
 		thefetcher.metrics.pps = calculate_ppsbps(prevfetchermetrics.packets,
 				fetchermetrics.packets);
-		thefetcher.metrics.bps = calculate_ppsbps(prevfetchermetrics.bytes,
-				fetchermetrics.bytes);
+		thefetcher.metrics.bpsin = calculate_ppsbps(prevfetchermetrics.bytesin,
+				fetchermetrics.bytesin);
 		prevfetchermetrics = fetchermetrics;
 
 		if ((DEBUG_COUNTERS == true) && (thefetcher.metrics.pps != 0)
-				&& (thefetcher.metrics.bps != 0)) {
+				&& (thefetcher.metrics.bpsin != 0)) {
 			sprintf(message, "Counters: Fetcher: %u pps\n",
 					thefetcher.metrics.pps);
 			logger(LOG_INFO, message);
 			sprintf(message, "Counters: Fetcher: %u bps\n",
-					thefetcher.metrics.bps);
+					thefetcher.metrics.bpsin);
 			logger(LOG_INFO, message);
 		}
 
@@ -84,16 +83,22 @@ void *counters_function(void *dummyPtr) {
 			workers[i].optimization.metrics.pps = calculate_ppsbps(
 					prevoptimizationmetrics[i].packets,
 					optimizationmetrics[i].packets);
-			workers[i].optimization.metrics.bps = calculate_ppsbps(
-					prevoptimizationmetrics[i].bytes,
-					optimizationmetrics[i].bytes);
+			workers[i].optimization.metrics.bpsin = calculate_ppsbps(
+					prevoptimizationmetrics[i].bytesin,
+					optimizationmetrics[i].bytesin);
+			workers[i].optimization.metrics.bpsout = calculate_ppsbps(
+					prevoptimizationmetrics[i].bytesout,
+					optimizationmetrics[i].bytesout);
 
 			workers[i].deoptimization.metrics.pps = calculate_ppsbps(
 					prevdeoptimizationmetrics[i].packets,
 					deoptimizationmetrics[i].packets);
-			workers[i].deoptimization.metrics.bps = calculate_ppsbps(
-					prevdeoptimizationmetrics[i].bytes,
-					deoptimizationmetrics[i].bytes);
+			workers[i].deoptimization.metrics.bpsin = calculate_ppsbps(
+					prevdeoptimizationmetrics[i].bytesin,
+					deoptimizationmetrics[i].bytesin);
+			workers[i].deoptimization.metrics.bpsout = calculate_ppsbps(
+					prevdeoptimizationmetrics[i].bytesout,
+					deoptimizationmetrics[i].bytesout);
 
 			/*
 			 * Last we move the current metrics into the previous metrics.
@@ -108,20 +113,28 @@ void *counters_function(void *dummyPtr) {
 			for (i = 0; i < numworkers; i++) {
 
 				if ((workers[i].optimization.metrics.pps != 0)
-						&& (workers[i].optimization.metrics.bps != 0)
+						&& (workers[i].optimization.metrics.bpsin != 0)
+						&& (workers[i].optimization.metrics.bpsout != 0)
 						&& (workers[i].deoptimization.metrics.pps != 0)
-						&& (workers[i].deoptimization.metrics.bps != 0)) {
+						&& (workers[i].deoptimization.metrics.bpsin != 0)
+						&& (workers[i].deoptimization.metrics.bpsout != 0)) {
 					sprintf(message, "Counters: Optimization: %u pps\n",
 							workers[i].optimization.metrics.pps);
 					logger(LOG_INFO, message);
-					sprintf(message, "Counters: Optimization: %u bps\n",
-							workers[i].optimization.metrics.bps);
+					sprintf(message, "Counters: Optimization: %u bps in\n",
+							workers[i].optimization.metrics.bpsin);
+					logger(LOG_INFO, message);
+					sprintf(message, "Counters: Optimization: %u bps out\n",
+							workers[i].optimization.metrics.bpsout);
 					logger(LOG_INFO, message);
 					sprintf(message, "Counters: Deoptimization: %u pps\n",
 							workers[i].deoptimization.metrics.pps);
 					logger(LOG_INFO, message);
-					sprintf(message, "Counters: Deoptimization: %u bps\n",
-							workers[i].deoptimization.metrics.bps);
+					sprintf(message, "Counters: Deoptimization: %u bps in\n",
+							workers[i].deoptimization.metrics.bpsin);
+					logger(LOG_INFO, message);
+					sprintf(message, "Counters: Deoptimization: %u bps out\n",
+							workers[i].deoptimization.metrics.bpsout);
 					logger(LOG_INFO, message);
 				}
 			}
