@@ -2,7 +2,7 @@
 
 AM_CPPFLAGS = ${libnfnetlink_CFLAGS} ${libnetfilter_queue_CFLAGS} \
               ${libnl_CPPFLAGS} -Iinclude
-AM_CFLAGS   = -c -Wall -Wcast-align -Wcast-qual
+AM_CFLAGS   = -Wall -Wcast-align -Wcast-qual
 
 bin_PROGRAMS = opennop/opennop
 sbin_PROGRAMS = opennopd/opennopd
@@ -19,6 +19,7 @@ opennopd_opennopd_SOURCES = \
 	opennopd/qlzc/quicklz.c opennopd/libcli/libcli.c \
 	opennopd/subsystems/fetcher.c opennopd/subsystems/healthagent.c \
 	opennopd/subsystems/messages.c opennopd/subsystems/sessioncleanup.c \
-	opennopd/subsystems/worker.c opennopd/subsystems/memorymanager.c
+	opennopd/subsystems/worker.c opennopd/subsystems/memorymanager.c \
+	opennopd/subsystems/counters.c
 opennopd_opennopd_LDADD = \
 	-lcrypt -lpthread ${libnetfilter_queue_LIBS}
