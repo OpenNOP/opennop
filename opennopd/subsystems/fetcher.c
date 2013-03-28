@@ -23,6 +23,7 @@
 #include "packet.h"
 #include "opennopd.h"
 #include "worker.h"
+#include "memorymanager.h"
 
 struct fetcher thefetcher;
 
@@ -284,7 +285,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                         logger(LOG_INFO, message);
                     }
 
-                    thispacket = newpacket();
+                    thispacket = get_freepacket_buffer();
                     save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
 
                     if (acceleratorID == 0){
@@ -328,7 +329,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                                     thissession->smallerIPAccelerator = acceleratorID;
                                 }
 
-                                thispacket = newpacket();
+                                thispacket = get_freepacket_buffer();
                                 save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
                                 queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
 

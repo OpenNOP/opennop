@@ -3,6 +3,7 @@
 #define _GNU_SOURCE
 
 #include <linux/types.h>
+#include <libnetfilter_queue/libnetfilter_queue.h>
 
 #include "session.h"
 

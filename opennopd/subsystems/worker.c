@@ -21,6 +21,7 @@
 #include "tcpoptions.h"
 #include "logger.h"
 #include "quicklz.h"
+#include "memorymanager.h"
 
 struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
@@ -184,7 +185,7 @@ void *optimization_function (void *dummyPtr)
                         checksum(thispacket->data);
                         me->optimization.metrics.bytesout += ntohs(iph->tot_len);
                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
-                        free(thispacket);
+                        put_freepacket_buffer(thispacket);
                         thispacket = NULL;
                     }
 
@@ -193,7 +194,7 @@ void *optimization_function (void *dummyPtr)
                 { /* Session was NULL. */
                 	me->optimization.metrics.bytesout += ntohs(iph->tot_len);
                     nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
-                    free(thispacket);
+                    put_freepacket_buffer(thispacket);
                     thispacket = NULL;
                 }
                 me->optimization.metrics.packets++;
@@ -302,7 +303,7 @@ void *deoptimization_function (void *dummyPtr)
                                     if (tcp_decompress((__u8 *)iph, me->deoptimization.lzbuffer, state_decompress) == 0)
                                     { // Decompression failed if 0.
                                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
-                                        free(thispacket);
+                                        put_freepacket_buffer(thispacket);
                                         thispacket = NULL;
                                     }
                                 }
@@ -354,7 +355,7 @@ void *deoptimization_function (void *dummyPtr)
                         checksum(thispacket->data);
                         me->deoptimization.metrics.bytesout += ntohs(iph->tot_len);
                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
-                        free(thispacket);
+                        put_freepacket_buffer(thispacket);
                         thispacket = NULL;
                     }
 
@@ -363,7 +364,7 @@ void *deoptimization_function (void *dummyPtr)
                 { /* Session was NULL. */
                 	me->deoptimization.metrics.bytesout += ntohs(iph->tot_len);
                     nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
-                    free(thispacket);
+                    put_freepacket_buffer(thispacket);
                     thispacket = NULL;
                 }
                 me->deoptimization.metrics.packets++;
