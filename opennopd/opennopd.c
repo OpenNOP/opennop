@@ -27,6 +27,7 @@
 #include "messages.h"
 #include "eventmanager.h"
 #include "counters.h"
+#include "memorymanager.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -45,6 +46,7 @@ int main(int argc, char *argv[])
     pthread_t t_messages; // thread for messages.
     pthread_t t_eventmanager; // thread for eventmanager.
     pthread_t t_counters; // thread for performance counters.
+    pthread_t t_memorymanager; // thread for the memory manager.
     struct ifaddrs *ifaddr, *ifa;
     __u32 tempIP;
     int s;
@@ -224,7 +226,7 @@ int main(int argc, char *argv[])
         workers[i].sessions = 0;
 
 
-        workers[i].state = RUNNING;
+        workers[i].state = RUNNING; // Should let the worker set its state.
         pthread_mutex_init(&workers[i].lock, NULL); // Initialize the worker lock.
     }
 
@@ -239,6 +241,10 @@ int main(int argc, char *argv[])
     pthread_create(&t_messages, NULL, messages_function, (void *)NULL);
     pthread_create(&t_eventmanager, NULL, eventmanager_function, (void *)NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *)NULL);
+    pthread_create(&t_memorymanager, NULL, memorymanager_function, (void *)NULL);
+
+    sprintf(message, "[OpenNOP]: Started all threads.\n");
+    logger(LOG_INFO, message);
 
     /*
      * Rejoin all threads before we exit!
@@ -250,6 +256,7 @@ int main(int argc, char *argv[])
     pthread_join(t_messages, NULL);
     pthread_join(t_eventmanager, NULL);
     pthread_join(t_counters, NULL);
+    pthread_join(t_memorymanager, NULL);
 
     for (i = 0; i < numworkers; i++)
     {
