@@ -199,6 +199,26 @@ struct packet *get_freepacket_buffer(void) {
 }
 
 int put_freepacket_buffer(struct packet *thispacket) {
-	return queue_packet(&freepacketbuffers, thispacket);
+	int result;
+	char message[LOGSZ];
+
+	if (DEBUG_MEMORYMANAGER == true) {
+		sprintf(message, "[OpenNOP]: Returning a packet buffer to the pool. \n");
+		logger(LOG_INFO, message);
+	}
+	result = queue_packet(&freepacketbuffers, thispacket);
+
+	if (DEBUG_MEMORYMANAGER == true) {
+
+		if (result < 0) {
+			sprintf(message,
+					"[OpenNOP]: Return packet buffer to the pool failed! \n");
+		} else {
+			sprintf(message,
+					"[OpenNOP]: Returned packet buffer to the pool. \n");
+		}
+		logger(LOG_INFO, message);
+	}
+	return result;
 }
 
