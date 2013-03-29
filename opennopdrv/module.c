@@ -8,10 +8,11 @@
 #include <linux/netdevice.h>
 #include <linux/timer.h> // to monitor the health of the daemon
 #include <linux/version.h> // to test kernel version
-
+#include <linux/string.h>
 
 #include <linux/skbuff.h> // for access to sk_buffs
 #include <linux/netfilter_ipv4.h> // for netfilter hooks
+#include <linux/netfilter_bridge.h>
 
 #include <net/protocol.h>
 #include <net/tcp.h>
@@ -27,11 +28,16 @@
 #define FALSE 0
 #define TRUE 1
 
+/* Mode definitions */
+#define ROUTED 0
+#define BRIDGED 1
+
 /* Global Variables */
 int daemonstate = DOWN; /* Current state of the daemon. */
 int hbintervals = 3; /* Number of missed heartbeat intervals before Daemon is down. */
 struct timeval tv_lasthb; /* Last received "UP" heartbeat from Daemon. */
 struct timer_list daemonmonitor; /* Timer that checks the Daemon state. */
+int selectedmode = ROUTED;
 
 /* Debug Variables */ 
 int DEBUG_HEARTBEAT = FALSE;
@@ -42,6 +48,9 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Justin Yaple <yaplej@gmail.com>");
 MODULE_DESCRIPTION("Intercepts network traffic and queues it to the OpenNOP daemon.");
 MODULE_ALIAS("opennopdrv");
+
+static char *mode = "routed";
+module_param(mode, charp, S_IRUGO);
 
 static void daemonmonitor_function(unsigned long data){
 	struct timeval tv_now; // current time.
@@ -136,7 +145,7 @@ static unsigned int
 	return NF_ACCEPT;
 }
 
-static struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
+struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
 	.hook = queue_function, // Function that executes.
 	
 	/* Rewritten for kernel < and >= 2.6.20 */
@@ -167,6 +176,19 @@ opennopdrv_init(void){
 	err = genl_register_ops(&opennop_family, &opennop_ops_hb);
 		if (err != 0){
 		return err;
+	}
+
+		printk(KERN_ALERT "[OpenNOPDrv]: %s", mode);
+
+	if (strcmp(mode, "bridged") == 0) {
+		printk(KERN_ALERT "[OpenNOPDrv]: Switching to bridged mode.");
+		/* Rewritten for kernel < and >= 2.6.30 */
+		#if (LINUX_VERSION_CODE > KERNEL_VERSION (2, 6, 30))
+			opennop_hook.hooknum = NF_BR_FORWARD; // For bridged traffic only.
+		#else
+			printk(KERN_ALERT, "[OpenNOPDrv]: Bridged mode only supported with kernel > 2.6.30");
+		#endif
+
 	}
 	
 	nf_register_hook(&opennop_hook);
