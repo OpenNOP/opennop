@@ -19,7 +19,7 @@ int initialfreepacketbuffers = 1000;
 int minfreepacketbuffers = 500;
 int packetbufferstoallocate = 100;
 
-int DEBUG_MEMORYMANAGER = true;
+int DEBUG_MEMORYMANAGER = false;
 
 void *memorymanager_function(void *dummyPtr) {
 	struct packet_head packetbufferstaging;
