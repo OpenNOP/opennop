@@ -216,12 +216,18 @@ struct packet *get_freepacket_buffer(void) {
 		}
 		pthread_mutex_unlock(&freepacketbuffers.lock); // Lose packet buffer pool lock.
 		pthread_cond_signal(&mysignal); // Free packet buffers are low!
-		thispacket = newpacket();
+		thispacket = newpacket(); // Try to allocate a packet for the requester.
 		pthread_mutex_lock(&mylock); // Grab lock.
 		allocatedpacketbuffers++;
 		pthread_mutex_unlock(&mylock); // Lose lock.
 	}
 
+	if (DEBUG_MEMORYMANAGER == true) {
+		sprintf(message, "[OpenNOP]: Return packet to requester. \n");
+		logger(LOG_INFO, message);
+	}
+
+	memset(thispacket, 0, sizeof(thispacket));
 	return thispacket;
 }
 
