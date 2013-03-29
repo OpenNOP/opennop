@@ -172,7 +172,12 @@ u_int32_t movepacketbuffers(struct packet_head *fromqueue,
 
 struct packet *get_freepacket_buffer(void) {
 	struct packet *thispacket = NULL;
+	char message[LOGSZ];
 
+	if (DEBUG_MEMORYMANAGER == true) {
+		sprintf(message, "[OpenNOP]: Requesting a packet buffer from pool. \n");
+		logger(LOG_INFO, message);
+	}
 	/*
 	 * Check if any packet buffers are in the pool
 	 * get one if there are or allocate a new buffer if not.
@@ -181,12 +186,28 @@ struct packet *get_freepacket_buffer(void) {
 
 	if (freepacketbuffers.qlen > 0) {
 
+		if (DEBUG_MEMORYMANAGER == true) {
+			sprintf(message,
+					"[OpenNOP]: There are free packet buffers in the pool. \n");
+			logger(LOG_INFO, message);
+		}
+
 		if (freepacketbuffers.qlen < minfreepacketbuffers) {
+
+			if (DEBUG_MEMORYMANAGER == true) {
+				sprintf(message, "[OpenNOP]: Packet buffer pool is low. \n");
+				logger(LOG_INFO, message);
+			}
 			pthread_cond_signal(&mysignal); // Free packet buffers are low!
 		}
 		pthread_mutex_unlock(&freepacketbuffers.lock); // Lose packet buffer pool lock.
 		thispacket = dequeue_packet(&freepacketbuffers, false); // This uses its own lock.
 	} else {
+
+		if (DEBUG_MEMORYMANAGER == true) {
+			sprintf(message, "[OpenNOP]: Packet buffer pool is empty! \n");
+			logger(LOG_INFO, message);
+		}
 		pthread_mutex_unlock(&freepacketbuffers.lock); // Lose packet buffer pool lock.
 		pthread_cond_signal(&mysignal); // Free packet buffers are low!
 		thispacket = newpacket();
