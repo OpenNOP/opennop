@@ -286,12 +286,18 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     }
 
                     thispacket = get_freepacket_buffer();
-                    save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
 
-                    if (acceleratorID == 0){
-                    	queue_packet(&workers[thissession->queue].optimization.queue,thispacket);
-                    }else{
-                    	queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
+                    if (thispacket != NULL){
+                    	save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
+
+                    	if (acceleratorID == 0){
+                    		queue_packet(&workers[thissession->queue].optimization.queue,thispacket);
+                    	}else{
+                    		queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
+                    	}
+                    } else {
+                    	sprintf(message, "Fetcher: Failed getting packet buffer for optimization.\n");
+                    	logger(LOG_INFO, message);
                     }
                     /* Before we return let increment the packets counter. */
                     thefetcher.metrics.packets++;
@@ -330,9 +336,14 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                                 }
 
                                 thispacket = get_freepacket_buffer();
-                                save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
-                                queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
 
+                                if (thispacket != NULL){
+                                	save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
+                                	queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
+                                } else {
+                                	sprintf(message, "Fetcher: Failed getting packet buffer for deoptimization.\n");
+                                	logger(LOG_INFO, message);
+                                }
                                 /* Before we return let increment the packets counter. */
                                 thefetcher.metrics.packets++;
                                 return 0;

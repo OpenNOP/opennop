@@ -204,7 +204,8 @@ struct packet *get_freepacket_buffer(void) {
 		thispacket = dequeue_packet(&freepacketbuffers, false); // This uses its own lock.
 
 		if (DEBUG_MEMORYMANAGER == true) {
-			sprintf(message, "[OpenNOP]: Allocated packet from packet buffer pool. \n");
+			sprintf(message,
+					"[OpenNOP]: Allocated packet from packet buffer pool. \n");
 			logger(LOG_INFO, message);
 		}
 
@@ -222,12 +223,18 @@ struct packet *get_freepacket_buffer(void) {
 		pthread_mutex_unlock(&mylock); // Lose lock.
 	}
 
+	if (thispacket != NULL) {
+		memset(thispacket, 0, sizeof(thispacket));
+	} else {
+		sprintf(message, "[OpenNOP]: Failed to allocate packet! \n");
+		logger(LOG_INFO, message);
+	}
+
 	if (DEBUG_MEMORYMANAGER == true) {
 		sprintf(message, "[OpenNOP]: Return packet to requester. \n");
 		logger(LOG_INFO, message);
 	}
 
-	memset(thispacket, 0, sizeof(thispacket));
 	return thispacket;
 }
 
