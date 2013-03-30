@@ -2,6 +2,9 @@
 #define PACKET_H_
 #define _GNU_SOURCE
 
+#include <stdint.h>
+#include <pthread.h>
+
 #include <linux/types.h>
 #include <libnetfilter_queue/libnetfilter_queue.h>
 
