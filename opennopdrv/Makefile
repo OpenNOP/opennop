@@ -7,8 +7,8 @@ $(MODULE)-y	:= $(OBJS)
 
 obj-m += $(MODULE).o
 
-KDIR    := /lib/modules/$(shell uname -r)/build
-PWD             := $(shell pwd)
+KDIR    := $(INSTALL_MOD_PATH)/lib/modules/$(shell uname -r)/build
+PWD     := $(shell pwd)
 
 
 all modules:        
