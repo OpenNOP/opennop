@@ -118,7 +118,7 @@ int opennop_echo(struct sk_buff *skb_2, struct genl_info *info)
         /* send the message back */
 		/* Rewritten for kernel < and >= 2.6.20 */
 		#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 6, 11))
-			rc = genlmsg_unicast(skb,info->snd_portid );
+			rc = genlmsg_unicast(NULL,skb,info->snd_portid );
 		#elif (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
 			rc = genlmsg_unicast(skb,info->snd_pid );
 		#else
