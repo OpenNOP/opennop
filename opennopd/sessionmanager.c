@@ -81,7 +81,7 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 	 */
 	queuenum = 0;
 
-	for (i = 0; i < numworkers; i++) {
+	for (i = 0; i < get_workers(); i++) {
 
 		if (DEBUG_SESSIONMANAGER_INSERT == true) {
 			sprintf(message, "Session Manager: Queue #%d has %d sessions.\n",
@@ -91,7 +91,7 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 
 		if (workers[queuenum].sessions > workers[i].sessions) {
 
-			if (i < numworkers) {
+			if (i < get_workers()) {
 				queuenum = i;
 			}
 		}

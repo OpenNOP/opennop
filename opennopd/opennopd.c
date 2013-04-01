@@ -200,13 +200,12 @@ int main(int argc, char *argv[])
         sessiontable[i].prev = NULL;
     }
 
-    if (numworkers == 0)
+    if (get_workers() == 0)
     {
-        numworkers = sysconf(_SC_NPROCESSORS_ONLN); // Get the number of logical CPUs.
-        numworkers = numworkers * 2;
+        set_workers(sysconf(_SC_NPROCESSORS_ONLN) * 2);
     }
 
-    for (i = 0; i < numworkers; i++)
+    for (i = 0; i < get_workers(); i++)
     {
         pthread_create(&workers[i].optimization.t_processor, NULL, optimization_function, (void *)&workers[i]);
         pthread_create(&workers[i].deoptimization.t_processor, NULL, deoptimization_function, (void *)&workers[i]);
@@ -258,7 +257,7 @@ int main(int argc, char *argv[])
     pthread_join(t_counters, NULL);
     pthread_join(t_memorymanager, NULL);
 
-    for (i = 0; i < numworkers; i++)
+    for (i = 0; i < get_workers(); i++)
     {
 
         workers[i].state = STOPPED;

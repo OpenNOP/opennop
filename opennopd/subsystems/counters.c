@@ -40,7 +40,7 @@ void *counters_function(void *dummyPtr) {
 	 * Initialize previous thread storage.
 	 */
 	prevfetchermetrics = thefetcher.metrics;
-	for (i = 0; i < numworkers; i++) {
+	for (i = 0; i < get_workers(); i++) {
 		prevoptimizationmetrics[i] = workers[i].optimization.metrics;
 		prevdeoptimizationmetrics[i] = workers[i].deoptimization.metrics;
 	}
@@ -70,7 +70,7 @@ void *counters_function(void *dummyPtr) {
 			logger(LOG_INFO, message);
 		}
 
-		for (i = 0; i < numworkers; i++) {
+		for (i = 0; i < get_workers(); i++) {
 			/*
 			 * We get the current metrics for each thread.
 			 */
@@ -111,7 +111,7 @@ void *counters_function(void *dummyPtr) {
 
 		if (DEBUG_COUNTERS == true) {
 
-			for (i = 0; i < numworkers; i++) {
+			for (i = 0; i < get_workers(); i++) {
 
 				if ((workers[i].optimization.metrics.pps != 0)
 						&& (workers[i].optimization.metrics.bpsin != 0)

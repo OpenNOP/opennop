@@ -376,3 +376,17 @@ void *deoptimization_function (void *dummyPtr)
     }
     return NULL;
 }
+
+/*
+ * Returns how many workers should be running.
+ */
+unsigned char get_workers(void){
+	return numworkers;
+}
+
+/*
+ * Sets how many workers should be running.
+ */
+void set_workers(unsigned char desirednumworkers){
+	numworkers = desirednumworkers;
+}
