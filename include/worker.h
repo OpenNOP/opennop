@@ -37,9 +37,11 @@ struct worker
 };
 
 extern struct worker workers[MAXWORKERS];
-extern unsigned char numworkers;
+//extern unsigned char numworkers;
 
 void *optimization_function (void *dummyPtr);
 void *deoptimization_function (void *dummyPtr);
+unsigned char get_workers(void);
+void set_workers(unsigned char desirednumworkers);
 
 #endif /*WORKER_H_*/
