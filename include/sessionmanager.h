@@ -10,10 +10,6 @@
 
 extern struct session_head sessiontable[SESSIONBUCKETS]; // Setup the session hashtable.
 
-extern int DEBUG_SESSIONMANAGER_INSERT;
-extern int DEBUG_SESSIONMANAGER_GET;
-extern int DEBUG_SESSIONMANAGER_REMOVE;
-
 __u16 sessionhash(__u32 largerIP, __u16 largerIPPort, 
 __u32 smallerIP, __u16 smallerIPPort);
 void freemem(struct session_head *currentlist);
