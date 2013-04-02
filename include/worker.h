@@ -40,7 +40,6 @@ struct worker
 };
 
 extern struct worker workers[MAXWORKERS];
-//extern unsigned char numworkers;
 
 void *optimization_thread (void *dummyPtr);
 void *deoptimization_thread (void *dummyPtr);
