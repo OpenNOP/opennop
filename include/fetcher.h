@@ -8,9 +8,6 @@
 
 #include "counters.h"
 
-extern int DEBUG_FETCHER;
-extern int G_SCALEWINDOW;
-
 struct fetcher {
 	pthread_t t_fetcher;
 	struct counters metrics;
