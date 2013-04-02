@@ -42,9 +42,16 @@ struct worker
 extern struct worker workers[MAXWORKERS];
 //extern unsigned char numworkers;
 
-void *optimization_function (void *dummyPtr);
-void *deoptimization_function (void *dummyPtr);
+void *optimization_thread (void *dummyPtr);
+void *deoptimization_thread (void *dummyPtr);
 unsigned char get_workers(void);
 void set_workers(unsigned char desirednumworkers);
+void create_worker(int i);
+void rejoin_worker(int i);
+void initialize_worker_processor(struct processor *thisprocessor);
+void joining_worker_processor(struct processor *thisprocessor);
+void set_worker_state_running(struct worker *thisworker);
+void set_worker_state_stopped(struct worker *thisworker);
+
 
 #endif /*WORKER_H_*/
