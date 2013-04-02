@@ -3,6 +3,8 @@
 
 #define MSGSZ     128
 
+#include <sys/types.h>
+
 struct msgbuf {
 	long mtype; // Type 1 = to the Daemon, all others are the PID the message is going to.
 	pid_t sender; // Who sent the message.
