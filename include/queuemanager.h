@@ -10,8 +10,6 @@
 #include "session.h"
 #include "packet.h"
 
-extern int DEBUG_QUEUEMANAGER;
-
 int queue_packet(struct packet_head *queue, struct packet *thispacket);
 
 struct packet *dequeue_packet(struct packet_head *queue, int signal);
