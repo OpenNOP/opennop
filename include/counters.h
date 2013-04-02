@@ -1,6 +1,10 @@
 #ifndef COUNTERS_H_
 #define COUNTERS_H_
 
+#include <pthread.h>
+#include <sys/time.h>
+#include <linux/types.h>
+
 struct counters {
 	/*
 	 * number of packets processed.
@@ -26,9 +30,19 @@ struct counters {
 	 * not used by fetcher.
 	 */
 	__u16 B, KB, MB, GB;
+
+	/*
+	 * Stores when the counters were last updated.
+	 */
+	struct timeval updated;
+
+	/*
+	 * When something reads/writes to this counter it should use the lock.
+	 */
+	pthread_mutex_t lock;
 };
 
-void *counters_function (void *dummyPtr);
+void *counters_function(void *dummyPtr);
 int calculate_ppsbps(__u32 previouscount, __u32 currentcount);
 
 #endif /*COUNTERS_H_*/
