@@ -21,7 +21,7 @@
 #### START of preliminary checks #########
 
 #Check for missing binaries
-OPENNOP_BIN=/usr/bin/opennopd
+OPENNOP_BIN=/usr/sbin/opennopd
 test -x $OPENNOP_BIN || { echo "$OPENNOP_BIN not installed";
 	if [ "$1" = "stop" ]; then exit 0;
 	else exit 5; fi; }
