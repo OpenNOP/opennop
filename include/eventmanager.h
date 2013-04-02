@@ -1,6 +1,8 @@
 #ifndef EVENTMANAGER_H_
 #define EVENTMANAGER_H_
 
+#include <sys/types.h>
+
 struct event_head {
 	struct event *next; /* Points to the first event of the list. */
 	struct event *prev; /* Points to the last event of the list. */

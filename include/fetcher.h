@@ -2,6 +2,8 @@
 #define FETCHER_H_
 #define _GNU_SOURCE
 
+#include <pthread.h>
+
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
 
 #include "counters.h"

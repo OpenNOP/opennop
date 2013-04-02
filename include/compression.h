@@ -3,6 +3,7 @@
 #define _GNU_SOURCE
 
 #include <linux/types.h>
+
 #include "quicklz.h"
 
 unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer, qlz_state_compress *state_compress);
