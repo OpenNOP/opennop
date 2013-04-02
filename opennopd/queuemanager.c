@@ -73,3 +73,45 @@ struct packet *dequeue_packet(struct packet_head *queue, int signal) {
 
 	return thispacket;
 }
+
+/*
+ * This function moves all packet buffers from one queue to another.
+ * Returns how many were moved.
+ */
+u_int32_t move_queued_packets(struct packet_head *fromqueue,
+		struct packet_head *toqueue) {
+	struct packet *start; // Points to the first packet of the list.
+	struct packet *end; // Points to the last packet of the list.
+	u_int32_t qlen; // How many buffers are being moved.
+
+	/*
+	 * Get the first and last buffers in the source queue
+	 * and remove all the packet buffers from the source queue.
+	 */
+	pthread_mutex_lock(&fromqueue->lock);
+	start = fromqueue->next;
+	end = fromqueue->prev;
+	qlen = fromqueue->qlen;
+	fromqueue->next = NULL;
+	fromqueue->prev = NULL;
+	fromqueue->qlen = 0;
+	pthread_mutex_unlock(&fromqueue->lock);
+
+	/*
+	 * Add those buffers to the destination queue.
+	 */
+	pthread_mutex_lock(&toqueue->lock);
+	if (toqueue->next == NULL) {
+		toqueue->next = start;
+		toqueue->prev = end;
+		toqueue->qlen = qlen;
+	} else {
+		start->prev = toqueue->prev;
+		toqueue->prev->next = start;
+		toqueue->prev = end;
+		toqueue->qlen += qlen;
+	}
+	pthread_mutex_unlock(&toqueue->lock);
+
+	return qlen;
+}
