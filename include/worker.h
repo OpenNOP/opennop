@@ -2,6 +2,9 @@
 #define WORKER_H_
 #define _GNU_SOURCE
 
+#include <stdint.h>
+#include <pthread.h>
+
 #include <sys/types.h>
 
 #include <linux/types.h>
