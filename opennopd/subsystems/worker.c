@@ -27,7 +27,7 @@ struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
 int DEBUG_WORKER = false;
 
-void *optimization_function (void *dummyPtr)
+void *optimization_thread (void *dummyPtr)
 {
     struct worker *me = NULL;
     struct packet *thispacket = NULL;
@@ -207,7 +207,7 @@ void *optimization_function (void *dummyPtr)
     return NULL;
 }
 
-void *deoptimization_function (void *dummyPtr)
+void *deoptimization_thread (void *dummyPtr)
 {
     struct worker *me = NULL;
     struct packet *thispacket = NULL;
@@ -389,4 +389,48 @@ unsigned char get_workers(void){
  */
 void set_workers(unsigned char desirednumworkers){
 	numworkers = desirednumworkers;
+}
+
+void create_worker(int i){
+	initialize_worker_processor(&workers[i].optimization);
+	initialize_worker_processor(&workers[i].deoptimization);
+	workers[i].sessions = 0;
+	pthread_mutex_init(&workers[i].lock, NULL); // Initialize the worker lock.
+	pthread_create(&workers[i].optimization.t_processor, NULL, optimization_thread, (void *)&workers[i]);
+	pthread_create(&workers[i].deoptimization.t_processor, NULL, deoptimization_thread, (void *)&workers[i]);
+	set_worker_state_running(&workers[i]);
+}
+
+void rejoin_worker(int i){
+	joining_worker_processor(&workers[i].optimization);
+	joining_worker_processor(&workers[i].deoptimization);
+    set_worker_state_stopped(&workers[i]);
+}
+
+void initialize_worker_processor(struct processor *thisprocessor){
+	pthread_cond_init(&thisprocessor->queue.signal, NULL); // Initialize the thread signal.
+	thisprocessor->queue.next = NULL; // Initialize the queue.
+	thisprocessor->queue.prev = NULL;
+	thisprocessor->lzbuffer = NULL;
+	thisprocessor->queue.qlen = 0;
+	pthread_mutex_init(&thisprocessor->queue.lock, NULL); // Initialize the queue lock.
+}
+
+void joining_worker_processor(struct processor *thisprocessor){
+    pthread_mutex_lock(&thisprocessor->queue.lock);
+    pthread_cond_signal(&thisprocessor->queue.signal);
+    pthread_mutex_unlock(&thisprocessor->queue.lock);
+    pthread_join(thisprocessor->t_processor, NULL);
+}
+
+void set_worker_state_running(struct worker *thisworker){
+	pthread_mutex_lock(&thisworker->lock);
+	thisworker->state = RUNNING;
+	pthread_mutex_unlock(&thisworker->lock);
+}
+
+void set_worker_state_stopped(struct worker *thisworker){
+	pthread_mutex_lock(&thisworker->lock);
+	thisworker->state = STOPPED;
+	pthread_mutex_unlock(&thisworker->lock);
 }
