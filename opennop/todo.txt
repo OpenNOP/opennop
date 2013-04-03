@@ -1,0 +1,9 @@
+Phase-1
+------------------
+1. Tree structure of command hierarchy.
+2. Unix user authentication.
+3. Normal user belonging to opennop group can also log into to CLI.
+4. Privilege based command execution.
+5. In case user is logged in with su <other_user> then check the group credentials of new user and use it accordinly, in case if the new user
+	is not the part of opennop group , then we ask for login .
+6. It should have option of login with two ways, opennop and opennop -l <login_name> -p <password>
