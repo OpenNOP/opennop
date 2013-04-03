@@ -28,6 +28,7 @@
 #include "eventmanager.h"
 #include "counters.h"
 #include "memorymanager.h"
+#include "climanager.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
