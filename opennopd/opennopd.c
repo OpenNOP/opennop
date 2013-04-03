@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
     pthread_create(&thefetcher.t_fetcher, NULL, fetcher_function, (void *)NULL);
     pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
-    pthread_create(&t_messages, NULL, messages_function, (void *)NULL);
+    pthread_create(&t_messages, NULL, cli_manager_init, (void *)NULL);
     pthread_create(&t_eventmanager, NULL, eventmanager_function, (void *)NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *)NULL);
     pthread_create(&t_memorymanager, NULL, memorymanager_function, (void *)NULL);
