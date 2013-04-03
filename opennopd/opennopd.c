@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
 {
     pthread_t t_cleanup; // thread for cleaning up dead sessions.
     pthread_t t_healthagent; // thread for health agent.
+    pthread_t t_cli; // thread for cli.
     pthread_t t_counters; // thread for performance counters.
     pthread_t t_memorymanager; // thread for the memory manager.
     struct ifaddrs *ifaddr, *ifa;
@@ -213,6 +214,7 @@ int main(int argc, char *argv[])
     pthread_create(&thefetcher.t_fetcher, NULL, fetcher_function, (void *)NULL);
     pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
+    pthread_create(&t_cli, NULL, cli_manager_init, (void *)NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *)NULL);
     pthread_create(&t_memorymanager, NULL, memorymanager_function, (void *)NULL);
 
@@ -226,6 +228,7 @@ int main(int argc, char *argv[])
     pthread_join(thefetcher.t_fetcher, NULL);
     pthread_join(t_cleanup, NULL);
     pthread_join(t_healthagent, NULL);
+    pthread_join(t_cli, NULL);
     pthread_join(t_counters, NULL);
     pthread_join(t_memorymanager, NULL);
 
