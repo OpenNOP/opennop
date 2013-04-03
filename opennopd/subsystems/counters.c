@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h> // for sleep function
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include <linux/types.h>
 
@@ -10,6 +12,7 @@
 #include "fetcher.h"
 #include "worker.h"
 #include "counters.h"
+#include "climanager.h"
 
 int DEBUG_COUNTERS = true;
 
@@ -44,6 +47,8 @@ void *counters_function(void *dummyPtr) {
 		prevoptimizationmetrics[i] = workers[i].optimization.metrics;
 		prevdeoptimizationmetrics[i] = workers[i].deoptimization.metrics;
 	}
+
+	register_command("show counters", cli_show_counters);
 
 	while (servicestate >= STOPPING) {
 		sleep(UPDATECOUNTERSTIMER); // Sleeping for a few seconds.
@@ -176,4 +181,23 @@ int calculate_ppsbps(__u32 previouscount, __u32 currentcount) {
 	}
 
 	return ppsbps;
+}
+
+int cli_show_counters() {
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	char message[LOGSZ];
+
+	if (DEBUG_COUNTERS == true) {
+		sprintf(message, "Counters: Showing counters");
+		logger(LOG_INFO, message);
+	}
+
+	strcat(msg, "\n Just a test.\n");
+
+	if (cli_send_feedback(msg) <= 0) {
+		perror("[cli_manager]: send");
+		return 1;
+	};
+
+	return 0;
 }
