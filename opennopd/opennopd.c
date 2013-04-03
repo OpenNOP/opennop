@@ -24,8 +24,6 @@
 #include "signals.h"
 #include "worker.h"
 #include "healthagent.h"
-#include "messages.h"
-#include "eventmanager.h"
 #include "counters.h"
 #include "memorymanager.h"
 #include "climanager.h"
@@ -41,11 +39,8 @@ int isdaemon = true; // Determines how to log the messages and errors.
 
 int main(int argc, char *argv[])
 {
-    //pthread_t t_fetcher; // thread for getting packets out of Netfilter Queue.
     pthread_t t_cleanup; // thread for cleaning up dead sessions.
     pthread_t t_healthagent; // thread for health agent.
-    pthread_t t_messages; // thread for messages.
-    pthread_t t_eventmanager; // thread for eventmanager.
     pthread_t t_counters; // thread for performance counters.
     pthread_t t_memorymanager; // thread for the memory manager.
     struct ifaddrs *ifaddr, *ifa;
@@ -215,12 +210,9 @@ int main(int argc, char *argv[])
      * Create the fetcher thread that retrieves
      * IP packets from the Netfilter Queue.
      */
-    //pthread_create(&t_fetcher, NULL, fetcher_function, (void *)NULL);
     pthread_create(&thefetcher.t_fetcher, NULL, fetcher_function, (void *)NULL);
     pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
-    pthread_create(&t_messages, NULL, cli_manager_init, (void *)NULL);
-    pthread_create(&t_eventmanager, NULL, eventmanager_function, (void *)NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *)NULL);
     pthread_create(&t_memorymanager, NULL, memorymanager_function, (void *)NULL);
 
@@ -234,8 +226,6 @@ int main(int argc, char *argv[])
     pthread_join(thefetcher.t_fetcher, NULL);
     pthread_join(t_cleanup, NULL);
     pthread_join(t_healthagent, NULL);
-    pthread_join(t_messages, NULL);
-    pthread_join(t_eventmanager, NULL);
     pthread_join(t_counters, NULL);
     pthread_join(t_memorymanager, NULL);
 
