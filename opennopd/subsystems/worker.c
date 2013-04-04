@@ -2,15 +2,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <pthread.h> // for multi-threading
-
 #include <netinet/ip.h> // for tcpmagic and TCP options
 #include <netinet/tcp.h> // for tcpmagic and TCP options
-
 #include <linux/types.h>
 #include <linux/netfilter.h> // for NF_ACCEPT
-
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
-
 #include "queuemanager.h"
 #include "worker.h"
 #include "opennopd.h"
@@ -27,59 +23,54 @@ struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
 int DEBUG_WORKER = false;
 
-void *optimization_thread (void *dummyPtr)
-{
-    struct worker *me = NULL;
-    struct packet *thispacket = NULL;
-    struct session *thissession = NULL;
-    struct iphdr *iph = NULL;
-    struct tcphdr *tcph = NULL;
-    __u32 largerIP, smallerIP, acceleratorID;
-    __u16 largerIPPort, smallerIPPort;
-    char message [LOGSZ];
-	qlz_state_compress *state_compress = (qlz_state_compress *)malloc(sizeof(qlz_state_compress));
-    me = dummyPtr;
+void *optimization_thread(void *dummyPtr) {
+	struct worker *me = NULL;
+	struct packet *thispacket = NULL;
+	struct session *thissession = NULL;
+	struct iphdr *iph = NULL;
+	struct tcphdr *tcph = NULL;
+	__u32 largerIP, smallerIP, acceleratorID;
+	__u16 largerIPPort, smallerIPPort;
+	char message[LOGSZ];
+	qlz_state_compress *state_compress = (qlz_state_compress *) malloc(
+			sizeof(qlz_state_compress));
+	me = dummyPtr;
 
-    me->optimization.lzbuffer = calloc(1,BUFSIZE + 400);
+	me->optimization.lzbuffer = calloc(1, BUFSIZE + 400);
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
-	if (me->optimization.lzbuffer == NULL){
+	if (me->optimization.lzbuffer == NULL) {
 		sprintf(message, "Worker: Couldn't allocate buffer");
 		logger(LOG_INFO, message);
 		exit(1);
 	}
 
-    if (me->optimization.lzbuffer != NULL)
-    {
+	if (me->optimization.lzbuffer != NULL) {
 
-        while (me->state >= STOPPING)
-        {
+		while (me->state >= STOPPING) {
 
-            thispacket = dequeue_packet(&me->optimization.queue, true);
+			thispacket = dequeue_packet(&me->optimization.queue, true);
 
-            if (thispacket != NULL)
-            { // If a packet was taken from the queue.
-                iph = (struct iphdr *)thispacket->data;
-                tcph = (struct tcphdr *) (((u_int32_t *)iph) + iph->ihl);
+			if (thispacket != NULL) { // If a packet was taken from the queue.
+				iph = (struct iphdr *) thispacket->data;
+				tcph = (struct tcphdr *) (((u_int32_t *) iph) + iph->ihl);
 
-                if (DEBUG_WORKER == true)
-                {
-                    sprintf(message, "Worker: IP Packet length is: %u\n",ntohs(iph->tot_len));
-                    logger(LOG_INFO, message);
-                }
-                me->optimization.metrics.bytesin += ntohs(iph->tot_len);
-                acceleratorID = (__u32)__get_tcp_option((__u8 *)iph,30);
+				if (DEBUG_WORKER == true) {
+					sprintf(message, "Worker: IP Packet length is: %u\n",
+							ntohs(iph->tot_len));
+					logger(LOG_INFO, message);
+				}
+				me->optimization.metrics.bytesin += ntohs(iph->tot_len);
+				acceleratorID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
+sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
+						iph->saddr,tcph->source,iph->daddr,tcph->dest);
 
-                /* Check what IP address is larger. */
-                sort_sockets(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
-                             iph->saddr,tcph->source,iph->daddr,tcph->dest);
+				if (DEBUG_WORKER == true)
+				{
+					sprintf(message, "Worker: Searching for session.\n");
+					logger(LOG_INFO, message);
+				}
 
-                if (DEBUG_WORKER == true)
-                {
-                    sprintf(message, "Worker: Searching for session.\n");
-                    logger(LOG_INFO, message);
-                }
-
-                thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort);
+				thissession = getsession(largerIP, largerIPPort, smallerIP,smallerIPPort);
 
                 if (thissession != NULL)
                 {
@@ -199,65 +190,62 @@ void *optimization_thread (void *dummyPtr)
                 }
                 me->optimization.metrics.packets++;
             } /* End NULL packet check. */
-        } /* End working loop. */
-        free(me->optimization.lzbuffer);
-		free(state_compress);
-        me->optimization.lzbuffer = NULL;
-    }
-    return NULL;
-}
+			} /* End working loop. */
+			free(me->optimization.lzbuffer);
+			free(state_compress);
+			me->optimization.lzbuffer = NULL;
+		}
+		return NULL;
+	}
 
-void *deoptimization_thread (void *dummyPtr)
-{
-    struct worker *me = NULL;
-    struct packet *thispacket = NULL;
-    struct session *thissession = NULL;
-    struct iphdr *iph = NULL;
-    struct tcphdr *tcph = NULL;
-    __u32 largerIP, smallerIP, acceleratorID;
-    __u16 largerIPPort, smallerIPPort;
-    char message [LOGSZ];
-	qlz_state_decompress *state_decompress = (qlz_state_decompress *)malloc(sizeof(qlz_state_decompress));
-    me = dummyPtr;
+void *deoptimization_thread(void *dummyPtr) {
+	struct worker *me = NULL;
+	struct packet *thispacket = NULL;
+	struct session *thissession = NULL;
+	struct iphdr *iph = NULL;
+	struct tcphdr *tcph = NULL;
+	__u32 largerIP, smallerIP, acceleratorID;
+	__u16 largerIPPort, smallerIPPort;
+	char message[LOGSZ];
+	qlz_state_decompress *state_decompress = (qlz_state_decompress *) malloc(
+			sizeof(qlz_state_decompress));
+	me = dummyPtr;
 
-    me->deoptimization.lzbuffer = calloc(1,BUFSIZE + 400);
+	me->deoptimization.lzbuffer = calloc(1, BUFSIZE + 400);
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
-	if (me->deoptimization.lzbuffer == NULL){
+	if (me->deoptimization.lzbuffer == NULL) {
 		sprintf(message, "Worker: Couldn't allocate buffer");
 		logger(LOG_INFO, message);
 		exit(1);
 	}
 
-    if (me->deoptimization.lzbuffer != NULL){
+	if (me->deoptimization.lzbuffer != NULL) {
 
-        while (me->state >= STOPPING){
+		while (me->state >= STOPPING) {
 
-            thispacket = dequeue_packet(&me->deoptimization.queue, true);
+			thispacket = dequeue_packet(&me->deoptimization.queue, true);
 
-            if (thispacket != NULL)
-            { // If a packet was taken from the queue.
-                iph = (struct iphdr *)thispacket->data;
-                tcph = (struct tcphdr *) (((u_int32_t *)iph) + iph->ihl);
+			if (thispacket != NULL) { // If a packet was taken from the queue.
+				iph = (struct iphdr *) thispacket->data;
+				tcph = (struct tcphdr *) (((u_int32_t *) iph) + iph->ihl);
 
-                if (DEBUG_WORKER == true)
-                {
-                    sprintf(message, "Worker: IP Packet length is: %u\n",ntohs(iph->tot_len));
-                    logger(LOG_INFO, message);
-                }
-                me->deoptimization.metrics.bytesin += ntohs(iph->tot_len);
-                acceleratorID = (__u32)__get_tcp_option((__u8 *)iph,30);
+				if (DEBUG_WORKER == true) {
+					sprintf(message, "Worker: IP Packet length is: %u\n",
+							ntohs(iph->tot_len));
+					logger(LOG_INFO, message);
+				}
+				me->deoptimization.metrics.bytesin += ntohs(iph->tot_len);
+				acceleratorID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
+sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
+						iph->saddr,tcph->source,iph->daddr,tcph->dest);
 
-                /* Check what IP address is larger. */
-                sort_sockets(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
-                             iph->saddr,tcph->source,iph->daddr,tcph->dest);
+				if (DEBUG_WORKER == true)
+				{
+					sprintf(message, "Worker: Searching for session.\n");
+					logger(LOG_INFO, message);
+				}
 
-                if (DEBUG_WORKER == true)
-                {
-                    sprintf(message, "Worker: Searching for session.\n");
-                    logger(LOG_INFO, message);
-                }
-
-                thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort);
+				thissession = getsession(largerIP, largerIPPort, smallerIP,smallerIPPort);
 
                 if (thissession != NULL)
                 {
@@ -369,45 +357,65 @@ void *deoptimization_thread (void *dummyPtr)
                 }
                 me->deoptimization.metrics.packets++;
             } /* End NULL packet check. */
-        } /* End working loop. */
-        free(me->deoptimization.lzbuffer);
-		free(state_decompress);
-		me->deoptimization.lzbuffer = NULL;
-    }
-    return NULL;
-}
+			} /* End working loop. */
+			free(me->deoptimization.lzbuffer);
+			free(state_decompress);
+			me->deoptimization.lzbuffer = NULL;
+		}
+		return NULL;
+	}
 
-/*
- * Returns how many workers should be running.
- */
-unsigned char get_workers(void){
+	/*
+	 * Returns how many workers should be running.
+	 */
+unsigned char get_workers(void) {
 	return numworkers;
 }
 
 /*
  * Sets how many workers should be running.
  */
-void set_workers(unsigned char desirednumworkers){
+void set_workers(unsigned char desirednumworkers) {
 	numworkers = desirednumworkers;
 }
 
-void create_worker(int i){
+u_int32_t get_worker_sessions(int i) {
+	pthread_mutex_lock(&workers[i].lock);
+	return workers[i].sessions;
+	pthread_mutex_unlock(&workers[i].lock);
+}
+
+void increment_worker_sessions(int i) {
+
+	pthread_mutex_lock(&workers[i].lock); // Grab lock on worker.
+	workers[i].sessions += 1;
+	pthread_mutex_unlock(&workers[i].lock); // Lose lock on worker.
+}
+void decrement_worker_sessions(int i) {
+	pthread_mutex_lock(&workers[i].lock); // Grab lock on worker.
+	workers[i].sessions -= 1;
+	pthread_mutex_unlock(&workers[i].lock); // Lose lock on worker.
+}
+
+void create_worker(int i) {
 	initialize_worker_processor(&workers[i].optimization);
 	initialize_worker_processor(&workers[i].deoptimization);
 	workers[i].sessions = 0;
 	pthread_mutex_init(&workers[i].lock, NULL); // Initialize the worker lock.
-	pthread_create(&workers[i].optimization.t_processor, NULL, optimization_thread, (void *)&workers[i]);
-	pthread_create(&workers[i].deoptimization.t_processor, NULL, deoptimization_thread, (void *)&workers[i]);
+	pthread_create(&workers[i].optimization.t_processor, NULL,
+			optimization_thread, (void *) &workers[i]);
+	pthread_create(&workers[i].deoptimization.t_processor, NULL,
+			deoptimization_thread, (void *) &workers[i]);
 	set_worker_state_running(&workers[i]);
 }
 
-void rejoin_worker(int i){
+void rejoin_worker(int i) {
 	joining_worker_processor(&workers[i].optimization);
 	joining_worker_processor(&workers[i].deoptimization);
-    set_worker_state_stopped(&workers[i]);
+	set_worker_state_stopped(&workers[i]);
 }
 
-void initialize_worker_processor(struct processor *thisprocessor){
+void initialize_worker_processor(struct processor *thisprocessor) {
 	pthread_cond_init(&thisprocessor->queue.signal, NULL); // Initialize the thread signal.
 	thisprocessor->queue.next = NULL; // Initialize the queue.
 	thisprocessor->queue.prev = NULL;
@@ -416,21 +424,63 @@ void initialize_worker_processor(struct processor *thisprocessor){
 	pthread_mutex_init(&thisprocessor->queue.lock, NULL); // Initialize the queue lock.
 }
 
-void joining_worker_processor(struct processor *thisprocessor){
-    pthread_mutex_lock(&thisprocessor->queue.lock);
-    pthread_cond_signal(&thisprocessor->queue.signal);
-    pthread_mutex_unlock(&thisprocessor->queue.lock);
-    pthread_join(thisprocessor->t_processor, NULL);
+void joining_worker_processor(struct processor *thisprocessor) {
+	pthread_mutex_lock(&thisprocessor->queue.lock);
+	pthread_cond_signal(&thisprocessor->queue.signal);
+	pthread_mutex_unlock(&thisprocessor->queue.lock);
+	pthread_join(thisprocessor->t_processor, NULL);
 }
 
-void set_worker_state_running(struct worker *thisworker){
+void set_worker_state_running(struct worker *thisworker) {
 	pthread_mutex_lock(&thisworker->lock);
 	thisworker->state = RUNNING;
 	pthread_mutex_unlock(&thisworker->lock);
 }
 
-void set_worker_state_stopped(struct worker *thisworker){
+void set_worker_state_stopped(struct worker *thisworker) {
 	pthread_mutex_lock(&thisworker->lock);
 	thisworker->state = STOPPED;
 	pthread_mutex_unlock(&thisworker->lock);
+}
+
+struct counters get_optimization_counters(int i) {
+	return get_counters(&workers[i].optimization.metrics);
+}
+
+struct counters get_deoptimization_counters(int i) {
+	return get_counters(&workers[i].deoptimization.metrics);
+}
+
+void set_optimization_pps(int i, __u32 count) {
+	set_pps(&workers[i].optimization.metrics, count);
+}
+
+void set_optimization_bpsin(int i, __u32 count) {
+	set_bpsin(&workers[i].optimization.metrics, count);
+}
+
+void set_optimization_bpsout(int i, __u32 count) {
+	set_bpsout(&workers[i].optimization.metrics, count);
+}
+
+void set_deoptimization_pps(int i, __u32 count) {
+	set_pps(&workers[i].deoptimization.metrics, count);
+}
+
+void set_deoptimization_bpsin(int i, __u32 count) {
+	set_bpsin(&workers[i].deoptimization.metrics, count);
+}
+
+void set_deoptimization_bpsout(int i, __u32 count) {
+	set_bpsout(&workers[i].deoptimization.metrics, count);
+}
+
+int optimize_packet(__u8 queue, struct packet *thispacket) {
+	return queue_packet(&workers[queue].optimization.queue,
+			thispacket);
+}
+
+int deoptimize_packet(__u8 queue, struct packet *thispacket) {
+	return queue_packet(&workers[queue].deoptimization.queue,
+			thispacket);
 }
