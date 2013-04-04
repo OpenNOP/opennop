@@ -291,9 +291,10 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     	save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
 
                     	if (acceleratorID == 0){
-                    		queue_packet(&workers[thissession->queue].optimization.queue,thispacket);
+                    		optimize_packet(thissession->queue, thispacket);
+
                     	}else{
-                    		queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
+                    		deoptimize_packet(thissession->queue, thispacket);
                     	}
                     } else {
                     	sprintf(message, "Fetcher: Failed getting packet buffer for optimization.\n");
@@ -339,7 +340,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                                 if (thispacket != NULL){
                                 	save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
-                                	queue_packet(&workers[thissession->queue].deoptimization.queue,thispacket);
+                                	deoptimize_packet(thissession->queue, thispacket);
                                 } else {
                                 	sprintf(message, "Fetcher: Failed getting packet buffer for deoptimization.\n");
                                 	logger(LOG_INFO, message);

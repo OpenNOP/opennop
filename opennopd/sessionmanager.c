@@ -85,11 +85,11 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 
 		if (DEBUG_SESSIONMANAGER_INSERT == true) {
 			sprintf(message, "Session Manager: Queue #%d has %d sessions.\n",
-					i, workers[i].sessions);
+					i, get_worker_sessions(i));
 			logger(LOG_INFO, message);
 		}
 
-		if (workers[queuenum].sessions > workers[i].sessions) {
+		if (get_worker_sessions(queuenum) > get_worker_sessions(i)) {
 
 			if (i < get_workers()) {
 				queuenum = i;
@@ -125,9 +125,7 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 		/*
 		 * Increase the counter for number of sessions assigned to this worker.
 		 */
-		pthread_mutex_lock(&workers[queuenum].lock); // Grab lock on worker.
-		workers[queuenum].sessions += 1;
-		pthread_mutex_unlock(&workers[queuenum].lock); // Lose lock on worker.
+		increment_worker_sessions(queuenum);
 
 		/* 
 		 * Lets add the new session to the session bucket.
@@ -288,11 +286,7 @@ void clearsession(struct session *currentsession) {
 		/*
 		 * Decrease the counter for number of sessions assigned to this worker.
 		 */
-		pthread_mutex_lock(&workers[currentsession->queue].lock); // Grab lock on worker.
-		workers[currentsession->queue].sessions -= 1;
-		pthread_mutex_unlock(&workers[currentsession->queue].lock); // Lose lock on worker.
-
-
+		decrement_worker_sessions(currentsession->queue);
 		free(currentsession);
 	}
 	return;
