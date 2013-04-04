@@ -44,8 +44,8 @@ void *counters_function(void *dummyPtr) {
 	 */
 	prevfetchermetrics = thefetcher.metrics;
 	for (i = 0; i < get_workers(); i++) {
-		prevoptimizationmetrics[i] = workers[i].optimization.metrics;
-		prevdeoptimizationmetrics[i] = workers[i].deoptimization.metrics;
+		prevoptimizationmetrics[i] = get_optimization_counters(i);
+		prevdeoptimizationmetrics[i] = get_deoptimization_counters(i);
 	}
 
 	register_command("show counters", cli_show_counters);
@@ -79,32 +79,32 @@ void *counters_function(void *dummyPtr) {
 			/*
 			 * We get the current metrics for each thread.
 			 */
-			optimizationmetrics[i] = workers[i].optimization.metrics;
-			deoptimizationmetrics[i] = workers[i].deoptimization.metrics;
+			optimizationmetrics[i] = get_optimization_counters(i);
+			deoptimizationmetrics[i] = get_deoptimization_counters(i);
 
 			/*
 			 * Calculate the pps metrics,
 			 * and save them.
 			 */
-			workers[i].optimization.metrics.pps = calculate_ppsbps(
+			set_optimization_pps(i, calculate_ppsbps(
 					prevoptimizationmetrics[i].packets,
-					optimizationmetrics[i].packets);
-			workers[i].optimization.metrics.bpsin = calculate_ppsbps(
+					optimizationmetrics[i].packets));
+			set_optimization_bpsin(i, calculate_ppsbps(
 					prevoptimizationmetrics[i].bytesin,
-					optimizationmetrics[i].bytesin);
-			workers[i].optimization.metrics.bpsout = calculate_ppsbps(
+					optimizationmetrics[i].bytesin));
+			set_optimization_bpsout(i, calculate_ppsbps(
 					prevoptimizationmetrics[i].bytesout,
-					optimizationmetrics[i].bytesout);
+					optimizationmetrics[i].bytesout));
 
-			workers[i].deoptimization.metrics.pps = calculate_ppsbps(
+			set_deoptimization_pps(i, calculate_ppsbps(
 					prevdeoptimizationmetrics[i].packets,
-					deoptimizationmetrics[i].packets);
-			workers[i].deoptimization.metrics.bpsin = calculate_ppsbps(
+					deoptimizationmetrics[i].packets));
+			set_deoptimization_bpsin(i, calculate_ppsbps(
 					prevdeoptimizationmetrics[i].bytesin,
-					deoptimizationmetrics[i].bytesin);
-			workers[i].deoptimization.metrics.bpsout = calculate_ppsbps(
+					deoptimizationmetrics[i].bytesin));
+			set_deoptimization_bpsout(i, calculate_ppsbps(
 					prevdeoptimizationmetrics[i].bytesout,
-					deoptimizationmetrics[i].bytesout);
+					deoptimizationmetrics[i].bytesout));
 
 			/*
 			 * Last we move the current metrics into the previous metrics.
@@ -118,29 +118,29 @@ void *counters_function(void *dummyPtr) {
 
 			for (i = 0; i < get_workers(); i++) {
 
-				if ((workers[i].optimization.metrics.pps != 0)
-						&& (workers[i].optimization.metrics.bpsin != 0)
-						&& (workers[i].optimization.metrics.bpsout != 0)
-						&& (workers[i].deoptimization.metrics.pps != 0)
-						&& (workers[i].deoptimization.metrics.bpsin != 0)
-						&& (workers[i].deoptimization.metrics.bpsout != 0)) {
+				if ((get_optimization_counters(i).pps != 0)
+						&& (get_optimization_counters(i).bpsin != 0)
+						&& (get_optimization_counters(i).bpsout != 0)
+						&& (get_deoptimization_counters(i).pps != 0)
+						&& (get_deoptimization_counters(i).bpsin != 0)
+						&& (get_deoptimization_counters(i).bpsout != 0)) {
 					sprintf(message, "Counters: Optimization: %u pps\n",
-							workers[i].optimization.metrics.pps);
+							get_optimization_counters(i).pps);
 					logger(LOG_INFO, message);
 					sprintf(message, "Counters: Optimization: %u bps in\n",
-							workers[i].optimization.metrics.bpsin);
+							get_optimization_counters(i).bpsin);
 					logger(LOG_INFO, message);
 					sprintf(message, "Counters: Optimization: %u bps out\n",
-							workers[i].optimization.metrics.bpsout);
+							get_optimization_counters(i).bpsout);
 					logger(LOG_INFO, message);
 					sprintf(message, "Counters: Deoptimization: %u pps\n",
-							workers[i].deoptimization.metrics.pps);
+							get_deoptimization_counters(i).pps);
 					logger(LOG_INFO, message);
 					sprintf(message, "Counters: Deoptimization: %u bps in\n",
-							workers[i].deoptimization.metrics.bpsin);
+							get_deoptimization_counters(i).bpsin);
 					logger(LOG_INFO, message);
 					sprintf(message, "Counters: Deoptimization: %u bps out\n",
-							workers[i].deoptimization.metrics.bpsout);
+							get_deoptimization_counters(i).bpsout);
 					logger(LOG_INFO, message);
 				}
 			}
@@ -183,7 +183,34 @@ int calculate_ppsbps(__u32 previouscount, __u32 currentcount) {
 	return ppsbps;
 }
 
+struct counters get_counters(struct counters *thiscounter) {
+	struct counters thecounters;
+	pthread_mutex_lock(&thiscounter->lock);
+	thecounters = *thiscounter;
+	pthread_mutex_unlock(&thiscounter->lock);
+	return thecounters;
+}
+
+void set_pps(struct counters *thiscounter, __u32 count) {
+	pthread_mutex_lock(&thiscounter->lock);
+	thiscounter->pps = count;
+	pthread_mutex_unlock(&thiscounter->lock);
+}
+
+void set_bpsin(struct counters *thiscounter, __u32 count) {
+	pthread_mutex_lock(&thiscounter->lock);
+	thiscounter->bpsin = count;
+	pthread_mutex_unlock(&thiscounter->lock);
+}
+
+void set_bpsout(struct counters *thiscounter, __u32 count) {
+	pthread_mutex_lock(&thiscounter->lock);
+	thiscounter->bpsout = count;
+	pthread_mutex_unlock(&thiscounter->lock);
+}
+
 int cli_show_counters() {
+	int i;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	char message[LOGSZ];
 
@@ -191,13 +218,32 @@ int cli_show_counters() {
 		sprintf(message, "Counters: Showing counters");
 		logger(LOG_INFO, message);
 	}
-
-	strcat(msg, "\n Just a test.\n");
-
-	if (cli_send_feedback(msg) <= 0) {
-		perror("[cli_manager]: send");
-		return 1;
-	};
-
+	for (i = 0; i < get_workers(); i++) {
+		sprintf(msg, "Counters: Optimization: %u pps\n",
+				get_optimization_counters(i).pps);
+		cli_send_feedback(msg);
+		sprintf(msg, "Counters: Optimization: %u bps in\n",
+				get_optimization_counters(i).bpsin);
+		cli_send_feedback(msg);
+		sprintf(msg, "Counters: Optimization: %u bps out\n",
+				get_optimization_counters(i).bpsout);
+		cli_send_feedback(msg);
+		sprintf(msg, "Counters: Deoptimization: %u pps\n",
+				get_deoptimization_counters(i).pps);
+		cli_send_feedback(msg);
+		sprintf(msg, "Counters: Deoptimization: %u bps in\n",
+				get_deoptimization_counters(i).bpsin);
+		cli_send_feedback(msg);
+		sprintf(msg, "Counters: Deoptimization: %u bps out\n",
+				get_deoptimization_counters(i).bpsout);
+		cli_send_feedback(msg);
+	}
+	//strcat(msg, "\n Just a test.\n");
+	/*
+	 if (cli_send_feedback(msg) <= 0) {
+	 perror("[cli_manager]: send");
+	 return 1;
+	 };
+	 */
 	return 0;
 }
