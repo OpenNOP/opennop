@@ -104,16 +104,11 @@ int cli_help() {
 	strcat(msg, "\n Available command list are : \n");
 
 	while (itr_node) {
-		sprintf(cmd, "[%d]: [%s] \n", count, itr_node->command);
-		strcat(msg, cmd);
+		sprintf(msg, "[%d]: [%s] \n", count, itr_node->command);
+		cli_send_feedback(msg);
 		itr_node = itr_node->next;
 		++count;
 	}
-
-	if (cli_send_feedback(msg) <= 0) {
-		perror("[cli_manager]: send");
-		exit(1);
-	};
 
 	return 0;
 }
