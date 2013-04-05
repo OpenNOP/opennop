@@ -212,10 +212,10 @@ void set_bpsout(struct counters *thiscounter, __u32 count) {
 int cli_show_counters() {
 	int i;
 	__u32 ppsbps;
-	__u32 total_optimization_pps, total_optimization_bpsin,
-			total_optimization_bpsout;
-	__u32 total_deoptimization_pps, total_deoptimization_bpsin,
-			total_deoptimization_bpsout;
+	__u32 total_optimization_pps = 0, total_optimization_bpsin = 0,
+			total_optimization_bpsout = 0;
+	__u32 total_deoptimization_pps = 0, total_deoptimization_bpsin = 0,
+			total_deoptimization_bpsout = 0;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	char message[LOGSZ];
 	char col1[11];
