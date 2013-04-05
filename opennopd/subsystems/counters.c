@@ -300,5 +300,9 @@ int cli_show_counters() {
 				total_deoptimization_bpsin, total_deoptimization_bpsout);
 		cli_send_feedback(msg);
 
+		sprintf(msg,
+				"---------------------------------------------------------------------\n");
+		cli_send_feedback(msg);
+
 		return 0;
 	}
