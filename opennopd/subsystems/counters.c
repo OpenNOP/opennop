@@ -211,39 +211,94 @@ void set_bpsout(struct counters *thiscounter, __u32 count) {
 
 int cli_show_counters() {
 	int i;
+	__u32 ppsbps;
+	__u32 total_optimization_pps, total_optimization_bpsin,
+			total_optimization_bpsout;
+	__u32 total_deoptimization_pps, total_deoptimization_bpsin,
+			total_deoptimization_bpsout;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	char message[LOGSZ];
+	char col1[11];
+	char col2[9];
+	char col3[11];
+	char col4[12];
+	char col5[9];
+	char col6[11];
+	char col7[12];
+	char col8[3];
 
 	if (DEBUG_COUNTERS == true) {
 		sprintf(message, "Counters: Showing counters");
 		logger(LOG_INFO, message);
 	}
+
+	sprintf(msg,
+			"---------------------------------------------------------------------\n");
+	cli_send_feedback(msg);
+	sprintf(msg,
+			"|  5 sec  |        optimization        |       deoptimization       |\n");
+	cli_send_feedback(msg);
+	sprintf(msg,
+			"---------------------------------------------------------------------\n");
+	cli_send_feedback(msg);
+	sprintf(msg,
+			"| Worker# |  pps  |  bpsin  |  bpsout  |  pps  |  bpsin  |  bpsout  |\n");
+	cli_send_feedback(msg);
+	sprintf(msg,
+			"---------------------------------------------------------------------\n");
+	cli_send_feedback(msg);
+
+	strcpy(msg, "");
+
 	for (i = 0; i < get_workers(); i++) {
-		sprintf(msg, "Counters: Optimization: %u pps\n",
-				get_optimization_counters(i).pps);
-		cli_send_feedback(msg);
-		sprintf(msg, "Counters: Optimization: %u bps in\n",
-				get_optimization_counters(i).bpsin);
-		cli_send_feedback(msg);
-		sprintf(msg, "Counters: Optimization: %u bps out\n",
-				get_optimization_counters(i).bpsout);
-		cli_send_feedback(msg);
-		sprintf(msg, "Counters: Deoptimization: %u pps\n",
-				get_deoptimization_counters(i).pps);
-		cli_send_feedback(msg);
-		sprintf(msg, "Counters: Deoptimization: %u bps in\n",
-				get_deoptimization_counters(i).bpsin);
-		cli_send_feedback(msg);
-		sprintf(msg, "Counters: Deoptimization: %u bps out\n",
-				get_deoptimization_counters(i).bpsout);
+
+		sprintf(col1, "| %-8i", i);
+		strcat(msg, col1);
+
+		ppsbps = get_optimization_counters(i).pps;
+		total_optimization_pps += ppsbps;
+		sprintf(col2, "| %-6u", ppsbps);
+		strcat(msg, col2);
+
+		ppsbps = get_optimization_counters(i).bpsin;
+		total_optimization_bpsin += ppsbps;
+		sprintf(col3, "| %-8u", ppsbps);
+		strcat(msg, col3);
+
+		ppsbps = get_optimization_counters(i).bpsout;
+		total_optimization_bpsout += ppsbps;
+		sprintf(col4, "| %-9u", ppsbps);
+		strcat(msg, col4);
+
+		ppsbps = get_deoptimization_counters(i).pps;
+		total_deoptimization_pps += ppsbps;
+		sprintf(col5, "| %-6u", ppsbps);
+		strcat(msg, col5);
+
+		ppsbps = get_deoptimization_counters(i).bpsin;
+		total_deoptimization_bpsin += ppsbps;
+		sprintf(col6, "| %-8u", ppsbps);
+		strcat(msg, col6);
+
+		ppsbps = get_deoptimization_counters(i).bpsout;
+		total_deoptimization_bpsout += ppsbps;
+		sprintf(col7, "| %-9u", ppsbps);
+		strcat(msg, col7);
+
+		sprintf(col8, "|\n");
+		strcat(msg, col8);
+
 		cli_send_feedback(msg);
 	}
-	//strcat(msg, "\n Just a test.\n");
-	/*
-	 if (cli_send_feedback(msg) <= 0) {
-	 perror("[cli_manager]: send");
-	 return 1;
-	 };
-	 */
-	return 0;
-}
+		sprintf(msg,
+				"---------------------------------------------------------------------\n");
+		cli_send_feedback(msg);
+
+		sprintf(msg, "|  total  | %-6u| %-8u| %-9u| %-6u| %-8u| %-9u|\n",
+				total_optimization_pps, total_optimization_bpsin,
+				total_optimization_bpsout, total_deoptimization_pps,
+				total_deoptimization_bpsin, total_deoptimization_bpsout);
+		cli_send_feedback(msg);
+
+		return 0;
+	}
