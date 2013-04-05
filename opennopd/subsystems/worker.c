@@ -380,9 +380,11 @@ void set_workers(unsigned char desirednumworkers) {
 }
 
 u_int32_t get_worker_sessions(int i) {
+	u_int32_t sessions;
 	pthread_mutex_lock(&workers[i].lock);
-	return workers[i].sessions;
+	sessions = workers[i].sessions;
 	pthread_mutex_unlock(&workers[i].lock);
+	return sessions;
 }
 
 void increment_worker_sessions(int i) {
