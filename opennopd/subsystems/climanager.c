@@ -34,6 +34,7 @@ int cli_process_message(int client_fd, char *buffer, int d_len) {
 
 void start_cli_server() {
 	int length;
+	pid_t pid;
 	char sock_buffer[MAX_BUFFER_SIZE];
 	struct sockaddr_un server, client;
 
@@ -53,8 +54,8 @@ void start_cli_server() {
 		exit(1);
 	}
 
-	if (listen(server_fd, 1) == -1) {
-		perror("[cli_manager]:Listen");
+	if (listen(server_fd, 5) == -1) {
+		perror("[cli_manager]: Listen");
 		exit(1);
 	}
 
@@ -67,17 +68,19 @@ void start_cli_server() {
 			perror("[cli_manager]:Accept");
 			exit(1);
 		}
-
-		while (!(finish) && (client_fd)) {
-			data_length = recv(client_fd, sock_buffer, sizeof(sock_buffer), 0);
-			sock_buffer[data_length - 1] = '\0';
-			if (data_length)
-				finish = cli_process_message(client_fd, sock_buffer,
-						data_length);
-		}
-
+		if ((pid = fork()) == 0) {
+			close(server_fd);
+			while (!(finish) && (client_fd)) {
+				data_length = recv(client_fd, sock_buffer, sizeof(sock_buffer), 0);
+				sock_buffer[data_length - 1] = '\0';
+				if (data_length)
+					finish = cli_process_message(client_fd, sock_buffer,
+							data_length);
+			}
 		if (finish)
 			shutdown(client_fd, SHUT_RDWR);
+		}
+
 	}
 }
 int cli_quit() {
