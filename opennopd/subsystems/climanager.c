@@ -87,10 +87,7 @@ int cli_quit() {
 	char msg[24] = { 0 };
 	strcpy(msg, "....BYE....\n");
 
-	if ((send(client_fd, msg, strlen(msg), 0)) <= 0) {
-		perror("[cli_manager]: send");
-		exit(1);
-	}
+	cli_send_feedback(msg);
 
 	shutdown(client_fd, SHUT_RDWR);
 	client_fd = 0;
@@ -99,7 +96,6 @@ int cli_quit() {
 
 int cli_help() {
 	char msg[MAX_BUFFER_SIZE] = { 0 };
-	char cmd[36] = { 0 };
 	struct cli_commands *itr_node;
 	int count = 1;
 
