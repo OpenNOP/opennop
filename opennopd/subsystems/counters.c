@@ -248,9 +248,9 @@ int cli_show_counters() {
 			"---------------------------------------------------------------------\n");
 	cli_send_feedback(msg);
 
-	strcpy(msg, "");
-
 	for (i = 0; i < get_workers(); i++) {
+
+		strcpy(msg, "");
 
 		sprintf(col1, "| %-8i", i);
 		strcat(msg, col1);
