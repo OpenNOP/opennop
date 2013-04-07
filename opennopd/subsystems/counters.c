@@ -218,6 +218,11 @@ int cli_show_counters() {
 			total_deoptimization_bpsout = 0;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	char message[LOGSZ];
+	char bps[9];
+	char optimizationbpsin[9];
+	char optimizationbpsout[9];
+	char deoptimizationbpsin[9];
+	char deoptimizationbpsout[9];
 	char col1[11];
 	char col2[9];
 	char col3[11];
@@ -262,12 +267,14 @@ int cli_show_counters() {
 
 		ppsbps = get_optimization_counters(i).bpsin;
 		total_optimization_bpsin += ppsbps;
-		sprintf(col3, "| %-8u", ppsbps);
+		bytestostringbps(bps, ppsbps);
+		sprintf(col3, "| %-8s", bps);
 		strcat(msg, col3);
 
 		ppsbps = get_optimization_counters(i).bpsout;
 		total_optimization_bpsout += ppsbps;
-		sprintf(col4, "| %-9u", ppsbps);
+		bytestostringbps(bps, ppsbps);
+		sprintf(col4, "| %-9s", bps);
 		strcat(msg, col4);
 
 		ppsbps = get_deoptimization_counters(i).pps;
@@ -277,12 +284,14 @@ int cli_show_counters() {
 
 		ppsbps = get_deoptimization_counters(i).bpsin;
 		total_deoptimization_bpsin += ppsbps;
-		sprintf(col6, "| %-8u", ppsbps);
+		bytestostringbps(bps, ppsbps);
+		sprintf(col6, "| %-8s", bps);
 		strcat(msg, col6);
 
 		ppsbps = get_deoptimization_counters(i).bpsout;
 		total_deoptimization_bpsout += ppsbps;
-		sprintf(col7, "| %-9u", ppsbps);
+		bytestostringbps(bps, ppsbps);
+		sprintf(col7, "| %-9s", bps);
 		strcat(msg, col7);
 
 		sprintf(col8, "|\n");
@@ -290,19 +299,22 @@ int cli_show_counters() {
 
 		cli_send_feedback(msg);
 	}
-		sprintf(msg,
-				"---------------------------------------------------------------------\n");
-		cli_send_feedback(msg);
+	sprintf(msg,
+			"---------------------------------------------------------------------\n");
+	cli_send_feedback(msg);
 
-		sprintf(msg, "|  total  | %-6u| %-8u| %-9u| %-6u| %-8u| %-9u|\n",
-				total_optimization_pps, total_optimization_bpsin,
-				total_optimization_bpsout, total_deoptimization_pps,
-				total_deoptimization_bpsin, total_deoptimization_bpsout);
-		cli_send_feedback(msg);
+	bytestostringbps(optimizationbpsin, total_optimization_bpsin);
+	bytestostringbps(optimizationbpsout, total_optimization_bpsout);
+	bytestostringbps(deoptimizationbpsin, total_deoptimization_bpsin);
+	bytestostringbps(deoptimizationbpsout, total_deoptimization_bpsout);
+	sprintf(msg, "|  total  | %-6u| %-8s| %-9s| %-6u| %-8s| %-9s|\n",
+			total_optimization_pps, optimizationbpsin, optimizationbpsout,
+			total_deoptimization_pps, deoptimizationbpsin, deoptimizationbpsout);
+	cli_send_feedback(msg);
 
-		sprintf(msg,
-				"---------------------------------------------------------------------\n");
-		cli_send_feedback(msg);
+	sprintf(msg,
+			"---------------------------------------------------------------------\n");
+	cli_send_feedback(msg);
 
-		return 0;
-	}
+	return 0;
+}

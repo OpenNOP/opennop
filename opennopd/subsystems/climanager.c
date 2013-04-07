@@ -7,6 +7,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
+#include <linux/types.h>
+
 #include "climanager.h"
 #include "clicommands.h"
 
@@ -124,4 +126,43 @@ int cli_send_feedback(char *msg) {
 		return 1;
 	}
 	return 0;
+}
+
+void bytestostringbps(char *output, __u32 count){
+	int I = 0;
+	int D = 0;
+	int bits;
+	bits = count * 8; // convert bytes to bps.
+
+	if (bits < 1024){ // output as bits.
+		sprintf(output,"%i bps", bits);
+
+		return;
+	}
+
+	if (((bits / 1024) / 1024) >= 1024){ // output as Gbps.
+		I = ((bits / 1024) / 1024) / 1024;
+		D = (((bits / 1024) / 1024) % 1024) / 103;
+		sprintf(output,"%i.%i Gbps",I,D);
+
+		return;
+	}
+
+	if ((bits / 1024) >= 1024){ // output as Mbps.
+		I = (bits / 1024) / 1024;
+		D = ((bits / 1024) % 1024) / 103;
+		sprintf(output,"%i.%i Mbps",I,D);
+
+		return;
+	}
+
+	if (bits >= 1024){ // output as Kbps.
+		I = bits / 1024;
+		D = (bits % 1024) / 103;
+		sprintf(output,"%i.%i Kbps",I,D);
+
+		return;
+	}
+
+	return;
 }
