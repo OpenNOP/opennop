@@ -134,7 +134,7 @@ int cli_send_feedback(char *msg) {
 void bytestostringbps(char *output, __u32 count){
 	int I = 0;
 	int D = 0;
-	int bits;
+	int bits = 0;
 	bits = count * 8; // convert bytes to bps.
 
 	if (bits < 1024){ // output as bits.
