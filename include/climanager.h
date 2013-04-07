@@ -10,6 +10,6 @@ void start_cli_server();
 int cli_help();
 void cli_manager_init();
 int cli_send_feedback(char *msg);
-
+void bytestostringbps(char *output, __u32 count);
 
 #endif
