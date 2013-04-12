@@ -247,7 +247,7 @@ int cli_show_counters() {
 			"-------------------------------------------------------------------------------\n");
 	cli_send_feedback(msg);
 	sprintf(msg,
-			"| Worker# |  pps  |   bps in   |   bps out  |  pps  |   bps in   |   bps out  |\n");
+			"|  worker |  pps  |     in     |     out    |  pps  |     in     |     out    |\n");
 	cli_send_feedback(msg);
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
