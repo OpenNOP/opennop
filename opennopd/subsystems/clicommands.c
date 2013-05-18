@@ -4,7 +4,7 @@
 
 #include "clicommands.h"
 
-int register_command(const char *command_name, int (*handler_function)())
+int register_command(const char *command_name, int (*handler_function)(int client_fd))
 {
 	struct cli_commands *node = (struct cli_commands *) malloc (sizeof (struct cli_commands));
 
