@@ -209,7 +209,7 @@ void set_bpsout(struct counters *thiscounter, __u32 count) {
 	pthread_mutex_unlock(&thiscounter->lock);
 }
 
-int cli_show_counters() {
+int cli_show_counters(int client_fd) {
 	int i;
 	__u32 ppsbps;
 	__u32 total_optimization_pps = 0, total_optimization_bpsin = 0,
@@ -239,19 +239,19 @@ int cli_show_counters() {
 
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
-	cli_send_feedback(msg);
+	cli_send_feedback(client_fd, msg);
 	sprintf(msg,
 			"|  5 sec  |          optimization           |          deoptimization         |\n");
-	cli_send_feedback(msg);
+	cli_send_feedback(client_fd, msg);
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
-	cli_send_feedback(msg);
+	cli_send_feedback(client_fd, msg);
 	sprintf(msg,
 			"|  worker |  pps  |     in     |     out    |  pps  |     in     |     out    |\n");
-	cli_send_feedback(msg);
+	cli_send_feedback(client_fd, msg);
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
-	cli_send_feedback(msg);
+	cli_send_feedback(client_fd, msg);
 
 	for (i = 0; i < get_workers(); i++) {
 
@@ -297,11 +297,11 @@ int cli_show_counters() {
 		sprintf(col8, "|\n");
 		strcat(msg, col8);
 
-		cli_send_feedback(msg);
+		cli_send_feedback(client_fd, msg);
 	}
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
-	cli_send_feedback(msg);
+	cli_send_feedback(client_fd, msg);
 
 	bytestostringbps(optimizationbpsin, total_optimization_bpsin);
 	bytestostringbps(optimizationbpsout, total_optimization_bpsout);
@@ -310,11 +310,11 @@ int cli_show_counters() {
 	sprintf(msg, "|  total  | %-6u| %-11s| %-11s| %-6u| %-11s| %-11s|\n",
 			total_optimization_pps, optimizationbpsin, optimizationbpsout,
 			total_deoptimization_pps, deoptimizationbpsin, deoptimizationbpsout);
-	cli_send_feedback(msg);
+	cli_send_feedback(client_fd, msg);
 
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
-	cli_send_feedback(msg);
+	cli_send_feedback(client_fd, msg);
 
 	return 0;
 }
