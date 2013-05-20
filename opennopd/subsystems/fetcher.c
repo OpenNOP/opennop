@@ -30,6 +30,9 @@ struct fetcher thefetcher;
 int DEBUG_FETCHER = false;
 int G_SCALEWINDOW = 7;
 
+struct nfq_handle *h;
+struct nfq_q_handle *qh;
+
 int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                      struct nfq_data *nfa, void *data)
 {
@@ -387,8 +390,6 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
 void *fetcher_function (void *dummyPtr)
 {
-    struct nfq_handle *h;
-    struct nfq_q_handle *qh;
     long sys_pagesofmem = 0; // The pages of memory in this system.
     long sys_pagesize = 0; // The size of each page in bytes.
     long sys_bytesofmem = 0; // The total bytes of memory in the system.
@@ -585,8 +586,6 @@ void *fetcher_function (void *dummyPtr)
         logger(LOG_INFO, message);
     }
 
-
-
     nfq_destroy_queue(qh);
 
 #ifdef INSANE
@@ -599,11 +598,16 @@ void *fetcher_function (void *dummyPtr)
     nfa_unbind_pf(h, AF_INET);
 #endif
 
-    if (DEBUG_FETCHER == true)
-    {
+    //if (DEBUG_FETCHER == true)
+    //{
         sprintf(message, "Fetcher: Stopping closing library handle.\n");
         logger(LOG_INFO, message);
-    }
+    //}
     nfq_close(h);
     return NULL;
+}
+
+void fetcher_graceful_exit () {
+	nfq_destroy_queue(qh);
+	nfq_close(h);
 }
