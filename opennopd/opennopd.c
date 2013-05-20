@@ -27,6 +27,7 @@
 #include "counters.h"
 #include "memorymanager.h"
 #include "climanager.h"
+#include "compression.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -220,6 +221,13 @@ int main(int argc, char *argv[])
 
     sprintf(message, "[OpenNOP]: Started all threads.\n");
     logger(LOG_INFO, message);
+
+    /*
+     * All the threads have been created now commands should be registered.
+     */
+    register_command("show compression", cli_show_compression);
+    register_command("compression enable", cli_compression_enable);
+    register_command("compression disable", cli_compression_disable);
 
     /*
      * Rejoin all threads before we exit!
