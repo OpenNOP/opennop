@@ -411,6 +411,15 @@ void create_worker(int i) {
 	set_worker_state_running(&workers[i]);
 }
 
+void shutdown_workers(){
+	int i;
+	for (i = 0; i < get_workers(); i++)
+	    {
+		pthread_cond_signal(&workers[i].optimization.queue);
+		pthread_cond_signal(&workers[i].deoptimization.queue);
+	    }
+}
+
 void rejoin_worker(int i) {
 	joining_worker_processor(&workers[i].optimization);
 	joining_worker_processor(&workers[i].deoptimization);

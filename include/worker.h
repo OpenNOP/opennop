@@ -58,5 +58,6 @@ void increment_worker_sessions(int i);
 void decrement_worker_sessions(int i);
 int optimize_packet(__u8 queue, struct packet *thispacket);
 int deoptimize_packet(__u8 queue, struct packet *thispacket);
+void shutdown_workers();
 
 #endif /*WORKER_H_*/
