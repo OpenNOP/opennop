@@ -21,5 +21,6 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 		struct nfq_data *nfa, void *data);
 
 void *fetcher_function(void *dummyPtr);
+void fetcher_graceful_exit();
 
 #endif /*FETCHER_H_*/
