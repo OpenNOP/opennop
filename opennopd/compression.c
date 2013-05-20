@@ -9,8 +9,37 @@
 #include "quicklz.h"
 #include "tcpoptions.h"
 #include "logger.h"
+#include "climanager.h"
 
+int compression = true; // Determines if opennop should compress tcp data.
 int DEBUG_COMPRESSION = false;
+
+int cli_show_compression(int client_fd) {
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	if (compression == true) {
+		sprintf(msg, "compression enabled\n");
+	} else {
+		sprintf(msg, "compression disabled\n");
+	}
+	cli_send_feedback(client_fd, msg);
+	return 0;
+}
+
+int cli_compression_enable(int client_fd) {
+	compression = true;
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	sprintf(msg, "compression enabled\n");
+	cli_send_feedback(client_fd, msg);
+	return 0;
+}
+
+int cli_compression_disable(int client_fd) {
+	compression = false;
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	sprintf(msg, "compression disabled\n");
+	cli_send_feedback(client_fd, msg);
+	return 0;
+}
 
 /*
  * Compresses the TCP data of an SKB.
@@ -29,7 +58,7 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 	}
 
 	// If the skb or state_compress is NULL abort compression.
-	if ((ippacket != NULL) && (NULL != state_compress)) {
+	if ((ippacket != NULL) && (NULL != state_compress) && (compression == true)) {
 		iph = (struct iphdr *) ippacket; // Access ip header.
 		memset(state_compress, 0, sizeof(qlz_state_compress));
 
