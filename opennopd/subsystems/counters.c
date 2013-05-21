@@ -50,7 +50,7 @@ void *counters_function(void *dummyPtr) {
 
 	register_command("show counters", cli_show_counters);
 
-	while (servicestate >= STOPPING) {
+	while (servicestate >= RUNNING) {
 		sleep(UPDATECOUNTERSTIMER); // Sleeping for a few seconds.
 
 		/*
@@ -151,6 +151,8 @@ void *counters_function(void *dummyPtr) {
 	/*
 	 * Thread is ending.
 	 */
+	sprintf(message, "Counters: Shutdown thread.\n");
+	logger(LOG_INFO, message);
 	return NULL;
 }
 

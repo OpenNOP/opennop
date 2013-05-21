@@ -25,9 +25,8 @@ void signal_handler(int sig)
 			switch(servicestate){
 				case RUNNING:
 					servicestate = STOPPING;
-					fetcher_graceful_exit ();
+					fetcher_graceful_exit();
 					shutdown_workers();
-					exit(0);
 					break;
 				case STOPPING:
 					servicestate = STOPPED;

@@ -32,6 +32,7 @@ int G_SCALEWINDOW = 7;
 
 struct nfq_handle *h;
 struct nfq_q_handle *qh;
+int fd;
 
 int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                      struct nfq_data *nfa, void *data)
@@ -395,7 +396,6 @@ void *fetcher_function (void *dummyPtr)
     long sys_bytesofmem = 0; // The total bytes of memory in the system.
     long nfqneededbuffer = 0; // Store how much memory the NFQ needs.
     long nfqlength = 0;
-    int fd;
     int rv;
     char buf[BUFSIZE] __attribute__ ((aligned));
     char message [LOGSZ];
@@ -551,7 +551,7 @@ void *fetcher_function (void *dummyPtr)
     nfnl_rcvbufsiz(nfq_nfnlh(h), nfqlength * BUFSIZE);
     fd = nfq_fd(h);
 
-    while ((servicestate >= STOPPING) && ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0))
+    while ((servicestate >= RUNNING) && ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0))
     {
 
         if (DEBUG_FETCHER == true)
@@ -610,4 +610,5 @@ void *fetcher_function (void *dummyPtr)
 void fetcher_graceful_exit () {
 	nfq_destroy_queue(qh);
 	nfq_close(h);
+	close(fd);
 }
