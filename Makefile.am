@@ -21,6 +21,6 @@ opennopd_opennopd_SOURCES = \
 	opennopd/subsystems/sessioncleanup.c \
 	opennopd/subsystems/worker.c opennopd/subsystems/memorymanager.c \
 	opennopd/subsystems/climanager.c opennopd/subsystems/clicommands.c \
-	opennopd/subsystems/counters.c
+	opennopd/subsystems/counters.c opennopd/sqlite3.c
 opennopd_opennopd_LDADD = \
 	-lcrypt -lpthread ${libnetfilter_queue_LIBS}
