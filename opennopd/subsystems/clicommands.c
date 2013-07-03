@@ -69,6 +69,11 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 	while((token != NULL) && (executedcommand == NULL)){
 		currentcommand = find_command(currentnode,token);
 
+		if((!strcmp(token,"help")) || (!strcmp(token,"?"))){
+			cli_node_help(client_fd, currentnode);
+			break;
+		}
+
 		if(currentcommand == NULL){
 			/*
 			 * We didn't find any commands.
@@ -77,6 +82,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 			 */
 			sprintf(message, "CLI: Cound'nt find the command.\n");
 			logger(LOG_INFO, message);
+			cli_node_help(client_fd, currentnode);
 			break;
 		}else{
 
@@ -312,7 +318,31 @@ int cli_help(int client_fd, char *args) {
 	int count = 1;
 
 	currentcommand = head->next;
-	//strcat(msg, "\n Available command list are : \n");
+	//sprintf(msg, "\n Available command list are : \n");
+	//cli_send_feedback(client_fd, msg);
+
+	while (currentcommand) {
+
+		if(currentcommand->hidden == false){
+			sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
+			cli_prompt(client_fd);
+			cli_send_feedback(client_fd, msg);
+			++count;
+		}
+		currentcommand = currentcommand->next;
+	}
+	cli_prompt(client_fd);
+	return 0;
+}
+
+int cli_node_help(int client_fd, struct command_head *currentnode) {
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	struct command *currentcommand;
+	int count = 1;
+
+	currentcommand = currentnode->next;
+	//sprintf(msg, "\n Available command list are : \n");
+	//cli_send_feedback(client_fd, msg);
 
 	while (currentcommand) {
 
