@@ -9,6 +9,7 @@ struct command_head
 {
     struct command *next; // Points to the first command of the list.
     struct command *prev; // Points to the last command of the list.
+    pthread_mutex_t lock; // Lock for this node.
 };
 
 struct command {
