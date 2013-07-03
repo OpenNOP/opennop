@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 struct command_head
 {
@@ -16,13 +17,14 @@ struct command {
 	struct command *next;
 	struct command *prev;
 	struct command_head child;
-	int hasparams;
+	bool hasparams;
+	bool hidden;
 };
 
 int cli_help();
 struct command* lookup_command(const char *command_name);
 int execute_commands(int client_fd, const char *command_name, int d_len);
-int register_command(const char *command_name, int (*handler_function)(int, char *));
+int register_command(const char *command_name, int (*handler_function)(int, char *),bool,bool);
 struct command* find_command(struct command_head *node, char *command_name);
 
 #endif

@@ -146,7 +146,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
  * UPDATE: I am trying to use strtok_r().  It seems to be working.
  */
 
-int register_command(const char *command_name, int (*handler_function)(int, char *))
+int register_command(const char *command_name, int (*handler_function)(int, char *), bool hasparams, bool hidden)
 {
 	char *token, *cp, *saved_token;
 	struct command_head *currentnode = NULL;
@@ -179,7 +179,7 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 
 
 	while(token != NULL){
-		sprintf(message, "CLI: Register %s node.\n",token);
+		sprintf(message, "CLI: Register [%s] node.\n",token);
 		logger(LOG_INFO, message);
 		/*
 		 * Search the current node for a
@@ -194,7 +194,6 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 			 */
 			sprintf(message, "CLI: Found an existing node.\n");
 			logger(LOG_INFO, message);
-			currentnode = &currentcommand->child;
 		}else{
 			/*
 			 * Did not find the command for the current TOKEN
@@ -206,22 +205,27 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 			currentcommand->command = token;
 
 			if(currentnode->next == NULL){
+				sprintf(message, "CLI: Creating first command in node.\n");
+				logger(LOG_INFO, message);
 				currentnode->next = currentcommand;
 				currentnode->prev = currentcommand;
 			}else{
+				sprintf(message, "CLI: Creating new command in node.\n");
+				logger(LOG_INFO, message);
 				currentnode->prev->next = currentcommand;
 				currentnode->prev = currentnode->prev;
 				currentnode->prev = currentcommand;
 			}
 		}
-
+		currentnode = &currentcommand->child;
 		token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
 	}
 
 	//This was the last TOKEN of the command so assign the function here.
 	if(currentcommand != NULL){
 		currentcommand->command_handler = handler_function;
-		currentcommand->hasparams = false; //Just for testing. We need this set via a param.
+		currentcommand->hasparams = hasparams;
+		currentcommand->hidden = hidden;
 	}
 
 	//pthread_mutex_unlock(&lock);
