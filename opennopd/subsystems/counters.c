@@ -48,7 +48,7 @@ void *counters_function(void *dummyPtr) {
 		prevdeoptimizationmetrics[i] = get_deoptimization_counters(i);
 	}
 
-	register_command("show counters", cli_show_counters);
+	register_command("show counters", cli_show_counters, false, false);
 
 	while (servicestate >= RUNNING) {
 		sleep(UPDATECOUNTERSTIMER); // Sleeping for a few seconds.
