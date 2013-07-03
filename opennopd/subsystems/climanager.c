@@ -15,18 +15,19 @@
 #include "logger.h"
 
 int cli_process_message(int client_fd, char *buffer, int d_len) {
-	struct cli_commands *cmd;
-	char msg[128] = { 0 };
+	struct command *cmd;
+	char msg[MAX_BUFFER_SIZE] = { 0 };
 	if (0 == (cmd = lookup_command(buffer))) {
 		fprintf(stdout, "There is no such command \n");
-		memcpy(msg, "Invalid Command...", 28);
+		memcpy(msg, "Invalid Command...\n", 28);
 		if (!(send(client_fd, msg, strlen(msg), 0))) {
 			perror("[cli_manager]: Send");
 			exit(1);
 		}
+		cli_help(client_fd, NULL);
 		return 0;
 	} else {
-		(cmd->command_handler)(client_fd);
+		(cmd->command_handler)(client_fd, NULL);
 	}
 	return 0;
 }
@@ -109,7 +110,9 @@ void *client_handler(void *socket_desc) {
 		client_message[read_size - 1] = '\0';
 
 		if (read_size) {
-			finish = cli_process_message(sock, client_message, read_size);
+
+			finish = execute_commands(sock, client_message, read_size);
+			//finish = cli_process_message(sock, client_message, read_size);
 		}
 
 		if (finish) {
@@ -132,8 +135,8 @@ void *client_handler(void *socket_desc) {
 	return NULL;
 }
 
-int cli_quit(int client_fd) {
-	char msg[24] = { 0 };
+int cli_quit(int client_fd, char *args) {
+	char msg[MAX_BUFFER_SIZE] = { 0 };
 	strcpy(msg, "....BYE....\n");
 
 	cli_send_feedback(client_fd, msg);
@@ -143,26 +146,8 @@ int cli_quit(int client_fd) {
 	return 1;
 }
 
-int cli_help(int client_fd) {
-	char msg[MAX_BUFFER_SIZE] = { 0 };
-	struct cli_commands *itr_node;
-	int count = 1;
-
-	itr_node = head;
-	strcat(msg, "\n Available command list are : \n");
-
-	while (itr_node) {
-		sprintf(msg, "[%d]: [%s] \n", count, itr_node->command);
-		cli_send_feedback(client_fd, msg);
-		itr_node = itr_node->next;
-		++count;
-	}
-
-	return 0;
-}
-
 void cli_manager_init() {
-	register_command("help", cli_help);
+	register_command("help", cli_help); //todo: This needs integrated into the cli.
 	register_command("quit", cli_quit);
 
 	/* Sharwan Joram:t We'll call this in last as we will never return from here */
