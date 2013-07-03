@@ -29,5 +29,6 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 struct command* find_command(struct command_head *node, char *command_name);
 int cli_prompt(int client_fd);
 int cli_node_help(int client_fd, struct command_head *currentnode);
+int cli_show_param(int client_fd, char *args);
 
 #endif
