@@ -103,6 +103,8 @@ void *client_handler(void *socket_desc) {
     sprintf(message, "Started cli connection.\n");
     logger(LOG_INFO, message);
 
+    cli_prompt(sock);
+
 	//Receive a message from client
 	while (!(finish) && ((read_size = recv(sock, client_message,
 			MAX_BUFFER_SIZE, 0)) > 0)) {

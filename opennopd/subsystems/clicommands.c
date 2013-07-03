@@ -181,7 +181,7 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 
 
 	while(token != NULL){
-		pthread_mutex_lock(&currentnode->lock);
+		pthread_mutex_lock(&currentnode->lock); //Prevent race condition when saving command tree.
 		sprintf(message, "CLI: Register [%s] token.\n",token);
 		logger(LOG_INFO, message);
 		/*
@@ -312,18 +312,28 @@ int cli_help(int client_fd, char *args) {
 	int count = 1;
 
 	currentcommand = head->next;
-	strcat(msg, "\n Available command list are : \n");
+	//strcat(msg, "\n Available command list are : \n");
 
 	while (currentcommand) {
 
 		if(currentcommand->hidden == false){
 			sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
+			cli_prompt(client_fd);
 			cli_send_feedback(client_fd, msg);
 			++count;
 		}
 		currentcommand = currentcommand->next;
 	}
-
+	cli_prompt(client_fd);
 	return 0;
 }
 
+/*
+ * Show the opennopd# prompt.
+ */
+int cli_prompt(int client_fd){
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	sprintf(msg, "opennopd# ");
+	cli_send_feedback(client_fd, msg);
+	return 0;
+}
