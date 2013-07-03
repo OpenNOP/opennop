@@ -14,7 +14,7 @@
 int compression = true; // Determines if opennop should compress tcp data.
 int DEBUG_COMPRESSION = false;
 
-int cli_show_compression(int client_fd) {
+int cli_show_compression(int client_fd, char *args) {
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	if (compression == true) {
 		sprintf(msg, "compression enabled\n");
@@ -25,7 +25,7 @@ int cli_show_compression(int client_fd) {
 	return 0;
 }
 
-int cli_compression_enable(int client_fd) {
+int cli_compression_enable(int client_fd, char *args) {
 	compression = true;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	sprintf(msg, "compression enabled\n");
@@ -33,7 +33,7 @@ int cli_compression_enable(int client_fd) {
 	return 0;
 }
 
-int cli_compression_disable(int client_fd) {
+int cli_compression_disable(int client_fd, char *args) {
 	compression = false;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	sprintf(msg, "compression disabled\n");
