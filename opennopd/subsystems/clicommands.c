@@ -113,7 +113,18 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 						if(currentcommand->hasparams == true){
 							sprintf(message, "CLI: Command has parameters.\n");
 							logger(LOG_INFO, message);
-							(currentcommand->command_handler)(client_fd, cp);
+							/*
+							 * NOTE: I found that you cannot pass *cp because its modified by strtok_r()
+							 * The modification removed the " " delimiter and must replace it with a \0
+							 * to terminate that TOKEN.  This prevents *cp from being re-parsed as a parameter.
+							 * As a solution we can pass the original command_name and try to process it more then.
+							 * Another solution might to be make another copy of command_name then remove the
+							 * original command somehow to pass only the remaining arguments/parameters.
+							 * This will require saving the whole original command in the command structure
+							 * so it can be referenced again.
+							 */
+							(currentcommand->command_handler)(client_fd, command_name);
+							//(currentcommand->command_handler)(client_fd, cp);
 						}else{
 							/*
 							 * We might want to verify no other TOKENs are left.
@@ -365,5 +376,18 @@ int cli_prompt(int client_fd){
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	sprintf(msg, "opennopd# ");
 	cli_send_feedback(client_fd, msg);
+	return 0;
+}
+
+/*
+ * Testing params
+ */
+int cli_show_param(int client_fd, char *args) {
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+
+	sprintf(msg, "Parameter was: %s\n", args);
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+	cli_prompt(client_fd);
 	return 0;
 }
