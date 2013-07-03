@@ -24,6 +24,7 @@ struct command* allocate_command(){
 	newcommand->prev = NULL;
 	newcommand->child.next = NULL;
 	newcommand->child.prev = NULL;
+	pthread_mutex_init(&newcommand->child.lock,NULL);
 	newcommand->command_handler = NULL;
 	newcommand->hasparams = false;
 	return newcommand;
@@ -154,13 +155,14 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 	char message[LOGSZ];
 
 	//pthread_mutex_lock(&lock);
-	sprintf(message, "CLI: Begin registering a command.\n");
+	sprintf(message, "CLI: Begin registering [%s] command.\n", command_name);
 	logger(LOG_INFO, message);
 
 	if(head == NULL){
 		head = (struct command_head *) malloc (sizeof (struct command_head));
 		head->next = NULL;
 		head->prev = NULL;
+		pthread_mutex_init(&head->lock,NULL);
 	}
 
 	/*
@@ -179,7 +181,8 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 
 
 	while(token != NULL){
-		sprintf(message, "CLI: Register [%s] node.\n",token);
+		pthread_mutex_lock(&currentnode->lock);
+		sprintf(message, "CLI: Register [%s] token.\n",token);
 		logger(LOG_INFO, message);
 		/*
 		 * Search the current node for a
@@ -192,14 +195,14 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 			 *Found the command for the current TOKEN.
 			 *Set it as the current node and search it for the next TOKEN.
 			 */
-			sprintf(message, "CLI: Found an existing node.\n");
+			sprintf(message, "CLI: Found an existing token.\n");
 			logger(LOG_INFO, message);
 		}else{
 			/*
 			 * Did not find the command for the current TOKEN
 			 * We have to create it.
 			 */
-			sprintf(message, "CLI: Did not find an existing node.\n");
+			sprintf(message, "CLI: Did not find an existing token.\n");
 			logger(LOG_INFO, message);
 			currentcommand = allocate_command();
 			currentcommand->command = token;
@@ -213,10 +216,11 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 				sprintf(message, "CLI: Creating new command in node.\n");
 				logger(LOG_INFO, message);
 				currentnode->prev->next = currentcommand;
-				currentnode->prev = currentnode->prev;
+				currentcommand->prev = currentnode->prev;
 				currentnode->prev = currentcommand;
 			}
 		}
+		pthread_mutex_unlock(&currentnode->lock);
 		currentnode = &currentcommand->child;
 		token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
 	}
@@ -311,10 +315,13 @@ int cli_help(int client_fd, char *args) {
 	strcat(msg, "\n Available command list are : \n");
 
 	while (currentcommand) {
-		sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
-		cli_send_feedback(client_fd, msg);
+
+		if(currentcommand->hidden == false){
+			sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
+			cli_send_feedback(client_fd, msg);
+			++count;
+		}
 		currentcommand = currentcommand->next;
-		++count;
 	}
 
 	return 0;
