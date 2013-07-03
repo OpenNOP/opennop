@@ -241,18 +241,23 @@ int cli_show_counters(int client_fd) {
 
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 	sprintf(msg,
 			"|  5 sec  |          optimization           |          deoptimization         |\n");
+	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 	sprintf(msg,
 			"|  worker |  pps  |     in     |     out    |  pps  |     in     |     out    |\n");
+	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 
 	for (i = 0; i < get_workers(); i++) {
@@ -298,11 +303,12 @@ int cli_show_counters(int client_fd) {
 
 		sprintf(col8, "|\n");
 		strcat(msg, col8);
-
+		cli_prompt(client_fd);
 		cli_send_feedback(client_fd, msg);
 	}
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 
 	bytestostringbps(optimizationbpsin, total_optimization_bpsin);
@@ -312,11 +318,15 @@ int cli_show_counters(int client_fd) {
 	sprintf(msg, "|  total  | %-6u| %-11s| %-11s| %-6u| %-11s| %-11s|\n",
 			total_optimization_pps, optimizationbpsin, optimizationbpsout,
 			total_deoptimization_pps, deoptimizationbpsin, deoptimizationbpsout);
+	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 
 	sprintf(msg,
 			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
+
+	cli_prompt(client_fd);
 
 	return 0;
 }
