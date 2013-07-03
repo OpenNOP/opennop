@@ -151,6 +151,7 @@ int cli_quit(int client_fd, char *args) {
 void cli_manager_init() {
 	//register_command("help", cli_help, false, false); //todo: This needs integrated into the cli.
 	register_command("quit", cli_quit, false, true);
+	register_command("show parameters",cli_show_param, true, true);
 
 	/* Sharwan Joram:t We'll call this in last as we will never return from here */
 	start_cli_server();
