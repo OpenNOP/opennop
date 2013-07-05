@@ -122,6 +122,11 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 							 * original command somehow to pass only the remaining arguments/parameters.
 							 * This will require saving the whole original command in the command structure
 							 * so it can be referenced again.
+							 *
+							 * UPDATE: I posted a question at LinuxQuestions about this.
+							 * One very good idea is to create a dynamic array of the TOKENs and
+							 * pass that to the function as the parameter.
+							 * http://www.linuxquestions.org/questions/programming-9/parse-string-tokens-and-pass-remaining-as-parameter-4175468498/#post4984764
 							 */
 							(currentcommand->command_handler)(client_fd, command_name);
 							//(currentcommand->command_handler)(client_fd, cp);
@@ -253,7 +258,6 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 
 	/*
 	 * Old implementation.
-	 */
 	/*
 	struct command *node = (struct command *) malloc (sizeof (struct command));
 
