@@ -140,7 +140,10 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                         {
                             __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
                             __set_tcp_option((__u8 *)originalpacket,30,6,localIP); // Add the Accelerator ID to this packet.
-                            __set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
+                            /*
+                             * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
+                             */
+                            //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
                             if (iph->saddr == largerIP)
                             { // Set the Accelerator for this source.
@@ -238,7 +241,10 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             {
                                 __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
                                 __set_tcp_option((__u8 *)originalpacket,30,6,localIP); // Add the Accelerator ID to this packet.
-                                __set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
+                                /*
+                                 * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
+                                 */
+                                //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
                                 if (iph->saddr == largerIP)
                                 { // Set the Accelerator for this source.
