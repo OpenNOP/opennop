@@ -178,19 +178,17 @@ opennopdrv_init(void){
 		return err;
 	}
 
-		printk(KERN_ALERT "[OpenNOPDrv]: %s", mode);
-
 	if (strcmp(mode, "bridged") == 0) {
-		printk(KERN_ALERT "[OpenNOPDrv]: Switching to bridged mode.");
+		//printk(KERN_ALERT "[OpenNOPDrv]: Switching to bridged mode. \n");
 		/* Rewritten for kernel < and >= 2.6.30 */
 		#if (LINUX_VERSION_CODE > KERNEL_VERSION (2, 6, 30))
 			opennop_hook.hooknum = NF_BR_FORWARD; // For bridged traffic only.
 		#else
-			printk(KERN_ALERT, "[OpenNOPDrv]: Bridged mode only supported with kernel > 2.6.30");
+			printk(KERN_ALERT, "[OpenNOPDrv]: Bridged mode only supported with kernel > 2.6.30 \n");
 		#endif
 
 	}
-	
+	printk(KERN_ALERT "[OpenNOPDrv]: %s \n", mode);
 	nf_register_hook(&opennop_hook);
 	init_timer(&daemonmonitor);
 	daemonmonitor.expires = jiffies + (timespan * HZ);
