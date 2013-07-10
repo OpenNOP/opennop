@@ -1,8 +1,9 @@
 # -*- Makefile -*-
 
+GIT_VERSION := $(shell git describe --abbrev=4 --dirty --always)
 AM_CPPFLAGS = ${libnfnetlink_CFLAGS} ${libnetfilter_queue_CFLAGS} \
               ${libnl_CPPFLAGS} -Iinclude -Ilib
-AM_CFLAGS   = -Wall -Wcast-align -Wcast-qual
+AM_CFLAGS   = -Wall -Wcast-align -Wcast-qual -DVERSION=\"$(GIT_VERSION)\"
 
 bin_PROGRAMS = opennop/opennop
 sbin_PROGRAMS = opennopd/opennopd

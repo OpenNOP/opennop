@@ -89,6 +89,9 @@ int main(int argc, char *argv[])
     sprintf(message, "Initialization: %s daemon starting up.\n", DAEMON_NAME);
     logger(LOG_INFO, message);
 
+    sprintf(message, "Initialization: Version %s.\n", VERSION);
+    logger(LOG_INFO, message);
+
     /*
      * Get the numerically highest local IP address.
      * This will be used as the acceleratorID.
