@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#include "clisocket.h"
+
 struct command_head
 {
     struct command *next; // Points to the first command of the list.

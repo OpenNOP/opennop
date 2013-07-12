@@ -28,6 +28,7 @@
 #include "memorymanager.h"
 #include "climanager.h"
 #include "compression.h"
+#include "version.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -228,6 +229,7 @@ int main(int argc, char *argv[])
     /*
      * All the threads have been created now commands should be registered.
      */
+    register_command("show version", cli_show_version, false, false);
     register_command("show compression", cli_show_compression, false, false);
     register_command("compression enable", cli_compression_enable, false, false);
     register_command("compression disable", cli_compression_disable, false, false);
