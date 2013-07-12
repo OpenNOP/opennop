@@ -211,7 +211,7 @@ void set_bpsout(struct counters *thiscounter, __u32 count) {
 	pthread_mutex_unlock(&thiscounter->lock);
 }
 
-int cli_show_counters(int client_fd) {
+int cli_show_counters(int client_fd, char **parameters, int numparameters) {
 	int i;
 	__u32 ppsbps;
 	__u32 total_optimization_pps = 0, total_optimization_bpsin = 0,
