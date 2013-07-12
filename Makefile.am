@@ -15,7 +15,7 @@ opennop_opennop_LDADD = -lpthread
 opennopd_opennopd_SOURCES = \
 	lib/quicklz.c lib/sqlite3.c \
 	opennopd/compression.c opennopd/csum.c \
-	opennopd/help.c opennopd/logger.c \
+	opennopd/help.c opennopd/logger.c opennopd/version.c \
 	opennopd/opennopd.c opennopd/packet.c opennopd/queuemanager.c \
 	opennopd/sessionmanager.c opennopd/signals.c opennopd/tcpoptions.c \
 	opennopd/subsystems/fetcher.c opennopd/subsystems/healthagent.c \
