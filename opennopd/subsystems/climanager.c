@@ -27,7 +27,7 @@ int cli_process_message(int client_fd, char *buffer, int d_len) {
 		cli_help(client_fd, NULL);
 		return 0;
 	} else {
-		(cmd->command_handler)(client_fd, NULL);
+		(cmd->command_handler)(client_fd, NULL, 0);
 	}
 	return 0;
 }
@@ -137,7 +137,7 @@ void *client_handler(void *socket_desc) {
 	return NULL;
 }
 
-int cli_quit(int client_fd, char *args) {
+int cli_quit(int client_fd, char **parameters, int numparameters) {
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	strcpy(msg, "....BYE....\n");
 
