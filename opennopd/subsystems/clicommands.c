@@ -36,6 +36,10 @@ struct command* allocate_command(){
  */
 int execute_commands(int client_fd, const char *command_name, int d_len){
 	char *token, *cp, *saved_token;
+	int parametercount = 0;
+	char **parameters = NULL; //dynamic array of pointers to tokens that are parameters
+	char **tempparameters = NULL;
+	char *parameter = NULL;
 	struct command_head *currentnode = NULL;
 	struct command *currentcommand = NULL;
 	struct command *executedcommand = NULL;
@@ -128,8 +132,30 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 							 * pass that to the function as the parameter.
 							 * http://www.linuxquestions.org/questions/programming-9/parse-string-tokens-and-pass-remaining-as-parameter-4175468498/#post4984764
 							 */
-							(currentcommand->command_handler)(client_fd, command_name);
-							//(currentcommand->command_handler)(client_fd, cp);
+
+							token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
+
+							if(token != NULL){
+								/*
+								 * Grab the next token if any and initialize the parameter array.
+								 */
+								parameters = (char *)malloc(sizeof (parameter)); // Don't use *parameters it breaks.
+								parameters[0]= token;
+								parametercount = 1;
+							}
+
+							while(token != NULL){
+								token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
+
+								if(token != NULL){
+									tempparameters = (char *)realloc(parameters,(parametercount+1) * sizeof (parameter)); // Don't use *tempparameters it breaks.
+									parameters = tempparameters;
+									parameters[parametercount]=token;
+									parametercount++ ;
+								}
+							}
+
+							(currentcommand->command_handler)(client_fd, parameters, parametercount);
 						}else{
 							/*
 							 * We might want to verify no other TOKENs are left.
@@ -137,7 +163,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 							 */
 							sprintf(message, "CLI: Command has no parameters.\n");
 							logger(LOG_INFO, message);
-							(currentcommand->command_handler)(client_fd, NULL);
+							(currentcommand->command_handler)(client_fd, NULL, 0);
 						}
 						executedcommand = currentcommand;
 					}else{
@@ -149,6 +175,9 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 				/*
 				 * Finished executing all commands in the node.
 				 */
+				if (parameters != NULL){
+					free(parameters);
+				}
 			}
 		}
 
@@ -169,7 +198,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
  * UPDATE: I am trying to use strtok_r().  It seems to be working.
  */
 
-int register_command(const char *command_name, int (*handler_function)(int, char *), bool hasparams, bool hidden)
+int register_command(const char *command_name, int (*handler_function)(int, char **, int), bool hasparams, bool hidden)
 {
 	char *token, *cp, *saved_token;
 	struct command_head *currentnode = NULL;
@@ -258,7 +287,7 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 
 	/*
 	 * Old implementation.
-	/*
+	 *
 	struct command *node = (struct command *) malloc (sizeof (struct command));
 
 	if (NULL == node){
@@ -386,12 +415,16 @@ int cli_prompt(int client_fd){
 /*
  * Testing params
  */
-int cli_show_param(int client_fd, char *args) {
+int cli_show_param(int client_fd, char **parameters, int numparameters) {
+	int i = 0;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 
-	sprintf(msg, "Parameter was: %s\n", args);
 	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
+	for (i=0;i<numparameters;i++){
+		sprintf(msg, "[%d] %s\n", i, parameters[i]);
+		cli_send_feedback(client_fd, msg);
+		cli_prompt(client_fd);
+	}
+
 	return 0;
 }

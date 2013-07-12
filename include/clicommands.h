@@ -14,7 +14,7 @@ struct command_head
 
 struct command {
 	char *command;
-	int (*command_handler)(int, char *);
+	int (*command_handler)(int, char **, int);
 	struct command *next;
 	struct command *prev;
 	struct command_head child;
@@ -25,10 +25,10 @@ struct command {
 int cli_help();
 struct command* lookup_command(const char *command_name);
 int execute_commands(int client_fd, const char *command_name, int d_len);
-int register_command(const char *command_name, int (*handler_function)(int, char *),bool,bool);
+int register_command(const char *command_name, int (*handler_function)(int, char **, int),bool,bool);
 struct command* find_command(struct command_head *node, char *command_name);
 int cli_prompt(int client_fd);
 int cli_node_help(int client_fd, struct command_head *currentnode);
-int cli_show_param(int client_fd, char *args);
+int cli_show_param(int client_fd, char **parameters, int numparameters);
 
 #endif
