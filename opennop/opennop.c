@@ -22,6 +22,7 @@ void *fromserver_handler(void *dummyPtr) {
 		if (length > 0) {
 			server_reply[length] = '\0';
 			fprintf(stdout, "%s", server_reply);
+			fflush(stdout);
 		} else {
 			if (length < 0)
 				perror("[cli_client]: recv");
@@ -59,7 +60,7 @@ int main(void) {
 
 	pthread_create(&t_fromserver, NULL, fromserver_handler, (void *)client_fd);
 
-	//printf("\n OpenNOPD >> ")
+	// printf("\n opennopd# ");
 	while (2) {
 		fgets(client_message, MAX_BUFFER_SIZE - 1, stdin);
 
