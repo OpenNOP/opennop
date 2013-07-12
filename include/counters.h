@@ -44,7 +44,7 @@ struct counters {
 
 void *counters_function(void *dummyPtr);
 int calculate_ppsbps(__u32 previouscount, __u32 currentcount);
-int cli_show_counters(int client_fd);
+int cli_show_counters(int client_fd, char **parameters, int numparameters);
 struct counters get_counters(struct counters *thiscounter);
 void set_pps(struct counters *thiscounter, __u32 count);
 void set_bpsin(struct counters *thiscounter, __u32 count);
