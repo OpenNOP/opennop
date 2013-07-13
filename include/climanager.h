@@ -11,8 +11,6 @@
 int cli_process_message(int client_fd, char *buffer, int d_len);
 void start_cli_server();
 void cli_manager_init();
-int cli_send_feedback(int client_fd, char *msg);
-void bytestostringbps(char *output, __u32 count);
 void *client_handler(void *socket_desc);
 
 #endif
