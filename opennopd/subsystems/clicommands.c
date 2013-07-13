@@ -287,37 +287,8 @@ int register_command(const char *command_name, int (*handler_function)(int, char
 
 	//pthread_mutex_unlock(&lock);
 
-	/*
-	 * Old implementation.
-	 *
-	struct command *node = (struct command *) malloc (sizeof (struct command));
-
-	if (NULL == node){
-		fprintf(stdout, "Could not allocate memory... \n");
-		exit(1);
-	}
-
-	if (NULL == head){
-		node->command = command_name;
-		node->command_handler = handler_function;
-		node->next = NULL;
-		node->prev = NULL;
-		head = node;
-		tail = head;
-	} else {
-		node->command = command_name;
-		node->command_handler = handler_function;
-		tail->next = node;
-		node->prev = tail;
-		tail = node;
-	}
-
-	fprintf(stdout, "[%s]: command [%s] registered \n", __FUNCTION__, node->command);
-	*/
-
 	return 0;
 }
-
 
 /*
  * Called by  cli_process_message() in climanager.c.
