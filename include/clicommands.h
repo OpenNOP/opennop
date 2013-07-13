@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <stdbool.h>
 
+#include <linux/types.h>
+
 #include "clisocket.h"
 
 struct command_head
@@ -32,5 +34,7 @@ struct command* find_command(struct command_head *node, char *command_name);
 int cli_prompt(int client_fd);
 int cli_node_help(int client_fd, struct command_head *currentnode);
 int cli_show_param(int client_fd, char **parameters, int numparameters);
+void bytestostringbps(char *output, __u32 count);
+int cli_send_feedback(int client_fd, char *msg);
 
 #endif
