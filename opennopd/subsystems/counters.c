@@ -17,6 +17,15 @@
 int DEBUG_COUNTERS = true;
 
 /*
+ * TODO: This whole module could use a re-write already.
+ * A better solution might be to  have a linked list of pointers to struct counters.
+ * The linked list would be internal only and let other modules register their counters here.
+ * This process would loop through them all to update the stats based on the UPDATECOUNTERSTIMER.
+ * This would be consistent with no special processing for worker/optimization/de-optimization or fether.
+ * In the future this method would allow other modules to use the same counters structure.
+ */
+
+/*
  * Time in seconds before updating the counters.
  */
 int UPDATECOUNTERSTIMER = 5;
@@ -42,13 +51,11 @@ void *counters_function(void *dummyPtr) {
 	/*
 	 * Initialize previous thread storage.
 	 */
-	prevfetchermetrics = thefetcher.metrics;
+	prevfetchermetrics = get_fetcher_counters();
 	for (i = 0; i < get_workers(); i++) {
 		prevoptimizationmetrics[i] = get_optimization_counters(i);
 		prevdeoptimizationmetrics[i] = get_deoptimization_counters(i);
 	}
-
-	register_command("show counters", cli_show_counters, false, false);
 
 	while (servicestate >= RUNNING) {
 		sleep(UPDATECOUNTERSTIMER); // Sleeping for a few seconds.
@@ -58,20 +65,25 @@ void *counters_function(void *dummyPtr) {
 		 * calculate the pps metrics,
 		 * and save them.
 		 */
-		fetchermetrics = thefetcher.metrics;
-		thefetcher.metrics.pps = calculate_ppsbps(prevfetchermetrics.packets,
-				fetchermetrics.packets);
-		thefetcher.metrics.bpsin = calculate_ppsbps(prevfetchermetrics.bytesin,
-				fetchermetrics.bytesin);
+		fetchermetrics = get_fetcher_counters();
+		set_fetcher_pps(calculate_ppsbps(prevfetchermetrics.packets,
+				fetchermetrics.packets));
+		set_fetcher_bpsin(calculate_ppsbps(prevfetchermetrics.bytesin,
+				fetchermetrics.bytesin));
+		/*
+		 * Don't have any use for bpsout here really.
+		 */
+		//set_fetcher_bpsout(calculate_ppsbps(prevfetchermetrics.bytesout,
+		//				fetchermetrics.bytesout));
 		prevfetchermetrics = fetchermetrics;
 
-		if ((DEBUG_COUNTERS == true) && (thefetcher.metrics.pps != 0)
-				&& (thefetcher.metrics.bpsin != 0)) {
+		if ((DEBUG_COUNTERS == true) && (get_fetcher_counters().pps != 0)
+				&& (get_fetcher_counters().bpsin != 0)) {
 			sprintf(message, "Counters: Fetcher: %u pps\n",
-					thefetcher.metrics.pps);
+					get_fetcher_counters().pps);
 			logger(LOG_INFO, message);
 			sprintf(message, "Counters: Fetcher: %u bps\n",
-					thefetcher.metrics.bpsin);
+					get_fetcher_counters().bpsin);
 			logger(LOG_INFO, message);
 		}
 
@@ -209,124 +221,4 @@ void set_bpsout(struct counters *thiscounter, __u32 count) {
 	pthread_mutex_lock(&thiscounter->lock);
 	thiscounter->bpsout = count;
 	pthread_mutex_unlock(&thiscounter->lock);
-}
-
-int cli_show_counters(int client_fd, char **parameters, int numparameters) {
-	int i;
-	__u32 ppsbps;
-	__u32 total_optimization_pps = 0, total_optimization_bpsin = 0,
-			total_optimization_bpsout = 0;
-	__u32 total_deoptimization_pps = 0, total_deoptimization_bpsin = 0,
-			total_deoptimization_bpsout = 0;
-	char msg[MAX_BUFFER_SIZE] = { 0 };
-	char message[LOGSZ];
-	char bps[11];
-	char optimizationbpsin[9];
-	char optimizationbpsout[9];
-	char deoptimizationbpsin[9];
-	char deoptimizationbpsout[9];
-	char col1[11];
-	char col2[9];
-	char col3[14];
-	char col4[14];
-	char col5[9];
-	char col6[14];
-	char col7[14];
-	char col8[3];
-
-	if (DEBUG_COUNTERS == true) {
-		sprintf(message, "Counters: Showing counters");
-		logger(LOG_INFO, message);
-	}
-
-	sprintf(msg,
-			"-------------------------------------------------------------------------------\n");
-	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
-			"|  5 sec  |          optimization           |          deoptimization         |\n");
-	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
-			"-------------------------------------------------------------------------------\n");
-	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
-			"|  worker |  pps  |     in     |     out    |  pps  |     in     |     out    |\n");
-	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
-			"-------------------------------------------------------------------------------\n");
-	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-
-	for (i = 0; i < get_workers(); i++) {
-
-		strcpy(msg, "");
-
-		sprintf(col1, "|    %-5i", i);
-		strcat(msg, col1);
-
-		ppsbps = get_optimization_counters(i).pps;
-		total_optimization_pps += ppsbps;
-		sprintf(col2, "| %-6u", ppsbps);
-		strcat(msg, col2);
-
-		ppsbps = get_optimization_counters(i).bpsin;
-		total_optimization_bpsin += ppsbps;
-		bytestostringbps(bps, ppsbps);
-		sprintf(col3, "| %-11s", bps);
-		strcat(msg, col3);
-
-		ppsbps = get_optimization_counters(i).bpsout;
-		total_optimization_bpsout += ppsbps;
-		bytestostringbps(bps, ppsbps);
-		sprintf(col4, "| %-11s", bps);
-		strcat(msg, col4);
-
-		ppsbps = get_deoptimization_counters(i).pps;
-		total_deoptimization_pps += ppsbps;
-		sprintf(col5, "| %-6u", ppsbps);
-		strcat(msg, col5);
-
-		ppsbps = get_deoptimization_counters(i).bpsin;
-		total_deoptimization_bpsin += ppsbps;
-		bytestostringbps(bps, ppsbps);
-		sprintf(col6, "| %-11s", bps);
-		strcat(msg, col6);
-
-		ppsbps = get_deoptimization_counters(i).bpsout;
-		total_deoptimization_bpsout += ppsbps;
-		bytestostringbps(bps, ppsbps);
-		sprintf(col7, "| %-11s", bps);
-		strcat(msg, col7);
-
-		sprintf(col8, "|\n");
-		strcat(msg, col8);
-		cli_prompt(client_fd);
-		cli_send_feedback(client_fd, msg);
-	}
-	sprintf(msg,
-			"-------------------------------------------------------------------------------\n");
-	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-
-	bytestostringbps(optimizationbpsin, total_optimization_bpsin);
-	bytestostringbps(optimizationbpsout, total_optimization_bpsout);
-	bytestostringbps(deoptimizationbpsin, total_deoptimization_bpsin);
-	bytestostringbps(deoptimizationbpsout, total_deoptimization_bpsout);
-	sprintf(msg, "|  total  | %-6u| %-11s| %-11s| %-6u| %-11s| %-11s|\n",
-			total_optimization_pps, optimizationbpsin, optimizationbpsout,
-			total_deoptimization_pps, deoptimizationbpsin, deoptimizationbpsout);
-	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-
-	sprintf(msg,
-			"-------------------------------------------------------------------------------\n");
-	cli_prompt(client_fd);
-	cli_send_feedback(client_fd, msg);
-
-	cli_prompt(client_fd);
-
-	return 0;
 }

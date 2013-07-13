@@ -15,12 +15,17 @@ struct fetcher {
 	pthread_mutex_t lock; // Lock for the fetcher when changing state.
 };
 
-extern struct fetcher thefetcher;
-
 int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 		struct nfq_data *nfa, void *data);
 
 void *fetcher_function(void *dummyPtr);
 void fetcher_graceful_exit();
+void create_fetcher();
+void rejoin_fetcher();
+struct counters get_fetcher_counters();
+void set_fetcher_pps(__u32 count);
+void set_fetcher_bpsin(__u32 count);
+void set_fetcher_bpsout(__u32 count);
+int cli_show_fetcher(int client_fd, char **parameters, int numparameters);
 
 #endif /*FETCHER_H_*/

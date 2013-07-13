@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
      * Create the fetcher thread that retrieves
      * IP packets from the Netfilter Queue.
      */
-    pthread_create(&thefetcher.t_fetcher, NULL, fetcher_function, (void *)NULL);
+    create_fetcher();
     pthread_create(&t_cleanup, NULL, cleanup_function, (void *)NULL);
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *)NULL);
     pthread_create(&t_cli, NULL, cli_manager_init, (void *)NULL);
@@ -231,6 +231,8 @@ int main(int argc, char *argv[])
      */
     register_command("show version", cli_show_version, false, false);
     register_command("show compression", cli_show_compression, false, false);
+    register_command("show workers", cli_show_workers, false, false);
+    register_command("show fetcher", cli_show_fetcher, false, false);
     register_command("compression enable", cli_compression_enable, false, false);
     register_command("compression disable", cli_compression_disable, false, false);
 
@@ -238,7 +240,7 @@ int main(int argc, char *argv[])
      * Rejoin all threads before we exit!
      */
     //pthread_join(t_fetcher, NULL);
-    pthread_join(thefetcher.t_fetcher, NULL);
+    rejoin_fetcher();
     pthread_join(t_cleanup, NULL);
     pthread_join(t_healthagent, NULL);
     pthread_join(t_cli, NULL);

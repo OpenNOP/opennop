@@ -59,5 +59,6 @@ void decrement_worker_sessions(int i);
 int optimize_packet(__u8 queue, struct packet *thispacket);
 int deoptimize_packet(__u8 queue, struct packet *thispacket);
 void shutdown_workers();
+int cli_show_workers(int client_fd, char **parameters, int numparameters);
 
 #endif /*WORKER_H_*/
