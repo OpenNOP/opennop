@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <sys/time.h>
 
@@ -24,6 +25,8 @@
 #include "opennopd.h"
 #include "worker.h"
 #include "memorymanager.h"
+#include "counters.h"
+#include "climanager.h"
 
 struct fetcher thefetcher;
 
@@ -402,7 +405,7 @@ void *fetcher_function (void *dummyPtr)
     long sys_bytesofmem = 0; // The total bytes of memory in the system.
     long nfqneededbuffer = 0; // Store how much memory the NFQ needs.
     long nfqlength = 0;
-    int rv;
+    int rv = 0;
     char buf[BUFSIZE] __attribute__ ((aligned));
     char message [LOGSZ];
 
@@ -617,4 +620,79 @@ void fetcher_graceful_exit () {
 	nfq_destroy_queue(qh);
 	nfq_close(h);
 	close(fd);
+}
+
+void create_fetcher(){
+	pthread_create(&thefetcher.t_fetcher, NULL, fetcher_function, (void *)NULL);
+}
+
+void rejoin_fetcher(){
+	pthread_join(thefetcher.t_fetcher, NULL);
+}
+
+struct counters get_fetcher_counters(){
+	return get_counters(&thefetcher.metrics);
+}
+
+void set_fetcher_pps(__u32 count){
+	set_pps(&thefetcher.metrics, count);
+}
+
+void set_fetcher_bpsin(__u32 count){
+	set_bpsin(&thefetcher.metrics, count);
+}
+
+void set_fetcher_bpsout(__u32 count){
+	set_bpsout(&thefetcher.metrics, count);
+}
+
+int cli_show_fetcher(int client_fd, char **parameters, int numparameters){
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	__u32 ppsbps;
+	char bps[11];
+	char col1[11];
+	char col2[14];
+	char col3[3];
+
+	cli_prompt(client_fd);
+	sprintf(msg,"------------------------\n");
+	cli_send_feedback(client_fd, msg);
+	cli_prompt(client_fd);
+	sprintf(msg,
+				"|  5 sec  |  fetcher   |\n");
+	cli_send_feedback(client_fd, msg);
+	cli_prompt(client_fd);
+	sprintf(msg,"------------------------\n");
+	cli_send_feedback(client_fd, msg);
+	cli_prompt(client_fd);
+	sprintf(msg,"|   pps   |     in     |\n");
+	cli_send_feedback(client_fd, msg);
+	cli_prompt(client_fd);
+	sprintf(msg,"------------------------\n");
+	cli_send_feedback(client_fd, msg);
+
+	strcpy(msg, "");
+	ppsbps = get_fetcher_counters().pps;
+	bytestostringbps(bps, ppsbps);
+	sprintf(col1, "| %-8u", ppsbps);
+	strcat(msg, col1);
+
+	ppsbps = get_fetcher_counters().bpsin;
+	bytestostringbps(bps, ppsbps);
+	sprintf(col2, "| %-11s", bps);
+	strcat(msg, col2);
+
+	sprintf(col3, "|\n");
+	strcat(msg, col3);
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+
+	cli_prompt(client_fd);
+	sprintf(msg,"------------------------\n");
+	cli_send_feedback(client_fd, msg);
+
+
+	cli_prompt(client_fd);
+
+	return 0;
 }

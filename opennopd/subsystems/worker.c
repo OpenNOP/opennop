@@ -7,6 +7,7 @@
 #include <linux/types.h>
 #include <linux/netfilter.h> // for NF_ACCEPT
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
+
 #include "queuemanager.h"
 #include "worker.h"
 #include "opennopd.h"
@@ -18,10 +19,13 @@
 #include "logger.h"
 #include "quicklz.h"
 #include "memorymanager.h"
+#include "counters.h"
+#include "climanager.h"
 
 struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
 int DEBUG_WORKER = false;
+int DEBUG_WORKER_CLI = false;
 
 void *optimization_thread(void *dummyPtr) {
 	struct worker *me = NULL;
@@ -494,4 +498,124 @@ int optimize_packet(__u8 queue, struct packet *thispacket) {
 int deoptimize_packet(__u8 queue, struct packet *thispacket) {
 	return queue_packet(&workers[queue].deoptimization.queue,
 			thispacket);
+}
+
+int cli_show_workers(int client_fd, char **parameters, int numparameters) {
+	int i;
+	__u32 ppsbps;
+	__u32 total_optimization_pps = 0, total_optimization_bpsin = 0,
+			total_optimization_bpsout = 0;
+	__u32 total_deoptimization_pps = 0, total_deoptimization_bpsin = 0,
+			total_deoptimization_bpsout = 0;
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	char message[LOGSZ];
+	char bps[11];
+	char optimizationbpsin[9];
+	char optimizationbpsout[9];
+	char deoptimizationbpsin[9];
+	char deoptimizationbpsout[9];
+	char col1[11];
+	char col2[9];
+	char col3[14];
+	char col4[14];
+	char col5[9];
+	char col6[14];
+	char col7[14];
+	char col8[3];
+
+	if (DEBUG_WORKER_CLI == true) {
+		sprintf(message, "Counters: Showing counters");
+		logger(LOG_INFO, message);
+	}
+
+	sprintf(msg,
+			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+	sprintf(msg,
+			"|  5 sec  |          optimization           |          deoptimization         |\n");
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+	sprintf(msg,
+			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+	sprintf(msg,
+			"|  worker |  pps  |     in     |     out    |  pps  |     in     |     out    |\n");
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+	sprintf(msg,
+			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+
+	for (i = 0; i < get_workers(); i++) {
+
+		strcpy(msg, "");
+
+		sprintf(col1, "|    %-5i", i);
+		strcat(msg, col1);
+
+		ppsbps = get_optimization_counters(i).pps;
+		total_optimization_pps += ppsbps;
+		sprintf(col2, "| %-6u", ppsbps);
+		strcat(msg, col2);
+
+		ppsbps = get_optimization_counters(i).bpsin;
+		total_optimization_bpsin += ppsbps;
+		bytestostringbps(bps, ppsbps);
+		sprintf(col3, "| %-11s", bps);
+		strcat(msg, col3);
+
+		ppsbps = get_optimization_counters(i).bpsout;
+		total_optimization_bpsout += ppsbps;
+		bytestostringbps(bps, ppsbps);
+		sprintf(col4, "| %-11s", bps);
+		strcat(msg, col4);
+
+		ppsbps = get_deoptimization_counters(i).pps;
+		total_deoptimization_pps += ppsbps;
+		sprintf(col5, "| %-6u", ppsbps);
+		strcat(msg, col5);
+
+		ppsbps = get_deoptimization_counters(i).bpsin;
+		total_deoptimization_bpsin += ppsbps;
+		bytestostringbps(bps, ppsbps);
+		sprintf(col6, "| %-11s", bps);
+		strcat(msg, col6);
+
+		ppsbps = get_deoptimization_counters(i).bpsout;
+		total_deoptimization_bpsout += ppsbps;
+		bytestostringbps(bps, ppsbps);
+		sprintf(col7, "| %-11s", bps);
+		strcat(msg, col7);
+
+		sprintf(col8, "|\n");
+		strcat(msg, col8);
+		cli_prompt(client_fd);
+		cli_send_feedback(client_fd, msg);
+	}
+	sprintf(msg,
+			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+
+	bytestostringbps(optimizationbpsin, total_optimization_bpsin);
+	bytestostringbps(optimizationbpsout, total_optimization_bpsout);
+	bytestostringbps(deoptimizationbpsin, total_deoptimization_bpsin);
+	bytestostringbps(deoptimizationbpsout, total_deoptimization_bpsout);
+	sprintf(msg, "|  total  | %-6u| %-11s| %-11s| %-6u| %-11s| %-11s|\n",
+			total_optimization_pps, optimizationbpsin, optimizationbpsout,
+			total_deoptimization_pps, deoptimizationbpsin, deoptimizationbpsout);
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+
+	sprintf(msg,
+			"-------------------------------------------------------------------------------\n");
+	cli_prompt(client_fd);
+	cli_send_feedback(client_fd, msg);
+
+	cli_prompt(client_fd);
+
+	return 0;
 }
