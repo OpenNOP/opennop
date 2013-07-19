@@ -184,8 +184,8 @@ void *cleanup_function(void *data){
 		
 		for (i = 0; i < SESSIONBUCKETS; i++){  // Process each bucket.
 		
-			if (sessiontable[i].next != NULL){
-    			cleanuplist(&sessiontable[i]);
+			if (getsessionhead(i)->next != NULL){
+    			cleanuplist(getsessionhead(i));
     		}
 		}
 	}
