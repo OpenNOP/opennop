@@ -196,11 +196,7 @@ int main(int argc, char *argv[])
      * Starting up the daemon.
      */
 
-    for (i = 0; i < SESSIONBUCKETS; i++)
-    { // Initialize all the slots in the hashtable to NULL.
-        sessiontable[i].next = NULL;
-        sessiontable[i].prev = NULL;
-    }
+    initialize_sessiontable();
 
     if (get_workers() == 0)
     {
@@ -252,16 +248,7 @@ int main(int argc, char *argv[])
     	rejoin_worker(i);
     }
 
-    for (i = 0; i < SESSIONBUCKETS; i++)
-    { // Initialize all the slots in the hashtable to NULL.
-        if (sessiontable[i].next != NULL)
-        {
-            freemem(&sessiontable[i]);
-            sprintf(message, "Exiting: Freeing sessiontable %d!\n",i);
-            logger(LOG_INFO, message);
-        }
-
-    }
+    clear_sessiontable();
 
     sprintf(message, "Exiting: %s daemon exiting", DAEMON_NAME);
     logger(LOG_INFO, message);

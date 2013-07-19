@@ -310,3 +310,32 @@ void sort_sockets(__u32 *largerIP, __u16 *largerIPPort, __u32 *smallerIP,
 		*smallerIPPort = source;
 	}
 }
+
+void initialize_sessiontable(){
+    int i;
+    for (i = 0; i < SESSIONBUCKETS; i++)
+    { // Initialize all the slots in the hashtable to NULL.
+        sessiontable[i].next = NULL;
+        sessiontable[i].prev = NULL;
+    }
+}
+
+void clear_sessiontable(){
+    int i;
+    char message [LOGSZ];
+
+	for (i = 0; i < SESSIONBUCKETS; i++)
+	    { // Initialize all the slots in the hashtable to NULL.
+	        if (sessiontable[i].next != NULL)
+	        {
+	            freemem(&sessiontable[i]);
+	            sprintf(message, "Exiting: Freeing sessiontable %d!\n",i);
+	            logger(LOG_INFO, message);
+	        }
+
+	    }
+}
+
+struct session_head *getsessionhead(int i){
+	return &sessiontable[i];
+}
