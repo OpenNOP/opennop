@@ -229,6 +229,7 @@ int main(int argc, char *argv[])
     register_command("show compression", cli_show_compression, false, false);
     register_command("show workers", cli_show_workers, false, false);
     register_command("show fetcher", cli_show_fetcher, false, false);
+    register_command("show sessions", cli_show_sessionss, false, false);
     register_command("compression enable", cli_compression_enable, false, false);
     register_command("compression disable", cli_compression_disable, false, false);
 
