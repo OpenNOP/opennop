@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <pthread.h> // for multi-threading
-
 #include <linux/types.h>
 
 #include <arpa/inet.h>
@@ -389,14 +388,16 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 				sprintf(col1, "|    %-6i", i);
 				strcat(msg, col1);
 				//sprintf(col2, "|    %s", inet_ntoa(currentsession->largerIP));
-				inet_ntop(AF_INET, &currentsession->largerIP, col2,INET_ADDRSTRLEN);
+				inet_ntop(AF_INET, &currentsession->largerIP, col2,
+						INET_ADDRSTRLEN);
 				strcat(msg, col2);
-				sprintf(col3, "|    %-6i", currentsession->largerIPPort);
+				sprintf(col3, "|    %-6i", ntohs(currentsession->largerIPPort));
 				strcat(msg, col3);
 				//sprintf(col4, "|    %s", inet_ntoa(currentsession->smallerIP));
-				inet_ntop(AF_INET, &currentsession->smallerIP, col4,INET_ADDRSTRLEN);
+				inet_ntop(AF_INET, &currentsession->smallerIP, col4,
+						INET_ADDRSTRLEN);
 				strcat(msg, col4);
-				sprintf(col5, "|    %-6i", currentsession->smallerIPPort);
+				sprintf(col5, "|    %-6i", ntohs(currentsession->smallerIPPort));
 				strcat(msg, col5);
 				sprintf(col6, "|\n");
 				strcat(msg, col6);
