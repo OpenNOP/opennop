@@ -2,8 +2,12 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <pthread.h> // for multi-threading
+
 #include <linux/types.h>
+
+#include <arpa/inet.h>
 
 #include "sessionmanager.h"
 #include "opennopd.h"
@@ -344,7 +348,7 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	char message[LOGSZ];
 	int i;
 	char col1[18];
-	char col2[14];
+	char col2[20];
 	char col3[17];
 	char col4[20];
 	char col5[19];
@@ -353,17 +357,17 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	cli_prompt(client_fd);
 	sprintf(
 			msg,
-			"--------------------------------------------------------------------------------------\n");
+			"--------------------------------------------------------------------------------------------\n");
 	cli_send_feedback(client_fd, msg);
 	cli_prompt(client_fd);
 	sprintf(
 			msg,
-			"|  Table Index  |  Source IP |  Source Port  |  Destination IP  |  Destination Port  |\n");
+			"|  Table Index  |     Source IP    |  Source Port  |  Destination IP  |  Destination Port  |\n");
 	cli_send_feedback(client_fd, msg);
 	cli_prompt(client_fd);
 	sprintf(
 			msg,
-			"--------------------------------------------------------------------------------------\n");
+			"--------------------------------------------------------------------------------------------\n");
 	cli_send_feedback(client_fd, msg);
 
 	/*
@@ -384,11 +388,13 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 				strcpy(msg, "");
 				sprintf(col1, "|    %-6i", i);
 				strcat(msg, col1);
-				sprintf(col2, "|    %-6s", inet_ntoa(currentsession->largerIP));
+				//sprintf(col2, "|    %s", inet_ntoa(currentsession->largerIP));
+				inet_ntop(AF_INET, &currentsession->largerIP, col2,INET_ADDRSTRLEN);
 				strcat(msg, col2);
 				sprintf(col3, "|    %-6i", currentsession->largerIPPort);
 				strcat(msg, col3);
-				sprintf(col4, "|    %-6s", inet_ntoa(currentsession->smallerIP));
+				//sprintf(col4, "|    %s", inet_ntoa(currentsession->smallerIP));
+				inet_ntop(AF_INET, &currentsession->smallerIP, col4,INET_ADDRSTRLEN);
 				strcat(msg, col4);
 				sprintf(col5, "|    %-6i", currentsession->smallerIPPort);
 				strcat(msg, col5);
