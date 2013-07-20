@@ -10,6 +10,7 @@
 #include "logger.h"
 #include "worker.h"
 #include "session.h"
+#include "clicommands.h"
 
 struct session_head sessiontable[SESSIONBUCKETS]; // Setup the session hashtable.
 
@@ -311,31 +312,96 @@ void sort_sockets(__u32 *largerIP, __u16 *largerIPPort, __u32 *smallerIP,
 	}
 }
 
-void initialize_sessiontable(){
-    int i;
-    for (i = 0; i < SESSIONBUCKETS; i++)
-    { // Initialize all the slots in the hashtable to NULL.
-        sessiontable[i].next = NULL;
-        sessiontable[i].prev = NULL;
-    }
+void initialize_sessiontable() {
+	int i;
+	for (i = 0; i < SESSIONBUCKETS; i++) { // Initialize all the slots in the hashtable to NULL.
+		sessiontable[i].next = NULL;
+		sessiontable[i].prev = NULL;
+	}
 }
 
-void clear_sessiontable(){
-    int i;
-    char message [LOGSZ];
+void clear_sessiontable() {
+	int i;
+	char message[LOGSZ];
 
-	for (i = 0; i < SESSIONBUCKETS; i++)
-	    { // Initialize all the slots in the hashtable to NULL.
-	        if (sessiontable[i].next != NULL)
-	        {
-	            freemem(&sessiontable[i]);
-	            sprintf(message, "Exiting: Freeing sessiontable %d!\n",i);
-	            logger(LOG_INFO, message);
-	        }
+	for (i = 0; i < SESSIONBUCKETS; i++) { // Initialize all the slots in the hashtable to NULL.
+		if (sessiontable[i].next != NULL) {
+			freemem(&sessiontable[i]);
+			sprintf(message, "Exiting: Freeing sessiontable %d!\n", i);
+			logger(LOG_INFO, message);
+		}
 
-	    }
+	}
 }
 
-struct session_head *getsessionhead(int i){
+struct session_head *getsessionhead(int i) {
 	return &sessiontable[i];
+}
+
+int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
+	struct session *currentsession = NULL;
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	char message[LOGSZ];
+	int i;
+	char col1[18];
+	char col2[14];
+	char col3[17];
+	char col4[20];
+	char col5[19];
+	char col6[3];
+
+	cli_prompt(client_fd);
+	sprintf(
+			msg,
+			"--------------------------------------------------------------------------------------\n");
+	cli_send_feedback(client_fd, msg);
+	cli_prompt(client_fd);
+	sprintf(
+			msg,
+			"|  Table Index  |  Source IP |  Source Port  |  Destination IP  |  Destination Port  |\n");
+	cli_send_feedback(client_fd, msg);
+	cli_prompt(client_fd);
+	sprintf(
+			msg,
+			"--------------------------------------------------------------------------------------\n");
+	cli_send_feedback(client_fd, msg);
+
+	/*
+	 * Check each index of the session table for any sessions.
+	 */
+	for (i = 0; i < SESSIONBUCKETS; i++) {
+
+		/*
+		 * Skip any index of the sessiontable that has no sessions.
+		 */
+		if (sessiontable[i].next != NULL) {
+			currentsession = sessiontable[i].next;
+
+			/*
+			 * Work through all sessions in that index and print them out.
+			 */
+			while (currentsession != NULL) {
+				strcpy(msg, "");
+				sprintf(col1, "|    %-6i", i);
+				strcat(msg, col1);
+				sprintf(col2, "|    %-6i", currentsession->largerIP);
+				strcat(msg, col2);
+				sprintf(col3, "|    %-6i", currentsession->largerIPPort);
+				strcat(msg, col3);
+				sprintf(col4, "|    %-6i", currentsession->smallerIP);
+				strcat(msg, col4);
+				sprintf(col5, "|    %-6i", currentsession->smallerIPPort);
+				strcat(msg, col5);
+				sprintf(col6, "|\n");
+				strcat(msg, col6);
+				cli_prompt(client_fd);
+				cli_send_feedback(client_fd, msg);
+
+				currentsession = currentsession->next;
+			}
+		}
+
+	}
+	cli_prompt(client_fd);
+	return 0;
 }

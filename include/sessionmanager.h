@@ -23,5 +23,6 @@ void sort_sockets(__u32 *largerIP, __u16 *largerIPPort,
 void initialize_sessiontable();
 void clear_sessiontable();
 struct session_head *getsessionhead(int i);
+int cli_show_sessionss(int client_fd, char **parameters, int numparameters);
 
 #endif /*SESSIONMANAGER_H_*/
