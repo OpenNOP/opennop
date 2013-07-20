@@ -384,11 +384,11 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 				strcpy(msg, "");
 				sprintf(col1, "|    %-6i", i);
 				strcat(msg, col1);
-				sprintf(col2, "|    %-6i", currentsession->largerIP);
+				sprintf(col2, "|    %-6s", inet_ntoa(currentsession->largerIP));
 				strcat(msg, col2);
 				sprintf(col3, "|    %-6i", currentsession->largerIPPort);
 				strcat(msg, col3);
-				sprintf(col4, "|    %-6i", currentsession->smallerIP);
+				sprintf(col4, "|    %-6s", inet_ntoa(currentsession->smallerIP));
 				strcat(msg, col4);
 				sprintf(col5, "|    %-6i", currentsession->smallerIPPort);
 				strcat(msg, col5);
