@@ -408,8 +408,10 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 
 				if ((((currentsession->largerIPAccelerator == localIP)
 						|| (currentsession->smallerIPAccelerator == localIP))
-						&& (currentsession->largerIPAccelerator != 0)
-						&& (currentsession->smallerIPAccelerator != 0))) {
+						&& ((currentsession->largerIPAccelerator != 0)
+								&& (currentsession->smallerIPAccelerator != 0))
+						&& (currentsession->largerIPAccelerator
+								!= currentsession->smallerIPAccelerator))) {
 					sprintf(col6, "|     Yes    ");
 				} else {
 					sprintf(col6, "|     No     ");
