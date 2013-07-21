@@ -409,6 +409,6 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 		}
 
 	}
-	cli_prompt(client_fd);
+
 	return 0;
 }

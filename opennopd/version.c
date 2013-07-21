@@ -13,7 +13,6 @@ int cli_show_version(int client_fd, char **parameters, int numparameters) {
 	sprintf(msg, "Version %s.\n", VERSION);
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 
 	return 0;
 }

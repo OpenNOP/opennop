@@ -185,7 +185,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 
 		token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
 	}
-
+	cli_prompt(client_fd);
 
 	return 0;
 }
@@ -348,7 +348,7 @@ int cli_help(int client_fd, char *args) {
 		}
 		currentcommand = currentcommand->next;
 	}
-	cli_prompt(client_fd);
+
 	return 0;
 }
 
@@ -371,7 +371,7 @@ int cli_node_help(int client_fd, struct command_head *currentnode) {
 		}
 		currentcommand = currentcommand->next;
 	}
-	cli_prompt(client_fd);
+
 	return 0;
 }
 
