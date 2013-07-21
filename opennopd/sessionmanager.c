@@ -346,27 +346,33 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	char message[LOGSZ];
 	int i;
-	char col1[18];
-	char col2[20];
-	char col3[17];
-	char col4[20];
-	char col5[19];
-	char col6[3];
+	char temp[20];
+	char col1[10];
+	char col2[17];
+	char col3[14];
+	char col4[17];
+	char col5[14];
+	char col6[13];
+	char end[3];
 
 	cli_prompt(client_fd);
-	sprintf(
-			msg,
-			"--------------------------------------------------------------------------------------------\n");
+	sprintf(msg,
+			"NOTE! Client & Server order might be reversed.  It will be fixed.\n");
 	cli_send_feedback(client_fd, msg);
 	cli_prompt(client_fd);
 	sprintf(
 			msg,
-			"|  Table Index  |     Source IP    |  Source Port  |  Destination IP  |  Destination Port  |\n");
+			"--------------------------------------------------------------------------------------\n");
 	cli_send_feedback(client_fd, msg);
 	cli_prompt(client_fd);
 	sprintf(
 			msg,
-			"--------------------------------------------------------------------------------------------\n");
+			"|  Index  |   Client IP    | Client Port |    Server IP   | Server Port | Optimizing |\n");
+	cli_send_feedback(client_fd, msg);
+	cli_prompt(client_fd);
+	sprintf(
+			msg,
+			"--------------------------------------------------------------------------------------\n");
 	cli_send_feedback(client_fd, msg);
 
 	/*
@@ -387,20 +393,27 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 				strcpy(msg, "");
 				sprintf(col1, "|    %-6i", i);
 				strcat(msg, col1);
-				//sprintf(col2, "|    %s", inet_ntoa(currentsession->largerIP));
-				inet_ntop(AF_INET, &currentsession->largerIP, col2,
+				inet_ntop(AF_INET, &currentsession->largerIP, temp,
 						INET_ADDRSTRLEN);
+				sprintf(col2, "|    %s", temp);
 				strcat(msg, col2);
 				sprintf(col3, "|    %-6i", ntohs(currentsession->largerIPPort));
 				strcat(msg, col3);
-				//sprintf(col4, "|    %s", inet_ntoa(currentsession->smallerIP));
-				inet_ntop(AF_INET, &currentsession->smallerIP, col4,
+				inet_ntop(AF_INET, &currentsession->smallerIP, temp,
 						INET_ADDRSTRLEN);
+				sprintf(col4, "|    %s", temp);
 				strcat(msg, col4);
 				sprintf(col5, "|    %-6i", ntohs(currentsession->smallerIPPort));
 				strcat(msg, col5);
-				sprintf(col6, "|\n");
+
+				if((currentsession->largerIPAccelerator == localIP)||(currentsession->smallerIPAccelerator == localIP)){
+					sprintf(col6, "|     Yes    ");
+				}else{
+					sprintf(col6, "|     No     ");
+				}
 				strcat(msg, col6);
+				sprintf(end, "|\n");
+				strcat(msg, end);
 				cli_prompt(client_fd);
 				cli_send_feedback(client_fd, msg);
 
