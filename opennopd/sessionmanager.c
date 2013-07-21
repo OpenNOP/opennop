@@ -406,9 +406,12 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 				sprintf(col5, "|    %-6i", ntohs(currentsession->smallerIPPort));
 				strcat(msg, col5);
 
-				if((currentsession->largerIPAccelerator == localIP)||(currentsession->smallerIPAccelerator == localIP)){
+				if ((((currentsession->largerIPAccelerator == localIP)
+						|| (currentsession->smallerIPAccelerator == localIP))
+						&& (currentsession->largerIPAccelerator != 0)
+						&& (currentsession->smallerIPAccelerator != 0))) {
 					sprintf(col6, "|     Yes    ");
-				}else{
+				} else {
 					sprintf(col6, "|     No     ");
 				}
 				strcat(msg, col6);
