@@ -615,7 +615,5 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 
-	cli_prompt(client_fd);
-
 	return 0;
 }
