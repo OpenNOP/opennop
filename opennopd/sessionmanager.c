@@ -395,15 +395,15 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 				strcat(msg, col1);
 				inet_ntop(AF_INET, &currentsession->largerIP, temp,
 						INET_ADDRSTRLEN);
-				sprintf(col2, "| %-16s", temp);
+				sprintf(col2, "| %-15s", temp);
 				strcat(msg, col2);
-				sprintf(col3, "|  %-7i", ntohs(currentsession->largerIPPort));
+				sprintf(col3, "|   %-10i", ntohs(currentsession->largerIPPort));
 				strcat(msg, col3);
 				inet_ntop(AF_INET, &currentsession->smallerIP, temp,
 						INET_ADDRSTRLEN);
-				sprintf(col4, "| %-16s", temp);
+				sprintf(col4, "| %-15s", temp);
 				strcat(msg, col4);
-				sprintf(col5, "|  %-7i", ntohs(currentsession->smallerIPPort));
+				sprintf(col5, "|   %-10i", ntohs(currentsession->smallerIPPort));
 				strcat(msg, col5);
 
 				if ((((currentsession->largerIPAccelerator == localIP)
