@@ -395,7 +395,7 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 				strcat(msg, col1);
 				inet_ntop(AF_INET, &currentsession->largerIP, temp,
 						INET_ADDRSTRLEN);
-				sprintf(col2, "| %16-s", temp);
+				sprintf(col2, "| %-16s", temp);
 				strcat(msg, col2);
 				sprintf(col3, "|  %-7i", ntohs(currentsession->largerIPPort));
 				strcat(msg, col3);
