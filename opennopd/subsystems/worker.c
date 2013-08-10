@@ -48,6 +48,11 @@ void *optimization_thread(void *dummyPtr) {
 		exit(1);
 	}
 
+	/*
+	 * Register the worker threads metrics so they get updated.
+	 */
+	register_counter(counter_updateworkermetrics, (t_counterdata)&me->optimization.metrics);
+
 	if (me->optimization.lzbuffer != NULL) {
 
 		while (me->state >= STOPPING) {
@@ -222,6 +227,11 @@ void *deoptimization_thread(void *dummyPtr) {
 		logger(LOG_INFO, message);
 		exit(1);
 	}
+
+	/*
+	 * Register the worker threads metrics so they get updated.
+	 */
+	register_counter(counter_updateworkermetrics, (t_counterdata)&me->deoptimization.metrics);
 
 	if (me->deoptimization.lzbuffer != NULL) {
 
@@ -616,4 +626,26 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 	cli_send_feedback(client_fd, msg);
 
 	return 0;
+}
+
+void counter_updateworkermetrics(t_counterdata metric){
+	struct workercounters *metrics;
+	char message[LOGSZ];
+	__u32 counter;
+	sprintf(message, "Worker: Updating metrics!");
+	logger(LOG_INFO, message);
+
+	metrics = (struct workercounters *)metric;
+	counter = metrics->packets;
+	metrics->pps= calculate_ppsbps(counter,metrics->packetsprevious);
+	metrics->packetsprevious = counter;
+
+	counter = metrics->bytesin;
+	metrics->bpsin= calculate_ppsbps(counter,metrics->bytesin);
+	metrics->bytesinprevious = counter;
+
+	counter = metrics->bytesout;
+	metrics->bpsout= calculate_ppsbps(counter,metrics->bytesoutprevious);
+	metrics->bytesoutprevious = counter;
+
 }
