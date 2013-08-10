@@ -15,6 +15,7 @@
 #include "climanager.h"
 
 int DEBUG_COUNTERS = true;
+int DEBUG_COUNTERS_REGISTER = false;
 
 /*
  * TODO: This whole module could use a re-write already.
@@ -29,6 +30,7 @@ int DEBUG_COUNTERS = true;
  * Time in seconds before updating the counters.
  */
 int UPDATECOUNTERSTIMER = 5;
+struct counter_head newcounters;
 
 void *counters_function(void *dummyPtr) {
 	int i;
@@ -49,6 +51,13 @@ void *counters_function(void *dummyPtr) {
 	struct counters fetchermetrics;
 
 	/*
+	 * Initialize new counters list.
+	 */
+	//newcounters.next = NULL;
+	//newcounters.prev = NULL;
+	//pthread_mutex_init(&newcounters.lock, NULL);
+
+	/*
 	 * Initialize previous thread storage.
 	 */
 	prevfetchermetrics = get_fetcher_counters();
@@ -59,6 +68,12 @@ void *counters_function(void *dummyPtr) {
 
 	while (servicestate >= RUNNING) {
 		sleep(UPDATECOUNTERSTIMER); // Sleeping for a few seconds.
+
+
+		/*
+		 * Here is the new method.
+		 */
+		execute_counters();
 
 		/*
 		 * Get current fetcher metrics,
@@ -91,13 +106,14 @@ void *counters_function(void *dummyPtr) {
 			/*
 			 * We get the current metrics for each thread.
 			 */
-			optimizationmetrics[i] = get_optimization_counters(i);
-			deoptimizationmetrics[i] = get_deoptimization_counters(i);
+			//optimizationmetrics[i] = get_optimization_counters(i);
+			//deoptimizationmetrics[i] = get_deoptimization_counters(i);
 
 			/*
 			 * Calculate the pps metrics,
 			 * and save them.
 			 */
+			/*
 			set_optimization_pps(i, calculate_ppsbps(
 					prevoptimizationmetrics[i].packets,
 					optimizationmetrics[i].packets));
@@ -117,12 +133,13 @@ void *counters_function(void *dummyPtr) {
 			set_deoptimization_bpsout(i, calculate_ppsbps(
 					prevdeoptimizationmetrics[i].bytesout,
 					deoptimizationmetrics[i].bytesout));
+			*/
 
 			/*
 			 * Last we move the current metrics into the previous metrics.
 			 */
-			prevoptimizationmetrics[i] = optimizationmetrics[i];
-			prevdeoptimizationmetrics[i] = deoptimizationmetrics[i];
+			//prevoptimizationmetrics[i] = optimizationmetrics[i];
+			//prevdeoptimizationmetrics[i] = deoptimizationmetrics[i];
 
 		}
 
@@ -222,3 +239,80 @@ void set_bpsout(struct counters *thiscounter, __u32 count) {
 	thiscounter->bpsout = count;
 	pthread_mutex_unlock(&thiscounter->lock);
 }
+
+/*
+ * Other modules call this when they have metrics that need to be calculate.
+ * They must include the data to where the metric data is stored and a
+ * handler function to process the metrics.
+ */
+int register_counter(t_counterfunction handler, t_counterdata data) {
+	struct counter *currentcounter;
+	char message[LOGSZ];
+
+	if (DEBUG_COUNTERS_REGISTER == true){
+		sprintf(message, "Counters: Enter register_counter!");
+		logger(LOG_INFO, message);
+	};
+
+	/*
+	 * TODO:
+	 * We might need some detection logic here to ensure the same counter is not being registered twice.
+	 * For now we will assume that it will only be registered once.
+	 */
+
+	currentcounter = allocate_counter(); //Allocate a new counter instance.
+	currentcounter->handler = handler; //Assign the handler function passed from the caller.
+	currentcounter->data = data; //Assign the data passed by the caller.
+
+	/*
+	 * Lock the counters list while we update this.
+	 */
+	pthread_mutex_lock(&newcounters.lock);
+
+	if(newcounters.next == NULL) {
+		newcounters.next = currentcounter;
+		newcounters.prev = currentcounter;
+	}else{
+		currentcounter->prev = newcounters.prev;
+		newcounters.prev->next = currentcounter;
+		newcounters.prev = currentcounter;
+	}
+
+	pthread_mutex_unlock(&newcounters.lock);
+
+	if (DEBUG_COUNTERS_REGISTER == true){
+		sprintf(message, "Counters: Exit register_counter!");
+		logger(LOG_INFO, message);
+	};
+	return 1;
+}
+
+struct counter* allocate_counter() {
+	struct counter *newcounter = (struct counter *) malloc(
+			sizeof(struct counter));
+	if (newcounter == NULL) {
+		fprintf(stdout, "Could not allocate memory... \n");
+		exit(1);
+	}
+	newcounter->next = NULL;
+	newcounter->prev = NULL;
+	newcounter->handler = NULL;
+	newcounter->data = NULL;
+	return newcounter;
+}
+
+void execute_counters() {
+	struct counter *currentcounter;
+	/*
+	 * We loop through the list and execute each counter handle
+	 * passing its data pointer too.
+	 */
+	currentcounter = newcounters.next;
+	pthread_mutex_lock(&newcounters.lock);
+	while(currentcounter != NULL) {
+		(currentcounter->handler)(currentcounter->data);//Call the handler function passing its data.
+		currentcounter = currentcounter->next;
+	}
+	pthread_mutex_unlock(&newcounters.lock);
+}
+
