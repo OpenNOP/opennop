@@ -7,7 +7,6 @@
 #include <linux/types.h>
 #include <linux/netfilter.h> // for NF_ACCEPT
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
-
 #include "queuemanager.h"
 #include "worker.h"
 #include "opennopd.h"
@@ -51,7 +50,8 @@ void *optimization_thread(void *dummyPtr) {
 	/*
 	 * Register the worker threads metrics so they get updated.
 	 */
-	register_counter(counter_updateworkermetrics, (t_counterdata)&me->optimization.metrics);
+	register_counter(counter_updateworkermetrics, (t_counterdata)
+			& me->optimization.metrics);
 
 	if (me->optimization.lzbuffer != NULL) {
 
@@ -231,7 +231,8 @@ void *deoptimization_thread(void *dummyPtr) {
 	/*
 	 * Register the worker threads metrics so they get updated.
 	 */
-	register_counter(counter_updateworkermetrics, (t_counterdata)&me->deoptimization.metrics);
+	register_counter(counter_updateworkermetrics, (t_counterdata)
+			& me->deoptimization.metrics);
 
 	if (me->deoptimization.lzbuffer != NULL) {
 
@@ -425,13 +426,12 @@ void create_worker(int i) {
 	set_worker_state_running(&workers[i]);
 }
 
-void shutdown_workers(){
+void shutdown_workers() {
 	int i;
-	for (i = 0; i < get_workers(); i++)
-	    {
+	for (i = 0; i < get_workers(); i++) {
 		pthread_cond_signal(&workers[i].optimization.queue);
 		pthread_cond_signal(&workers[i].deoptimization.queue);
-	    }
+	}
 }
 
 void rejoin_worker(int i) {
@@ -501,13 +501,11 @@ void set_deoptimization_bpsout(int i, __u32 count) {
 }
 
 int optimize_packet(__u8 queue, struct packet *thispacket) {
-	return queue_packet(&workers[queue].optimization.queue,
-			thispacket);
+	return queue_packet(&workers[queue].optimization.queue, thispacket);
 }
 
 int deoptimize_packet(__u8 queue, struct packet *thispacket) {
-	return queue_packet(&workers[queue].deoptimization.queue,
-			thispacket);
+	return queue_packet(&workers[queue].deoptimization.queue, thispacket);
 }
 
 int cli_show_workers(int client_fd, char **parameters, int numparameters) {
@@ -538,23 +536,28 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 		logger(LOG_INFO, message);
 	}
 
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
+	sprintf(
+			msg,
 			"|  5 sec  |          optimization           |          deoptimization         |\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
+	sprintf(
+			msg,
 			"|  worker |  pps  |     in     |     out    |  pps  |     in     |     out    |\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
@@ -605,7 +608,8 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 		cli_prompt(client_fd);
 		cli_send_feedback(client_fd, msg);
 	}
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
@@ -620,7 +624,8 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
@@ -628,24 +633,24 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 	return 0;
 }
 
-void counter_updateworkermetrics(t_counterdata metric){
+void counter_updateworkermetrics(t_counterdata metric) {
 	struct workercounters *metrics;
 	char message[LOGSZ];
 	__u32 counter;
 	sprintf(message, "Worker: Updating metrics!");
 	logger(LOG_INFO, message);
 
-	metrics = (struct workercounters *)metric;
+	metrics = (struct workercounters*) metric;
 	counter = metrics->packets;
-	metrics->pps= calculate_ppsbps(counter,metrics->packetsprevious);
+	metrics->pps = calculate_ppsbps(metrics->packetsprevious, counter);
 	metrics->packetsprevious = counter;
 
 	counter = metrics->bytesin;
-	metrics->bpsin= calculate_ppsbps(counter,metrics->bytesin);
+	metrics->bpsin = calculate_ppsbps(metrics->bytesinprevious, counter);
 	metrics->bytesinprevious = counter;
 
 	counter = metrics->bytesout;
-	metrics->bpsout= calculate_ppsbps(counter,metrics->bytesoutprevious);
+	metrics->bpsout = calculate_ppsbps(metrics->bytesoutprevious, counter);
 	metrics->bytesoutprevious = counter;
 
 }
