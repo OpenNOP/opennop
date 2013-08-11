@@ -13,6 +13,39 @@
 #include "counters.h"
 
 #define MAXWORKERS 255 // Maximum number of workers to process packets.
+struct workercounters {
+	/*
+	 * number of packets processed.
+	 * used for pps calculation. can roll.
+	 * should increment at end of main loop after each packet is finished processing.
+	 */
+	__u32 packets;
+	__u32 packetsprevious;
+	__u32 pps; // Where the calculated pps are stored.
+
+	/*
+	 * number of bytes entering process.
+	 * used for bps calculation. can roll.
+	 * should increment as beginning of main loop after packet is received from queue.
+	 */
+	__u32 bytesin;
+	__u32 bytesinprevious;
+	__u32 bpsin; // Where the calculated bps are stored.
+	__u32 bytesout;
+	__u32 bytesoutprevious;
+	__u32 bpsout; // Where the calculated bps are stored.
+
+	/*
+	 * Stores when the counters were last updated.
+	 */
+	struct timeval updated;
+
+	/*
+	 * When something reads/writes to this counter it should use the lock.
+	 */
+	pthread_mutex_t lock;
+};
+
 /*
  * This structure is a member of the worker structure.
  * It contains the thread for optimization or de-optimization of packets,
@@ -21,7 +54,7 @@
  */
 struct processor {
 	pthread_t t_processor;
-	struct counters metrics;
+	struct workercounters metrics;
 	struct packet_head queue;
 	__u8 *lzbuffer; // Buffer used for QuickLZ.
 };
@@ -46,19 +79,12 @@ void initialize_worker_processor(struct processor *thisprocessor);
 void joining_worker_processor(struct processor *thisprocessor);
 void set_worker_state_running(struct worker *thisworker);
 void set_worker_state_stopped(struct worker *thisworker);
-struct counters get_optimization_counters(int i);
-struct counters get_deoptimization_counters(int i);
-void set_optimization_pps(int i, __u32 count);
-void set_optimization_bpsin(int i, __u32 count);
-void set_optimization_bpsout(int i, __u32 count);
-void set_deoptimization_pps(int i, __u32 count);
-void set_deoptimization_bpsin(int i, __u32 count);
-void set_deoptimization_bpsout(int i, __u32 count);
 void increment_worker_sessions(int i);
 void decrement_worker_sessions(int i);
 int optimize_packet(__u8 queue, struct packet *thispacket);
 int deoptimize_packet(__u8 queue, struct packet *thispacket);
 void shutdown_workers();
 int cli_show_workers(int client_fd, char **parameters, int numparameters);
+void counter_updateworkermetrics(t_counterdata metric);
 
 #endif /*WORKER_H_*/
