@@ -13,7 +13,6 @@
 #include "counters.h"
 
 #define MAXWORKERS 255 // Maximum number of workers to process packets.
-
 struct workercounters {
 	/*
 	 * number of packets processed.
@@ -69,8 +68,6 @@ struct worker {
 	pthread_mutex_t lock; // Lock for this worker when adding sessions.
 };
 
-
-
 void *optimization_thread(void *dummyPtr);
 void *deoptimization_thread(void *dummyPtr);
 unsigned char get_workers(void);
@@ -82,14 +79,6 @@ void initialize_worker_processor(struct processor *thisprocessor);
 void joining_worker_processor(struct processor *thisprocessor);
 void set_worker_state_running(struct worker *thisworker);
 void set_worker_state_stopped(struct worker *thisworker);
-struct counters get_optimization_counters(int i);
-struct counters get_deoptimization_counters(int i);
-void set_optimization_pps(int i, __u32 count);
-void set_optimization_bpsin(int i, __u32 count);
-void set_optimization_bpsout(int i, __u32 count);
-void set_deoptimization_pps(int i, __u32 count);
-void set_deoptimization_bpsin(int i, __u32 count);
-void set_deoptimization_bpsout(int i, __u32 count);
 void increment_worker_sessions(int i);
 void decrement_worker_sessions(int i);
 int optimize_packet(__u8 queue, struct packet *thispacket);
