@@ -39,16 +39,16 @@ void *counters_function(void *dummyPtr) {
 	/*
 	 * Storage for the previous thread metrics.
 	 */
-	struct counters prevoptimizationmetrics[MAXWORKERS];
-	struct counters prevdeoptimizationmetrics[MAXWORKERS];
-	struct counters prevfetchermetrics;
+	//struct counters prevoptimizationmetrics[MAXWORKERS];
+	//struct counters prevdeoptimizationmetrics[MAXWORKERS];
+	//struct counters prevfetchermetrics;
 
 	/*
 	 * Storage for the current thread metrics.
 	 */
-	struct counters optimizationmetrics[MAXWORKERS];
-	struct counters deoptimizationmetrics[MAXWORKERS];
-	struct counters fetchermetrics;
+	//struct counters optimizationmetrics[MAXWORKERS];
+	//struct counters deoptimizationmetrics[MAXWORKERS];
+	//struct counters fetchermetrics;
 
 	/*
 	 * Initialize new counters list.
@@ -60,11 +60,11 @@ void *counters_function(void *dummyPtr) {
 	/*
 	 * Initialize previous thread storage.
 	 */
-	prevfetchermetrics = get_fetcher_counters();
-	for (i = 0; i < get_workers(); i++) {
-		prevoptimizationmetrics[i] = get_optimization_counters(i);
-		prevdeoptimizationmetrics[i] = get_deoptimization_counters(i);
-	}
+	//prevfetchermetrics = get_fetcher_counters();
+	//for (i = 0; i < get_workers(); i++) {
+	//	prevoptimizationmetrics[i] = get_optimization_counters(i);
+	//	prevdeoptimizationmetrics[i] = get_deoptimization_counters(i);
+	//}
 
 	while (servicestate >= RUNNING) {
 		sleep(UPDATECOUNTERSTIMER); // Sleeping for a few seconds.
@@ -80,29 +80,29 @@ void *counters_function(void *dummyPtr) {
 		 * calculate the pps metrics,
 		 * and save them.
 		 */
-		fetchermetrics = get_fetcher_counters();
-		set_fetcher_pps(calculate_ppsbps(prevfetchermetrics.packets,
-				fetchermetrics.packets));
-		set_fetcher_bpsin(calculate_ppsbps(prevfetchermetrics.bytesin,
-				fetchermetrics.bytesin));
+		//fetchermetrics = get_fetcher_counters();
+		//set_fetcher_pps(calculate_ppsbps(prevfetchermetrics.packets,
+		//		fetchermetrics.packets));
+		//set_fetcher_bpsin(calculate_ppsbps(prevfetchermetrics.bytesin,
+		//		fetchermetrics.bytesin));
 		/*
 		 * Don't have any use for bpsout here really.
 		 */
 		//set_fetcher_bpsout(calculate_ppsbps(prevfetchermetrics.bytesout,
 		//				fetchermetrics.bytesout));
-		prevfetchermetrics = fetchermetrics;
+		//prevfetchermetrics = fetchermetrics;
 
-		if ((DEBUG_COUNTERS == true) && (get_fetcher_counters().pps != 0)
-				&& (get_fetcher_counters().bpsin != 0)) {
-			sprintf(message, "Counters: Fetcher: %u pps\n",
-					get_fetcher_counters().pps);
-			logger(LOG_INFO, message);
-			sprintf(message, "Counters: Fetcher: %u bps\n",
-					get_fetcher_counters().bpsin);
-			logger(LOG_INFO, message);
-		}
+		//if ((DEBUG_COUNTERS == true) && (get_fetcher_counters().pps != 0)
+		//		&& (get_fetcher_counters().bpsin != 0)) {
+		//	sprintf(message, "Counters: Fetcher: %u pps\n",
+		//			get_fetcher_counters().pps);
+		//	logger(LOG_INFO, message);
+		//	sprintf(message, "Counters: Fetcher: %u bps\n",
+		//			get_fetcher_counters().bpsin);
+		//	logger(LOG_INFO, message);
+		//}
 
-		for (i = 0; i < get_workers(); i++) {
+		//for (i = 0; i < get_workers(); i++) {
 			/*
 			 * We get the current metrics for each thread.
 			 */
@@ -141,8 +141,9 @@ void *counters_function(void *dummyPtr) {
 			//prevoptimizationmetrics[i] = optimizationmetrics[i];
 			//prevdeoptimizationmetrics[i] = deoptimizationmetrics[i];
 
-		}
+		//}
 
+		/*
 		if (DEBUG_COUNTERS == true) {
 
 			for (i = 0; i < get_workers(); i++) {
@@ -174,6 +175,7 @@ void *counters_function(void *dummyPtr) {
 				}
 			}
 		}
+		*/
 
 	}
 
