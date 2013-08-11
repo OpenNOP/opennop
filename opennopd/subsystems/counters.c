@@ -18,15 +18,6 @@ int DEBUG_COUNTERS = true;
 int DEBUG_COUNTERS_REGISTER = false;
 
 /*
- * TODO: This whole module could use a re-write already.
- * A better solution might be to  have a linked list of pointers to struct counters.
- * The linked list would be internal only and let other modules register their counters here.
- * This process would loop through them all to update the stats based on the UPDATECOUNTERSTIMER.
- * This would be consistent with no special processing for worker/optimization/de-optimization or fether.
- * In the future this method would allow other modules to use the same counters structure.
- */
-
-/*
  * Time in seconds before updating the counters.
  */
 int UPDATECOUNTERSTIMER = 5;
