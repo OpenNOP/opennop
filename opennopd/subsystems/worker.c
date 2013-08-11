@@ -7,7 +7,6 @@
 #include <linux/types.h>
 #include <linux/netfilter.h> // for NF_ACCEPT
 #include <libnetfilter_queue/libnetfilter_queue.h> // for access to Netfilter Queue
-
 #include "queuemanager.h"
 #include "worker.h"
 #include "opennopd.h"
@@ -47,6 +46,12 @@ void *optimization_thread(void *dummyPtr) {
 		logger(LOG_INFO, message);
 		exit(1);
 	}
+
+	/*
+	 * Register the worker threads metrics so they get updated.
+	 */
+	register_counter(counter_updateworkermetrics, (t_counterdata)
+			& me->optimization.metrics);
 
 	if (me->optimization.lzbuffer != NULL) {
 
@@ -222,6 +227,12 @@ void *deoptimization_thread(void *dummyPtr) {
 		logger(LOG_INFO, message);
 		exit(1);
 	}
+
+	/*
+	 * Register the worker threads metrics so they get updated.
+	 */
+	register_counter(counter_updateworkermetrics, (t_counterdata)
+			& me->deoptimization.metrics);
 
 	if (me->deoptimization.lzbuffer != NULL) {
 
@@ -415,13 +426,12 @@ void create_worker(int i) {
 	set_worker_state_running(&workers[i]);
 }
 
-void shutdown_workers(){
+void shutdown_workers() {
 	int i;
-	for (i = 0; i < get_workers(); i++)
-	    {
+	for (i = 0; i < get_workers(); i++) {
 		pthread_cond_signal(&workers[i].optimization.queue);
 		pthread_cond_signal(&workers[i].deoptimization.queue);
-	    }
+	}
 }
 
 void rejoin_worker(int i) {
@@ -458,46 +468,12 @@ void set_worker_state_stopped(struct worker *thisworker) {
 	pthread_mutex_unlock(&thisworker->lock);
 }
 
-struct counters get_optimization_counters(int i) {
-	return get_counters(&workers[i].optimization.metrics);
-}
-
-struct counters get_deoptimization_counters(int i) {
-	return get_counters(&workers[i].deoptimization.metrics);
-}
-
-void set_optimization_pps(int i, __u32 count) {
-	set_pps(&workers[i].optimization.metrics, count);
-}
-
-void set_optimization_bpsin(int i, __u32 count) {
-	set_bpsin(&workers[i].optimization.metrics, count);
-}
-
-void set_optimization_bpsout(int i, __u32 count) {
-	set_bpsout(&workers[i].optimization.metrics, count);
-}
-
-void set_deoptimization_pps(int i, __u32 count) {
-	set_pps(&workers[i].deoptimization.metrics, count);
-}
-
-void set_deoptimization_bpsin(int i, __u32 count) {
-	set_bpsin(&workers[i].deoptimization.metrics, count);
-}
-
-void set_deoptimization_bpsout(int i, __u32 count) {
-	set_bpsout(&workers[i].deoptimization.metrics, count);
-}
-
 int optimize_packet(__u8 queue, struct packet *thispacket) {
-	return queue_packet(&workers[queue].optimization.queue,
-			thispacket);
+	return queue_packet(&workers[queue].optimization.queue, thispacket);
 }
 
 int deoptimize_packet(__u8 queue, struct packet *thispacket) {
-	return queue_packet(&workers[queue].deoptimization.queue,
-			thispacket);
+	return queue_packet(&workers[queue].deoptimization.queue, thispacket);
 }
 
 int cli_show_workers(int client_fd, char **parameters, int numparameters) {
@@ -528,23 +504,28 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 		logger(LOG_INFO, message);
 	}
 
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
+	sprintf(
+			msg,
 			"|  5 sec  |          optimization           |          deoptimization         |\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
+	sprintf(
+			msg,
 			"|  worker |  pps  |     in     |     out    |  pps  |     in     |     out    |\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
@@ -556,35 +537,35 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 		sprintf(col1, "|    %-5i", i);
 		strcat(msg, col1);
 
-		ppsbps = get_optimization_counters(i).pps;
+		ppsbps = workers[i].optimization.metrics.pps;
 		total_optimization_pps += ppsbps;
 		sprintf(col2, "| %-6u", ppsbps);
 		strcat(msg, col2);
 
-		ppsbps = get_optimization_counters(i).bpsin;
+		ppsbps = workers[i].optimization.metrics.bpsin;
 		total_optimization_bpsin += ppsbps;
 		bytestostringbps(bps, ppsbps);
 		sprintf(col3, "| %-11s", bps);
 		strcat(msg, col3);
 
-		ppsbps = get_optimization_counters(i).bpsout;
+		ppsbps = workers[i].optimization.metrics.bpsout;
 		total_optimization_bpsout += ppsbps;
 		bytestostringbps(bps, ppsbps);
 		sprintf(col4, "| %-11s", bps);
 		strcat(msg, col4);
 
-		ppsbps = get_deoptimization_counters(i).pps;
+		ppsbps = workers[i].deoptimization.metrics.pps;
 		total_deoptimization_pps += ppsbps;
 		sprintf(col5, "| %-6u", ppsbps);
 		strcat(msg, col5);
 
-		ppsbps = get_deoptimization_counters(i).bpsin;
+		ppsbps = workers[i].deoptimization.metrics.bpsin;
 		total_deoptimization_bpsin += ppsbps;
 		bytestostringbps(bps, ppsbps);
 		sprintf(col6, "| %-11s", bps);
 		strcat(msg, col6);
 
-		ppsbps = get_deoptimization_counters(i).bpsout;
+		ppsbps = workers[i].deoptimization.metrics.bpsout;
 		total_deoptimization_bpsout += ppsbps;
 		bytestostringbps(bps, ppsbps);
 		sprintf(col7, "| %-11s", bps);
@@ -595,7 +576,8 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 		cli_prompt(client_fd);
 		cli_send_feedback(client_fd, msg);
 	}
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
@@ -610,10 +592,33 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 
-	sprintf(msg,
+	sprintf(
+			msg,
 			"-------------------------------------------------------------------------------\n");
 	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 
 	return 0;
+}
+
+void counter_updateworkermetrics(t_counterdata data) {
+	struct workercounters *metrics;
+	char message[LOGSZ];
+	__u32 counter;
+	sprintf(message, "Worker: Updating metrics!");
+	logger(LOG_INFO, message);
+
+	metrics = (struct workercounters*) data;
+	counter = metrics->packets;
+	metrics->pps = calculate_ppsbps(metrics->packetsprevious, counter);
+	metrics->packetsprevious = counter;
+
+	counter = metrics->bytesin;
+	metrics->bpsin = calculate_ppsbps(metrics->bytesinprevious, counter);
+	metrics->bytesinprevious = counter;
+
+	counter = metrics->bytesout;
+	metrics->bpsout = calculate_ppsbps(metrics->bytesoutprevious, counter);
+	metrics->bytesoutprevious = counter;
+
 }
