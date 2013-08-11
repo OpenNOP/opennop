@@ -114,6 +114,8 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 		newsession->head = &sessiontable[hash]; // Pointer to the head of this list.
 		newsession->next = NULL;
 		newsession->prev = NULL;
+		newsession->client = NULL;
+		newsession->server = NULL;
 		newsession->queue = queuenum;
 		newsession->largerIP = largerIP; // Assign values and initialize this session.
 		newsession->largerIPPort = largerIPPort;
@@ -390,39 +392,46 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 			 * Work through all sessions in that index and print them out.
 			 */
 			while (currentsession != NULL) {
-				strcpy(msg, "");
-				sprintf(col1, "|  %-7i", i);
-				strcat(msg, col1);
-				inet_ntop(AF_INET, &currentsession->largerIP, temp,
-						INET_ADDRSTRLEN);
-				sprintf(col2, "| %-15s", temp);
-				strcat(msg, col2);
-				sprintf(col3, "|   %-10i", ntohs(currentsession->largerIPPort));
-				strcat(msg, col3);
-				inet_ntop(AF_INET, &currentsession->smallerIP, temp,
-						INET_ADDRSTRLEN);
-				sprintf(col4, "| %-15s", temp);
-				strcat(msg, col4);
-				sprintf(col5, "|   %-10i", ntohs(currentsession->smallerIPPort));
-				strcat(msg, col5);
 
-				if ((((currentsession->largerIPAccelerator == localIP)
-						|| (currentsession->smallerIPAccelerator == localIP))
-						&& ((currentsession->largerIPAccelerator != 0)
-								&& (currentsession->smallerIPAccelerator != 0))
-						&& (currentsession->largerIPAccelerator
-								!= currentsession->smallerIPAccelerator))) {
-					sprintf(col6, "|     Yes    ");
-				} else {
-					sprintf(col6, "|     No     ");
+				if ((currentsession->client != NULL) && (currentsession->server
+						!= NULL)) {
+					strcpy(msg, "");
+					sprintf(col1, "|  %-7i", i);
+					strcat(msg, col1);
+					inet_ntop(AF_INET, currentsession->client, temp,
+							INET_ADDRSTRLEN);
+					sprintf(col2, "| %-15s", temp);
+					strcat(msg, col2);
+					sprintf(col3, "|   %-10i", ntohs(
+							currentsession->largerIPPort));
+					strcat(msg, col3);
+					inet_ntop(AF_INET, currentsession->server, temp,
+							INET_ADDRSTRLEN);
+					sprintf(col4, "| %-15s", temp);
+					strcat(msg, col4);
+					sprintf(col5, "|   %-10i", ntohs(
+							currentsession->smallerIPPort));
+					strcat(msg, col5);
+
+					if ((((currentsession->largerIPAccelerator == localIP)
+							|| (currentsession->smallerIPAccelerator == localIP))
+							&& ((currentsession->largerIPAccelerator != 0)
+									&& (currentsession->smallerIPAccelerator
+											!= 0))
+							&& (currentsession->largerIPAccelerator
+									!= currentsession->smallerIPAccelerator))) {
+						sprintf(col6, "|     Yes    ");
+					} else {
+						sprintf(col6, "|     No     ");
+					}
+					strcat(msg, col6);
+					sprintf(end, "|\n");
+					strcat(msg, end);
+					cli_prompt(client_fd);
+					cli_send_feedback(client_fd, msg);
+
+					currentsession = currentsession->next;
 				}
-				strcat(msg, col6);
-				sprintf(end, "|\n");
-				strcat(msg, end);
-				cli_prompt(client_fd);
-				cli_send_feedback(client_fd, msg);
-
-				currentsession = currentsession->next;
 			}
 		}
 

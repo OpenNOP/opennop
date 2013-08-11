@@ -18,6 +18,8 @@ struct session {
 	struct session_head *head; // Points to the head of this list.
 	struct session *next; // Points to the next session in the list.
 	struct session *prev; // Points to the previous session in the list.
+	__u32 *client; // Points to the client IP Address.
+	__u32 *server; // Points to the server IP Address.
 	__u32 largerIP; // Stores the larger IP address.
 	__u16 largerIPPort; // Stores the larger IP port #.
 	__u32 largerIPStartSEQ; // Stores the starting SEQ number.
