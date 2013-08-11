@@ -393,6 +393,14 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 			 */
 			while (currentsession != NULL) {
 
+				/*
+				 * TODO:
+				 * This will only show the session if we know what IPs are client & server.
+				 * Its possible we wont know that if a session opening is not witnessed
+				 * by OpenNOP.  OpenNOP has a "recover" mechanism that allows the session
+				 * to be optimized if it detects another OpenNOP appliance.
+				 * https://sourceforge.net/p/opennop/bugs/16/
+				 */
 				if ((currentsession->client != NULL) && (currentsession->server
 						!= NULL)) {
 					strcpy(msg, "");
