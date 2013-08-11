@@ -569,35 +569,35 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 		sprintf(col1, "|    %-5i", i);
 		strcat(msg, col1);
 
-		ppsbps = get_optimization_counters(i).pps;
+		ppsbps = workers[i].optimization.metrics.pps;
 		total_optimization_pps += ppsbps;
 		sprintf(col2, "| %-6u", ppsbps);
 		strcat(msg, col2);
 
-		ppsbps = get_optimization_counters(i).bpsin;
+		ppsbps = workers[i].optimization.metrics.bpsin;
 		total_optimization_bpsin += ppsbps;
 		bytestostringbps(bps, ppsbps);
 		sprintf(col3, "| %-11s", bps);
 		strcat(msg, col3);
 
-		ppsbps = get_optimization_counters(i).bpsout;
+		ppsbps = workers[i].optimization.metrics.bpsout;
 		total_optimization_bpsout += ppsbps;
 		bytestostringbps(bps, ppsbps);
 		sprintf(col4, "| %-11s", bps);
 		strcat(msg, col4);
 
-		ppsbps = get_deoptimization_counters(i).pps;
+		ppsbps = workers[i].deoptimization.metrics.pps;
 		total_deoptimization_pps += ppsbps;
 		sprintf(col5, "| %-6u", ppsbps);
 		strcat(msg, col5);
 
-		ppsbps = get_deoptimization_counters(i).bpsin;
+		ppsbps = workers[i].deoptimization.metrics.bpsin;
 		total_deoptimization_bpsin += ppsbps;
 		bytestostringbps(bps, ppsbps);
 		sprintf(col6, "| %-11s", bps);
 		strcat(msg, col6);
 
-		ppsbps = get_deoptimization_counters(i).bpsout;
+		ppsbps = workers[i].deoptimization.metrics.bpsout;
 		total_deoptimization_bpsout += ppsbps;
 		bytestostringbps(bps, ppsbps);
 		sprintf(col7, "| %-11s", bps);
@@ -633,14 +633,14 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
 	return 0;
 }
 
-void counter_updateworkermetrics(t_counterdata metric) {
+void counter_updateworkermetrics(t_counterdata data) {
 	struct workercounters *metrics;
 	char message[LOGSZ];
 	__u32 counter;
 	sprintf(message, "Worker: Updating metrics!");
 	logger(LOG_INFO, message);
 
-	metrics = (struct workercounters*) metric;
+	metrics = (struct workercounters*) data;
 	counter = metrics->packets;
 	metrics->pps = calculate_ppsbps(metrics->packetsprevious, counter);
 	metrics->packetsprevious = counter;
