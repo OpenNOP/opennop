@@ -468,38 +468,6 @@ void set_worker_state_stopped(struct worker *thisworker) {
 	pthread_mutex_unlock(&thisworker->lock);
 }
 
-struct counters get_optimization_counters(int i) {
-	return get_counters(&workers[i].optimization.metrics);
-}
-
-struct counters get_deoptimization_counters(int i) {
-	return get_counters(&workers[i].deoptimization.metrics);
-}
-
-void set_optimization_pps(int i, __u32 count) {
-	set_pps(&workers[i].optimization.metrics, count);
-}
-
-void set_optimization_bpsin(int i, __u32 count) {
-	set_bpsin(&workers[i].optimization.metrics, count);
-}
-
-void set_optimization_bpsout(int i, __u32 count) {
-	set_bpsout(&workers[i].optimization.metrics, count);
-}
-
-void set_deoptimization_pps(int i, __u32 count) {
-	set_pps(&workers[i].deoptimization.metrics, count);
-}
-
-void set_deoptimization_bpsin(int i, __u32 count) {
-	set_bpsin(&workers[i].deoptimization.metrics, count);
-}
-
-void set_deoptimization_bpsout(int i, __u32 count) {
-	set_bpsout(&workers[i].deoptimization.metrics, count);
-}
-
 int optimize_packet(__u8 queue, struct packet *thispacket) {
 	return queue_packet(&workers[queue].optimization.queue, thispacket);
 }
