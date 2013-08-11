@@ -111,6 +111,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                     if (iph->saddr == largerIP)
                     { // See what IP this is coming from.
+                    	thissession->client = &thissession->largerIP;
+                    	thissession->server = &thissession->smallerIP;
 
                         if (ntohl(tcph->seq) != (thissession->largerIPseq - 1))
                         {
@@ -119,6 +121,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     }
                     else
                     {
+                    	thissession->client = &thissession->smallerIP;
+                    	thissession->server = &thissession->largerIP;
 
                         if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1))
                         {
