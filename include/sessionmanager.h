@@ -4,6 +4,9 @@
 
 #include <linux/types.h>
 
+#include <netinet/ip.h> // for tcpmagic and TCP options
+#include <netinet/tcp.h> // for tcpmagic and TCP options
+
 #include "session.h"
 
 #define SESSIONBUCKETS 65536 // Number of buckets in the hash table for sessoin.
@@ -25,5 +28,6 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters);
 int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 		struct session *thissession);
 int sourceisclient(__u32 largerIP, struct iphdr *iph, struct session *thisession);
+int saveacceleratorid(__u32 largerIP, __u32 acceleratorID, struct iphdr *iph, struct session *thissession);
 
 #endif /*SESSIONMANAGER_H_*/
