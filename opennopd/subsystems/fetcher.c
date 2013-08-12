@@ -119,13 +119,13 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                         if (mms > 60)
                         {
                             __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
-                            __set_tcp_option((__u8 *)originalpacket,30,6,localIP); // Add the Accelerator ID to this packet.
+                            __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
                             /*
                              * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
                              */
                             //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
-                            saveacceleratorid(largerIP, localIP, iph, thissession);
+                            saveacceleratorid(largerIP, localID, iph, thissession);
 
                             /*
                              * Changing anything requires the IP and TCP
@@ -175,13 +175,13 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             if (mms > 60)
                             {
                                 __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
-                                __set_tcp_option((__u8 *)originalpacket,30,6,localIP); // Add the Accelerator ID to this packet.
+                                __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
                                 /*
                                  * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
                                  */
                                 //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
-                                saveacceleratorid(largerIP, localIP, iph, thissession);
+                                saveacceleratorid(largerIP, localID, iph, thissession);
 
                             }
                         }
