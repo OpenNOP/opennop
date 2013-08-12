@@ -8,9 +8,6 @@
 
 #include <arpa/inet.h>
 
-#include <netinet/ip.h> // for tcpmagic and TCP options
-#include <netinet/tcp.h> // for tcpmagic and TCP options
-
 #include "sessionmanager.h"
 #include "opennopd.h"
 #include "logger.h"
@@ -424,8 +421,8 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 							currentsession->smallerIPPort));
 					strcat(msg, col5);
 
-					if ((((currentsession->largerIPAccelerator == localIP)
-							|| (currentsession->smallerIPAccelerator == localIP))
+					if ((((currentsession->largerIPAccelerator == localID)
+							|| (currentsession->smallerIPAccelerator == localID))
 							&& ((currentsession->largerIPAccelerator != 0)
 									&& (currentsession->smallerIPAccelerator
 											!= 0))
@@ -483,6 +480,23 @@ int sourceisclient(__u32 largerIP, struct iphdr *iph, struct session *thissessio
 		} else {
 			thissession->client = &thissession->smallerIP;
 			thissession->server = &thissession->largerIP;
+		}
+		return 0;// Everything  OK.
+	}
+	return -1;// Had a problem.
+}
+
+int saveacceleratorid(__u32 largerIP, __u32 acceleratorID, struct iphdr *iph, struct session *thissession) {
+
+	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)){
+
+		if (iph->saddr == largerIP)
+		{ // Set the Accelerator for this source.
+			thissession->largerIPAccelerator = acceleratorID;
+		}
+		else
+		{
+			thissession->smallerIPAccelerator = acceleratorID;
 		}
 		return 0;// Everything  OK.
 	}
