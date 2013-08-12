@@ -32,7 +32,7 @@ void *optimization_thread(void *dummyPtr) {
 	struct session *thissession = NULL;
 	struct iphdr *iph = NULL;
 	struct tcphdr *tcph = NULL;
-	__u32 largerIP, smallerIP, acceleratorID;
+	__u32 largerIP, smallerIP, remoteID;
 	__u16 largerIPPort, smallerIPPort;
 	char message[LOGSZ];
 	qlz_state_compress *state_compress = (qlz_state_compress *) malloc(
@@ -69,7 +69,7 @@ void *optimization_thread(void *dummyPtr) {
 					logger(LOG_INFO, message);
 				}
 				me->optimization.metrics.bytesin += ntohs(iph->tot_len);
-				acceleratorID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
+				remoteID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
 sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
 						iph->saddr,tcph->source,iph->daddr,tcph->dest);
 
@@ -93,7 +93,7 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                     if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0))
                     {
 
-                        if (acceleratorID == 0)
+                        if (remoteID == 0)
                         { // Accelerator ID was not found.
 
                             if (iph->saddr == largerIP)
@@ -213,7 +213,7 @@ void *deoptimization_thread(void *dummyPtr) {
 	struct session *thissession = NULL;
 	struct iphdr *iph = NULL;
 	struct tcphdr *tcph = NULL;
-	__u32 largerIP, smallerIP, acceleratorID;
+	__u32 largerIP, smallerIP, remoteID;
 	__u16 largerIPPort, smallerIPPort;
 	char message[LOGSZ];
 	qlz_state_decompress *state_decompress = (qlz_state_decompress *) malloc(
@@ -250,7 +250,7 @@ void *deoptimization_thread(void *dummyPtr) {
 					logger(LOG_INFO, message);
 				}
 				me->deoptimization.metrics.bytesin += ntohs(iph->tot_len);
-				acceleratorID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
+				remoteID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
 sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
 						iph->saddr,tcph->source,iph->daddr,tcph->dest);
 
@@ -274,15 +274,15 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                     if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0))
                     {
 
-                        if (acceleratorID != 0){
+                        if (remoteID != 0){
 
                             if (iph->saddr == largerIP)
                             { // Set the Accelerator for this source.
-                                thissession->largerIPAccelerator = acceleratorID;
+                                thissession->largerIPAccelerator = remoteID;
                             }
                             else
                             {
-                                thissession->smallerIPAccelerator = acceleratorID;
+                                thissession->smallerIPAccelerator = remoteID;
                             }
 
                             if (__get_tcp_option((__u8 *)iph,31) != 0)
