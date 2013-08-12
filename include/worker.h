@@ -9,6 +9,9 @@
 
 #include <linux/types.h>
 
+#include <netinet/ip.h> // for tcpmagic and TCP options
+#include <netinet/tcp.h> // for tcpmagic and TCP options
+
 #include "packet.h"
 #include "counters.h"
 
