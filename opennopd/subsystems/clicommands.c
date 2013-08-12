@@ -39,6 +39,7 @@ struct command* allocate_command(){
 int execute_commands(int client_fd, const char *command_name, int d_len){
 	char *token, *cp, *saved_token;
 	int parametercount = 0;
+	int shutdown = 0;
 	char **parameters = NULL; //dynamic array of pointers to tokens that are parameters
 	char **tempparameters = NULL;
 	char *parameter = NULL;
@@ -157,7 +158,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 								}
 							}
 
-							(currentcommand->command_handler)(client_fd, parameters, parametercount);
+							shutdown = (currentcommand->command_handler)(client_fd, parameters, parametercount);
 						}else{
 							/*
 							 * We might want to verify no other TOKENs are left.
@@ -165,7 +166,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 							 */
 							sprintf(message, "CLI: Command has no parameters.\n");
 							logger(LOG_INFO, message);
-							(currentcommand->command_handler)(client_fd, NULL, 0);
+							shutdown = (currentcommand->command_handler)(client_fd, NULL, 0);
 						}
 						executedcommand = currentcommand;
 					}else{
@@ -187,7 +188,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 	}
 	cli_prompt(client_fd);
 
-	return 0;
+	return shutdown;
 }
 
 /*
