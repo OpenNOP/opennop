@@ -143,8 +143,8 @@ int cli_quit(int client_fd, char **parameters, int numparameters) {
 
 	cli_send_feedback(client_fd, msg);
 
-	shutdown(client_fd, SHUT_RDWR);
-	client_fd = 0;
+	//shutdown(client_fd, SHUT_RDWR);
+	//client_fd = 0;
 	return 1;
 }
 
