@@ -12,12 +12,12 @@
 #include "clisocket.h"
 
 void *fromserver_handler(void *dummyPtr) {
-	int *client_fd = dummyPtr;
+	int client_fd = *(int*)dummyPtr;
 	int length;
 	char server_reply[MAX_BUFFER_SIZE] = { 0 };
 
 	while (((length = recv(client_fd, server_reply, MAX_BUFFER_SIZE, 0)) >= 0)
-			&& (client_fd != NULL)) {
+			&& (client_fd != 0)) {
 
 		if (length > 0) {
 			server_reply[length] = '\0';
@@ -58,7 +58,7 @@ int main(void) {
 
 	fprintf(stdout, " Connected.....\n");
 
-	pthread_create(&t_fromserver, NULL, fromserver_handler, (void *)client_fd);
+	pthread_create(&t_fromserver, NULL, fromserver_handler, (void *)&client_fd);
 
 	// printf("\n opennopd# ");
 	while (2) {
