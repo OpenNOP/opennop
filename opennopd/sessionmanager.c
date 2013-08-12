@@ -8,6 +8,9 @@
 
 #include <arpa/inet.h>
 
+#include <netinet/ip.h> // for tcpmagic and TCP options
+#include <netinet/tcp.h> // for tcpmagic and TCP options
+
 #include "sessionmanager.h"
 #include "opennopd.h"
 #include "logger.h"
@@ -446,4 +449,42 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	}
 
 	return 0;
+}
+
+int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
+		struct session *thissession) {
+
+	if ((largerIP != 0) && (iph != NULL) && (tcph != NULL) && (thissession != NULL)) {
+
+		if (iph->saddr == largerIP) { // See what IP this is coming from.
+
+			if (ntohl(tcph->seq) != (thissession->largerIPseq - 1)) {
+				thissession->largerIPStartSEQ = ntohl(tcph->seq);
+			}
+		} else {
+
+			if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1)) {
+				thissession->smallerIPStartSEQ = ntohl(tcph->seq);
+			}
+		}
+		return 0; // Everything OK.
+	}
+
+	return -1; // Had a problem!
+}
+
+int sourceisclient(__u32 largerIP, struct iphdr *iph, struct session *thissession) {
+
+	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)) {
+
+		if (iph->saddr == largerIP) { // See what IP this is coming from.
+			thissession->client = &thissession->largerIP;
+			thissession->server = &thissession->smallerIP;
+		} else {
+			thissession->client = &thissession->smallerIP;
+			thissession->server = &thissession->largerIP;
+		}
+		return 0;// Everything  OK.
+	}
+	return -1;// Had a problem.
 }
