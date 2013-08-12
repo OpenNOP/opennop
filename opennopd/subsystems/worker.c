@@ -96,14 +96,7 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                         if (remoteID == 0)
                         { // Accelerator ID was not found.
 
-                            if (iph->saddr == largerIP)
-                            { // Set the Accelerator for this source.
-                                thissession->largerIPAccelerator = localID;
-                            }
-                            else
-                            {
-                                thissession->smallerIPAccelerator = localID;
-                            }
+                        	saveacceleratorid(largerIP, localID, iph, thissession);
 
                             __set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
 
@@ -276,14 +269,7 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
 
                         if (remoteID != 0){
 
-                            if (iph->saddr == largerIP)
-                            { // Set the Accelerator for this source.
-                                thissession->largerIPAccelerator = remoteID;
-                            }
-                            else
-                            {
-                                thissession->smallerIPAccelerator = remoteID;
-                            }
+                        	saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                             if (__get_tcp_option((__u8 *)iph,31) != 0)
                             { // Packet is flagged as compressed.
