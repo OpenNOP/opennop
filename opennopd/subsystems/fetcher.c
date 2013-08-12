@@ -42,7 +42,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 	struct packet *thispacket = NULL;
 	struct nfqnl_msg_packet_hdr *ph;
 	struct timeval tv;
-	__u32 largerIP, smallerIP, acceleratorID;
+	__u32 largerIP, smallerIP, remoteID;
 	__u16 largerIPPort, smallerIPPort, mms;
 	int ret;
 	unsigned char *originalpacket = NULL;
@@ -76,9 +76,9 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 			sort_sockets(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
 					iph->saddr, tcph->source, iph->daddr, tcph->dest);
 
-			acceleratorID = (__u32) __get_tcp_option((__u8 *)originalpacket,30); if (DEBUG_FETCHER == true)
+			remoteID = (__u32) __get_tcp_option((__u8 *)originalpacket,30); if (DEBUG_FETCHER == true)
 			{
-				inet_ntop(AF_INET, &acceleratorID, strIP, INET_ADDRSTRLEN);
+				inet_ntop(AF_INET, &remoteID, strIP, INET_ADDRSTRLEN);
 				sprintf(message, "Fetcher: The accellerator ID is:%s.\n", strIP);
                 logger(LOG_INFO, message);
             }
@@ -112,7 +112,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     sourceisclient(largerIP, iph, thissession);
                     updateseq(largerIP, iph, tcph, thissession);
 
-                    if (acceleratorID == 0)
+                    if (remoteID == 0)
                     { // Accelerator ID was not found.
                         mms = __get_tcp_option((__u8 *)originalpacket,2);
 
@@ -137,7 +137,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     else
                     { // Accelerator ID was found.
 
-                    	saveacceleratorid(largerIP, acceleratorID, iph, thissession);
+                    	saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                     }
 
@@ -168,7 +168,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                     	updateseq(largerIP, iph, tcph, thissession);
 
-                        if (acceleratorID == 0)
+                        if (remoteID == 0)
                         { // Accelerator ID was not found.
                             mms = __get_tcp_option((__u8 *)originalpacket,2);
 
@@ -188,7 +188,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                         else
                         { // Accelerator ID was found.
 
-                        	saveacceleratorid(largerIP, acceleratorID, iph, thissession);
+                        	saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                         }
                         thissession->state = TCP_ESTABLISHED;
@@ -223,7 +223,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if (thispacket != NULL){
                     	save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
 
-                    	if (acceleratorID == 0){
+                    	if (remoteID == 0){
                     		optimize_packet(thissession->queue, thispacket);
 
                     	}else{
@@ -252,7 +252,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0))
                     {
 
-                        if (acceleratorID != 0)
+                        if (remoteID != 0)
                         { // Detected remote Accelerator its safe to add this session.
                             thissession = insertsession(largerIP, largerIPPort, smallerIP, smallerIPPort); // Insert into sessions list.
 
@@ -260,7 +260,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             { // Test to make sure the session was added.
                                 thissession->state = TCP_ESTABLISHED;
 
-                                saveacceleratorid(largerIP, acceleratorID, iph, thissession);
+                                saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                                 thispacket = get_freepacket_buffer();
 
