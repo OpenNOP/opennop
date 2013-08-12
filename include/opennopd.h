@@ -10,7 +10,7 @@
 #define RUNNING 1
 
 extern int servicestate;
-extern __u32 localIP;
+extern __u32 localID;
 extern int isdaemon;
 
 #endif

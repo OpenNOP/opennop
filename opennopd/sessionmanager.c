@@ -421,8 +421,8 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 							currentsession->smallerIPPort));
 					strcat(msg, col5);
 
-					if ((((currentsession->largerIPAccelerator == localIP)
-							|| (currentsession->smallerIPAccelerator == localIP))
+					if ((((currentsession->largerIPAccelerator == localID)
+							|| (currentsession->smallerIPAccelerator == localID))
 							&& ((currentsession->largerIPAccelerator != 0)
 									&& (currentsession->smallerIPAccelerator
 											!= 0))

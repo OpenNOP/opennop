@@ -98,23 +98,23 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
 
                             if (iph->saddr == largerIP)
                             { // Set the Accelerator for this source.
-                                thissession->largerIPAccelerator = localIP;
+                                thissession->largerIPAccelerator = localID;
                             }
                             else
                             {
-                                thissession->smallerIPAccelerator = localIP;
+                                thissession->smallerIPAccelerator = localID;
                             }
 
-                            __set_tcp_option((__u8 *)iph,30,6,localIP); // Add the Accelerator ID to this packet.
+                            __set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
 
                             if ((((iph->saddr == largerIP) &&
-                                    (thissession->largerIPAccelerator == localIP) &&
+                                    (thissession->largerIPAccelerator == localID) &&
                                     (thissession->smallerIPAccelerator != 0) &&
-                                    (thissession->smallerIPAccelerator != localIP)) ||
+                                    (thissession->smallerIPAccelerator != localID)) ||
                                     ((iph->saddr == smallerIP) &&
-                                     (thissession->smallerIPAccelerator == localIP) &&
+                                     (thissession->smallerIPAccelerator == localID) &&
                                      (thissession->largerIPAccelerator != 0) &&
-                                     (thissession->largerIPAccelerator != localIP))) &&
+                                     (thissession->largerIPAccelerator != localID))) &&
                                     (thissession->state == TCP_ESTABLISHED))
                             {
 
@@ -295,9 +295,9 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                                 }
 
                                 if (((iph->saddr == largerIP) &&
-                                        (thissession->smallerIPAccelerator == localIP)) ||
+                                        (thissession->smallerIPAccelerator == localID)) ||
                                         ((iph->saddr == smallerIP) &&
-                                         (thissession->largerIPAccelerator == localIP)))
+                                         (thissession->largerIPAccelerator == localID)))
                                 {
 
                                     /*
