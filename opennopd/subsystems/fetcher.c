@@ -109,26 +109,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     gettimeofday(&tv,NULL); // Get the time from hardware.
                     thissession->lastactive = tv.tv_sec; // Update the session timestamp.
 
-                    if (iph->saddr == largerIP)
-                    { // See what IP this is coming from.
-                    	thissession->client = &thissession->largerIP;
-                    	thissession->server = &thissession->smallerIP;
-
-                        if (ntohl(tcph->seq) != (thissession->largerIPseq - 1))
-                        {
-                            thissession->largerIPStartSEQ = ntohl(tcph->seq);
-                        }
-                    }
-                    else
-                    {
-                    	thissession->client = &thissession->smallerIP;
-                    	thissession->server = &thissession->largerIP;
-
-                        if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1))
-                        {
-                            thissession->smallerIPStartSEQ = ntohl(tcph->seq);
-                        }
-                    }
+                    sourceisclient(largerIP, iph, thissession);
+                    updateseq(largerIP, iph, tcph, thissession);
 
                     if (acceleratorID == 0)
                     { // Accelerator ID was not found.
@@ -192,44 +174,12 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     thissession->lastactive = tv.tv_sec; // Update the active timer.
                     thissession->deadcounter = 0; // Reset the dead counter.
 
-                    if (iph->saddr == largerIP)
-                    { // See what IP this is coming from.
-
-                        if (ntohl(tcph->seq) != (thissession->largerIPseq - 1))
-                        {
-                            thissession->largerIPseq = ntohl(tcph->seq);
-                        }
-                    }
-                    else
-                    {
-
-                        if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1))
-                        {
-                            thissession->smallerIPseq = ntohl(tcph->seq);
-                        }
-                    }
-
                     /* Identify SYN/ACK packets that are part of a new */
                     /* session opening its connection. */
                     if ((tcph->syn == 1) && (tcph->ack == 1))
                     {
 
-                        if (iph->saddr == largerIP)
-                        { // See what IP this is coming from.
-
-                            if (ntohl(tcph->seq) != (thissession->largerIPseq - 1))
-                            {
-                                thissession->largerIPStartSEQ = ntohl(tcph->seq);
-                            }
-                        }
-                        else
-                        {
-
-                            if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1))
-                            {
-                                thissession->smallerIPStartSEQ = ntohl(tcph->seq);
-                            }
-                        }
+                    	updateseq(largerIP, iph, tcph, thissession);
 
                         if (acceleratorID == 0)
                         { // Accelerator ID was not found.
