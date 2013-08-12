@@ -346,7 +346,6 @@ struct session_head *getsessionhead(int i) {
 int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	struct session *currentsession = NULL;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
-	char message[LOGSZ];
 	int i;
 	char temp[20];
 	char col1[10];
@@ -357,10 +356,6 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	char col6[13];
 	char end[3];
 
-	cli_prompt(client_fd);
-	sprintf(msg,
-			"NOTE! Client & Server order might be reversed.  It will be fixed.\n");
-	cli_send_feedback(client_fd, msg);
 	cli_prompt(client_fd);
 	sprintf(
 			msg,
