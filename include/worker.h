@@ -86,5 +86,6 @@ int deoptimize_packet(__u8 queue, struct packet *thispacket);
 void shutdown_workers();
 int cli_show_workers(int client_fd, char **parameters, int numparameters);
 void counter_updateworkermetrics(t_counterdata metric);
+struct session *closingsession(struct tcphdr *tcph, struct session *thissession);
 
 #endif /*WORKER_H_*/
