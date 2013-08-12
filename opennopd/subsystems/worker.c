@@ -146,28 +146,7 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                         thissession = NULL;
                     }
 
-                    /* Normal session closing sequence. */
-                    if (tcph->fin == 1)
-                    { // Session is being closed.
-
-                        if (DEBUG_WORKER == true)
-                        {
-                            sprintf(message, "Worker: Session is closing.\n");
-                            logger(LOG_INFO, message);
-                        }
-
-                        switch (thissession->state)
-                        {
-                        case TCP_ESTABLISHED:
-                            thissession->state = TCP_CLOSING;
-                            break;
-
-                        case TCP_CLOSING:
-                            clearsession(thissession);
-                            thissession = NULL;
-                            break;
-                        }
-                    }
+                    closingsession(tcph, thissession);
 
                     if (thispacket != NULL)
                     {
@@ -312,28 +291,7 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                         thissession = NULL;
                     }
 
-                    /* Normal session closing sequence. */
-                    if (tcph->fin == 1)
-                    { // Session is being closed.
-
-                        if (DEBUG_WORKER == true)
-                        {
-                            sprintf(message, "Worker: Session is closing.\n");
-                            logger(LOG_INFO, message);
-                        }
-
-                        switch (thissession->state)
-                        {
-                        case TCP_ESTABLISHED:
-                            thissession->state = TCP_CLOSING;
-                            break;
-
-                        case TCP_CLOSING:
-                            clearsession(thissession);
-                            thissession = NULL;
-                            break;
-                        }
-                    }
+                    closingsession(tcph, thissession);
 
                     if (thispacket != NULL)
                     {
@@ -607,4 +565,34 @@ void counter_updateworkermetrics(t_counterdata data) {
 	metrics->bpsout = calculate_ppsbps(metrics->bytesoutprevious, counter);
 	metrics->bytesoutprevious = counter;
 
+}
+
+struct session *closingsession(struct tcphdr *tcph, struct session *thissession) {
+	char message[LOGSZ];
+
+	if ((tcph != NULL) && (thissession != NULL)) {
+
+		/* Normal session closing sequence. */
+		if (tcph->fin == 1) {
+
+			if (DEBUG_WORKER == true) {
+				sprintf(message, "Worker: Session is closing.\n");
+				logger(LOG_INFO, message);
+			}
+
+			switch (thissession->state) {
+			case TCP_ESTABLISHED:
+				thissession->state = TCP_CLOSING;
+				return thissession;
+
+			case TCP_CLOSING:
+				clearsession(thissession);
+				thissession = NULL;
+				return thissession;
+			}
+			return thissession; //Session not in good state!
+		}
+		return thissession; //Not a fin packet.
+	}
+	return thissession; // Something went very wrong!
 }
