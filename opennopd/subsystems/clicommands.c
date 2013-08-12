@@ -393,11 +393,9 @@ int cli_show_param(int client_fd, char **parameters, int numparameters) {
 	int i = 0;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 
-	cli_prompt(client_fd);
 	for (i=0;i<numparameters;i++){
 		sprintf(msg, "[%d] %s\n", i, parameters[i]);
 		cli_send_feedback(client_fd, msg);
-		cli_prompt(client_fd);
 	}
 
 	return 0;
