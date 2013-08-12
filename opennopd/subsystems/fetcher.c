@@ -125,14 +125,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                              */
                             //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
-                            if (iph->saddr == largerIP)
-                            { // Set the Accelerator for this source.
-                                thissession->largerIPAccelerator = localIP;
-                            }
-                            else
-                            {
-                                thissession->smallerIPAccelerator = localIP;
-                            }
+                            saveacceleratorid(largerIP, localIP, iph, thissession);
 
                             /*
                              * Changing anything requires the IP and TCP
@@ -144,14 +137,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     else
                     { // Accelerator ID was found.
 
-                        if (iph->saddr == largerIP)
-                        { // Set the Accelerator for this source.
-                            thissession->largerIPAccelerator = acceleratorID;
-                        }
-                        else
-                        {
-                            thissession->smallerIPAccelerator = acceleratorID;
-                        }
+                    	saveacceleratorid(largerIP, acceleratorID, iph, thissession);
+
                     }
 
                     thissession->state = TCP_SYN_SENT;
@@ -194,27 +181,15 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                                  */
                                 //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
-                                if (iph->saddr == largerIP)
-                                { // Set the Accelerator for this source.
-                                    thissession->largerIPAccelerator = localIP;
-                                }
-                                else
-                                {
-                                    thissession->smallerIPAccelerator = localIP;
-                                }
+                                saveacceleratorid(largerIP, localIP, iph, thissession);
+
                             }
                         }
                         else
                         { // Accelerator ID was found.
 
-                            if (iph->saddr == largerIP)
-                            { // Set the Accelerator for this source.
-                                thissession->largerIPAccelerator = acceleratorID;
-                            }
-                            else
-                            {
-                                thissession->smallerIPAccelerator = acceleratorID;
-                            }
+                        	saveacceleratorid(largerIP, acceleratorID, iph, thissession);
+
                         }
                         thissession->state = TCP_ESTABLISHED;
 
@@ -285,14 +260,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             { // Test to make sure the session was added.
                                 thissession->state = TCP_ESTABLISHED;
 
-                                if (iph->saddr == largerIP)
-                                { // Set the Accelerator for this source.
-                                    thissession->largerIPAccelerator = acceleratorID;
-                                }
-                                else
-                                {
-                                    thissession->smallerIPAccelerator = acceleratorID;
-                                }
+                                saveacceleratorid(largerIP, acceleratorID, iph, thissession);
 
                                 thispacket = get_freepacket_buffer();
 
