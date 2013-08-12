@@ -537,19 +537,14 @@ int cli_show_fetcher(int client_fd, char **parameters, int numparameters) {
 	char col2[14];
 	char col3[3];
 
-	cli_prompt(client_fd);
 	sprintf(msg, "------------------------\n");
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(msg, "|  5 sec  |  fetcher   |\n");
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(msg, "------------------------\n");
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(msg, "|   pps   |     in     |\n");
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(msg, "------------------------\n");
 	cli_send_feedback(client_fd, msg);
 
@@ -566,10 +561,8 @@ int cli_show_fetcher(int client_fd, char **parameters, int numparameters) {
 
 	sprintf(col3, "|\n");
 	strcat(msg, col3);
-	cli_prompt(client_fd);
 	cli_send_feedback(client_fd, msg);
 
-	cli_prompt(client_fd);
 	sprintf(msg, "------------------------\n");
 	cli_send_feedback(client_fd, msg);
 

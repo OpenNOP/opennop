@@ -356,17 +356,14 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	char col6[13];
 	char end[3];
 
-	cli_prompt(client_fd);
 	sprintf(
 			msg,
 			"--------------------------------------------------------------------------------------\n");
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(
 			msg,
 			"|  Index  |   Client IP    | Client Port |    Server IP   | Server Port | Optimizing |\n");
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(
 			msg,
 			"--------------------------------------------------------------------------------------\n");
@@ -430,7 +427,6 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 					strcat(msg, col6);
 					sprintf(end, "|\n");
 					strcat(msg, end);
-					cli_prompt(client_fd);
 					cli_send_feedback(client_fd, msg);
 
 					currentsession = currentsession->next;
