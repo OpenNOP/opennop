@@ -98,12 +98,12 @@ void *client_handler(void *socket_desc) {
 	int sock = *(int*) socket_desc;
 	int read_size, finish = 0;
 	char client_message[MAX_BUFFER_SIZE];
-    char message [LOGSZ];
+	char message[LOGSZ];
 
-    sprintf(message, "Started cli connection.\n");
-    logger(LOG_INFO, message);
+	sprintf(message, "Started cli connection.\n");
+	logger(LOG_INFO, message);
 
-    cli_prompt(sock);
+	cli_prompt(sock);
 
 	//Receive a message from client
 	while (!(finish) && ((read_size = recv(sock, client_message,
@@ -131,8 +131,8 @@ void *client_handler(void *socket_desc) {
 	//Free the socket pointer
 	free(socket_desc);
 
-    sprintf(message, "Closing cli connection.\n");
-    logger(LOG_INFO, message);
+	sprintf(message, "Closing cli connection.\n");
+	logger(LOG_INFO, message);
 
 	return NULL;
 }
@@ -148,12 +148,13 @@ int cli_quit(int client_fd, char **parameters, int numparameters) {
 	return 1;
 }
 
-void cli_manager_init() {
+void *cli_manager_init(void *dummyPtr) {
 	//register_command("help", cli_help, false, false); //todo: This needs integrated into the cli.
 	register_command("quit", cli_quit, false, true);
-	register_command("show parameters",cli_show_param, true, true);
+	register_command("show parameters", cli_show_param, true, true);
 
 	/* Sharwan Joram:t We'll call this in last as we will never return from here */
 	start_cli_server();
-
+	return NULL;
 }
+
