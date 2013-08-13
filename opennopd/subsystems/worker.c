@@ -25,6 +25,7 @@ struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
 int DEBUG_WORKER = false;
 int DEBUG_WORKER_CLI = false;
+int DEBUG_WORKER_COUNTERS = false;
 
 void *optimization_thread(void *dummyPtr) {
 	struct worker *me = NULL;
@@ -373,8 +374,8 @@ void create_worker(int i) {
 void shutdown_workers() {
 	int i;
 	for (i = 0; i < get_workers(); i++) {
-		pthread_cond_signal(&workers[i].optimization.queue);
-		pthread_cond_signal(&workers[i].deoptimization.queue);
+		pthread_cond_signal(&workers[i].optimization.queue.signal);
+		pthread_cond_signal(&workers[i].deoptimization.queue.signal);
 	}
 }
 
@@ -540,8 +541,12 @@ void counter_updateworkermetrics(t_counterdata data) {
 	struct workercounters *metrics;
 	char message[LOGSZ];
 	__u32 counter;
+
+	if (DEBUG_WORKER_COUNTERS == true)
+	{
 	sprintf(message, "Worker: Updating metrics!");
 	logger(LOG_INFO, message);
+	}
 
 	metrics = (struct workercounters*) data;
 	counter = metrics->packets;
