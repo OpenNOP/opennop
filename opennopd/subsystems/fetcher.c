@@ -27,6 +27,7 @@
 struct fetcher thefetcher;
 
 int DEBUG_FETCHER = false;
+int DEBUG_FETCHER_COUNTERS = false;
 int G_SCALEWINDOW = 7;
 
 struct nfq_handle *h;
@@ -573,8 +574,12 @@ void counter_updatefetchermetrics(t_counterdata data) {
 	struct fetchercounters *metrics;
 	char message[LOGSZ];
 	__u32 counter;
+
+	if (DEBUG_FETCHER_COUNTERS == true)
+	{
 	sprintf(message, "Fetcher: Updating metrics!");
 	logger(LOG_INFO, message);
+	}
 
 	metrics = (struct fetchercounters*) data;
 	counter = metrics->packets;
