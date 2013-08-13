@@ -201,7 +201,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
  * UPDATE: I am trying to use strtok_r().  It seems to be working.
  */
 
-int register_command(const char *command_name, int (*handler_function)(int, char **, int), bool hasparams, bool hidden)
+int register_command(const char *command_name, t_commandfunction handler_function, bool hasparams, bool hidden)
 {
 	char *token, *cp, *saved_token;
 	struct command_head *currentnode = NULL;
