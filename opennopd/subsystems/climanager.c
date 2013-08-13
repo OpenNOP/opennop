@@ -121,12 +121,10 @@ void *client_handler(void *socket_desc) {
 }
 
 int cli_quit(int client_fd, char **parameters, int numparameters) {
-	char msg[MAX_BUFFER_SIZE] = { 0 };
-	//strcpy(msg, "....BYE....\n");
-	//cli_send_feedback(client_fd, msg);
 
-	//shutdown(client_fd, SHUT_RDWR);
-	//client_fd = 0;
+	/*
+	 * Received a quit command so return 1 to shutdown this cli session.
+	 */
 	return 1;
 }
 
