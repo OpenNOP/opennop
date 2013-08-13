@@ -14,23 +14,6 @@
 #include "clisocket.h"
 #include "logger.h"
 
-int cli_process_message(int client_fd, char *buffer, int d_len) {
-	struct command *cmd;
-	char msg[MAX_BUFFER_SIZE] = { 0 };
-	if (0 == (cmd = lookup_command(buffer))) {
-		fprintf(stdout, "There is no such command \n");
-		memcpy(msg, "Invalid Command...\n", 28);
-		if (!(send(client_fd, msg, strlen(msg), 0))) {
-			perror("[cli_manager]: Send");
-			exit(1);
-		}
-		cli_help(client_fd, NULL);
-		return 0;
-	} else {
-		(cmd->command_handler)(client_fd, NULL, 0);
-	}
-	return 0;
-}
 void start_cli_server() {
 	int socket_desc, client_sock, c, *new_sock, length;
 	struct sockaddr_un server, client;
@@ -139,9 +122,8 @@ void *client_handler(void *socket_desc) {
 
 int cli_quit(int client_fd, char **parameters, int numparameters) {
 	char msg[MAX_BUFFER_SIZE] = { 0 };
-	strcpy(msg, "....BYE....\n");
-
-	cli_send_feedback(client_fd, msg);
+	//strcpy(msg, "....BYE....\n");
+	//cli_send_feedback(client_fd, msg);
 
 	//shutdown(client_fd, SHUT_RDWR);
 	//client_fd = 0;
