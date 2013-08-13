@@ -186,7 +186,10 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 
 		token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
 	}
-	cli_prompt(client_fd);
+
+	if(shutdown != 1){ // Don't show the last prompt if we are done.
+		cli_prompt(client_fd);
+	}
 
 	return shutdown;
 }
@@ -366,7 +369,6 @@ int cli_node_help(int client_fd, struct command_head *currentnode) {
 
 		if(currentcommand->hidden == false){
 			sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
-			cli_prompt(client_fd);
 			cli_send_feedback(client_fd, msg);
 			++count;
 		}

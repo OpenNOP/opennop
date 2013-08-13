@@ -27,7 +27,7 @@ void *fromserver_handler(void *dummyPtr) {
 			if (length < 0)
 				perror("[cli_client]: recv");
 			else
-				fprintf(stdout, "server closed connection \n");
+				//fprintf(stdout, "server closed connection\n");
 			exit(1);
 		}
 	}
@@ -46,7 +46,7 @@ int main(void) {
 		exit(1);
 	}
 
-	fprintf(stdout, "\n Connecting to OpenNOP CLI... \n");
+	//fprintf(stdout, "\n Connecting to OpenNOP CLI... \n");
 	server.sun_family = AF_UNIX;
 	strcpy(server.sun_path, OPENNOP_SOCK);
 	length = strlen(server.sun_path) + sizeof(server.sun_family);
@@ -56,7 +56,7 @@ int main(void) {
 		exit(1);
 	}
 
-	fprintf(stdout, " Connected.....\n");
+	//fprintf(stdout, " Connected.....\n");
 
 	pthread_create(&t_fromserver, NULL, fromserver_handler, (void *)&client_fd);
 
