@@ -63,7 +63,7 @@ case "$1" in
     # Rebuild the opennop driver here.
     echo -n $"Extracting opennop driver soruce: "
     cd /usr/src/opennop
-    tar -xf opennopdrv.tar.gz
+    tar -xf opennopdrv-*.tar.gz
     cd opennopdrv-*
     echo
     echo -n $"Building the opennop driver: "
