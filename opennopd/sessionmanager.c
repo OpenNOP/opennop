@@ -114,6 +114,8 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 		newsession->head = &sessiontable[hash]; // Pointer to the head of this list.
 		newsession->next = NULL;
 		newsession->prev = NULL;
+		newsession->client = NULL;
+		newsession->server = NULL;
 		newsession->queue = queuenum;
 		newsession->largerIP = largerIP; // Assign values and initialize this session.
 		newsession->largerIPPort = largerIPPort;
@@ -344,7 +346,6 @@ struct session_head *getsessionhead(int i) {
 int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	struct session *currentsession = NULL;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
-	char message[LOGSZ];
 	int i;
 	char temp[20];
 	char col1[10];
@@ -355,21 +356,14 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	char col6[13];
 	char end[3];
 
-	cli_prompt(client_fd);
-	sprintf(msg,
-			"NOTE! Client & Server order might be reversed.  It will be fixed.\n");
-	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(
 			msg,
 			"--------------------------------------------------------------------------------------\n");
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(
 			msg,
 			"|  Index  |   Client IP    | Client Port |    Server IP   | Server Port | Optimizing |\n");
 	cli_send_feedback(client_fd, msg);
-	cli_prompt(client_fd);
 	sprintf(
 			msg,
 			"--------------------------------------------------------------------------------------\n");
@@ -390,43 +384,112 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 			 * Work through all sessions in that index and print them out.
 			 */
 			while (currentsession != NULL) {
-				strcpy(msg, "");
-				sprintf(col1, "|  %-7i", i);
-				strcat(msg, col1);
-				inet_ntop(AF_INET, &currentsession->largerIP, temp,
-						INET_ADDRSTRLEN);
-				sprintf(col2, "| %-15s", temp);
-				strcat(msg, col2);
-				sprintf(col3, "|   %-10i", ntohs(currentsession->largerIPPort));
-				strcat(msg, col3);
-				inet_ntop(AF_INET, &currentsession->smallerIP, temp,
-						INET_ADDRSTRLEN);
-				sprintf(col4, "| %-15s", temp);
-				strcat(msg, col4);
-				sprintf(col5, "|   %-10i", ntohs(currentsession->smallerIPPort));
-				strcat(msg, col5);
 
-				if ((((currentsession->largerIPAccelerator == localIP)
-						|| (currentsession->smallerIPAccelerator == localIP))
-						&& ((currentsession->largerIPAccelerator != 0)
-								&& (currentsession->smallerIPAccelerator != 0))
-						&& (currentsession->largerIPAccelerator
-								!= currentsession->smallerIPAccelerator))) {
-					sprintf(col6, "|     Yes    ");
-				} else {
-					sprintf(col6, "|     No     ");
+				/*
+				 * TODO:
+				 * This will only show the session if we know what IPs are client & server.
+				 * Its possible we wont know that if a session opening is not witnessed
+				 * by OpenNOP.  OpenNOP has a "recover" mechanism that allows the session
+				 * to be optimized if it detects another OpenNOP appliance.
+				 * https://sourceforge.net/p/opennop/bugs/16/
+				 */
+				if ((currentsession->client != NULL) && (currentsession->server
+						!= NULL)) {
+					strcpy(msg, "");
+					sprintf(col1, "|  %-7i", i);
+					strcat(msg, col1);
+					inet_ntop(AF_INET, currentsession->client, temp,
+							INET_ADDRSTRLEN);
+					sprintf(col2, "| %-15s", temp);
+					strcat(msg, col2);
+					sprintf(col3, "|   %-10i", ntohs(
+							currentsession->largerIPPort));
+					strcat(msg, col3);
+					inet_ntop(AF_INET, currentsession->server, temp,
+							INET_ADDRSTRLEN);
+					sprintf(col4, "| %-15s", temp);
+					strcat(msg, col4);
+					sprintf(col5, "|   %-10i", ntohs(
+							currentsession->smallerIPPort));
+					strcat(msg, col5);
+
+					if ((((currentsession->largerIPAccelerator == localID)
+							|| (currentsession->smallerIPAccelerator == localID))
+							&& ((currentsession->largerIPAccelerator != 0)
+									&& (currentsession->smallerIPAccelerator
+											!= 0))
+							&& (currentsession->largerIPAccelerator
+									!= currentsession->smallerIPAccelerator))) {
+						sprintf(col6, "|     Yes    ");
+					} else {
+						sprintf(col6, "|     No     ");
+					}
+					strcat(msg, col6);
+					sprintf(end, "|\n");
+					strcat(msg, end);
+					cli_send_feedback(client_fd, msg);
+
+					currentsession = currentsession->next;
 				}
-				strcat(msg, col6);
-				sprintf(end, "|\n");
-				strcat(msg, end);
-				cli_prompt(client_fd);
-				cli_send_feedback(client_fd, msg);
-
-				currentsession = currentsession->next;
 			}
 		}
 
 	}
 
 	return 0;
+}
+
+int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
+		struct session *thissession) {
+
+	if ((largerIP != 0) && (iph != NULL) && (tcph != NULL) && (thissession != NULL)) {
+
+		if (iph->saddr == largerIP) { // See what IP this is coming from.
+
+			if (ntohl(tcph->seq) != (thissession->largerIPseq - 1)) {
+				thissession->largerIPStartSEQ = ntohl(tcph->seq);
+			}
+		} else {
+
+			if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1)) {
+				thissession->smallerIPStartSEQ = ntohl(tcph->seq);
+			}
+		}
+		return 0; // Everything OK.
+	}
+
+	return -1; // Had a problem!
+}
+
+int sourceisclient(__u32 largerIP, struct iphdr *iph, struct session *thissession) {
+
+	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)) {
+
+		if (iph->saddr == largerIP) { // See what IP this is coming from.
+			thissession->client = &thissession->largerIP;
+			thissession->server = &thissession->smallerIP;
+		} else {
+			thissession->client = &thissession->smallerIP;
+			thissession->server = &thissession->largerIP;
+		}
+		return 0;// Everything  OK.
+	}
+	return -1;// Had a problem.
+}
+
+int saveacceleratorid(__u32 largerIP, __u32 acceleratorID, struct iphdr *iph, struct session *thissession) {
+
+	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)){
+
+		if (iph->saddr == largerIP)
+		{ // Set the Accelerator for this source.
+			thissession->largerIPAccelerator = acceleratorID;
+		}
+		else
+		{
+			thissession->smallerIPAccelerator = acceleratorID;
+		}
+		return 0;// Everything  OK.
+	}
+	return -1;// Had a problem.
 }

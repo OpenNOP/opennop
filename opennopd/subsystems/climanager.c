@@ -14,23 +14,6 @@
 #include "clisocket.h"
 #include "logger.h"
 
-int cli_process_message(int client_fd, char *buffer, int d_len) {
-	struct command *cmd;
-	char msg[MAX_BUFFER_SIZE] = { 0 };
-	if (0 == (cmd = lookup_command(buffer))) {
-		fprintf(stdout, "There is no such command \n");
-		memcpy(msg, "Invalid Command...\n", 28);
-		if (!(send(client_fd, msg, strlen(msg), 0))) {
-			perror("[cli_manager]: Send");
-			exit(1);
-		}
-		cli_help(client_fd, NULL);
-		return 0;
-	} else {
-		(cmd->command_handler)(client_fd, NULL, 0);
-	}
-	return 0;
-}
 void start_cli_server() {
 	int socket_desc, client_sock, c, *new_sock, length;
 	struct sockaddr_un server, client;
@@ -98,12 +81,12 @@ void *client_handler(void *socket_desc) {
 	int sock = *(int*) socket_desc;
 	int read_size, finish = 0;
 	char client_message[MAX_BUFFER_SIZE];
-    char message [LOGSZ];
+	char message[LOGSZ];
 
-    sprintf(message, "Started cli connection.\n");
-    logger(LOG_INFO, message);
+	sprintf(message, "Started cli connection.\n");
+	logger(LOG_INFO, message);
 
-    cli_prompt(sock);
+	cli_prompt(sock);
 
 	//Receive a message from client
 	while (!(finish) && ((read_size = recv(sock, client_message,
@@ -131,29 +114,27 @@ void *client_handler(void *socket_desc) {
 	//Free the socket pointer
 	free(socket_desc);
 
-    sprintf(message, "Closing cli connection.\n");
-    logger(LOG_INFO, message);
+	sprintf(message, "Closing cli connection.\n");
+	logger(LOG_INFO, message);
 
 	return NULL;
 }
 
 int cli_quit(int client_fd, char **parameters, int numparameters) {
-	char msg[MAX_BUFFER_SIZE] = { 0 };
-	strcpy(msg, "....BYE....\n");
 
-	cli_send_feedback(client_fd, msg);
-
-	shutdown(client_fd, SHUT_RDWR);
-	client_fd = 0;
+	/*
+	 * Received a quit command so return 1 to shutdown this cli session.
+	 */
 	return 1;
 }
 
-void cli_manager_init() {
+void *cli_manager_init(void *dummyPtr) {
 	//register_command("help", cli_help, false, false); //todo: This needs integrated into the cli.
 	register_command("quit", cli_quit, false, true);
-	register_command("show parameters",cli_show_param, true, true);
+	register_command("show parameters", cli_show_param, true, true);
 
 	/* Sharwan Joram:t We'll call this in last as we will never return from here */
 	start_cli_server();
-
+	return NULL;
 }
+

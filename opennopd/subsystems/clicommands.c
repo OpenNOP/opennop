@@ -39,6 +39,7 @@ struct command* allocate_command(){
 int execute_commands(int client_fd, const char *command_name, int d_len){
 	char *token, *cp, *saved_token;
 	int parametercount = 0;
+	int shutdown = 0;
 	char **parameters = NULL; //dynamic array of pointers to tokens that are parameters
 	char **tempparameters = NULL;
 	char *parameter = NULL;
@@ -157,7 +158,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 								}
 							}
 
-							(currentcommand->command_handler)(client_fd, parameters, parametercount);
+							shutdown = (currentcommand->command_handler)(client_fd, parameters, parametercount);
 						}else{
 							/*
 							 * We might want to verify no other TOKENs are left.
@@ -165,7 +166,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 							 */
 							sprintf(message, "CLI: Command has no parameters.\n");
 							logger(LOG_INFO, message);
-							(currentcommand->command_handler)(client_fd, NULL, 0);
+							shutdown = (currentcommand->command_handler)(client_fd, NULL, 0);
 						}
 						executedcommand = currentcommand;
 					}else{
@@ -185,9 +186,12 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 
 		token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
 	}
-	cli_prompt(client_fd);
 
-	return 0;
+	if(shutdown != 1){ // Don't show the last prompt if we are done.
+		cli_prompt(client_fd);
+	}
+
+	return shutdown;
 }
 
 /*
@@ -200,7 +204,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
  * UPDATE: I am trying to use strtok_r().  It seems to be working.
  */
 
-int register_command(const char *command_name, int (*handler_function)(int, char **, int), bool hasparams, bool hidden)
+int register_command(const char *command_name, t_commandfunction handler_function, bool hasparams, bool hidden)
 {
 	char *token, *cp, *saved_token;
 	struct command_head *currentnode = NULL;
@@ -365,7 +369,6 @@ int cli_node_help(int client_fd, struct command_head *currentnode) {
 
 		if(currentcommand->hidden == false){
 			sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
-			cli_prompt(client_fd);
 			cli_send_feedback(client_fd, msg);
 			++count;
 		}
@@ -392,11 +395,9 @@ int cli_show_param(int client_fd, char **parameters, int numparameters) {
 	int i = 0;
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 
-	cli_prompt(client_fd);
 	for (i=0;i<numparameters;i++){
 		sprintf(msg, "[%d] %s\n", i, parameters[i]);
 		cli_send_feedback(client_fd, msg);
-		cli_prompt(client_fd);
 	}
 
 	return 0;

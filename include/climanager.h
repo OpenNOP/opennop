@@ -10,7 +10,7 @@
 
 int cli_process_message(int client_fd, char *buffer, int d_len);
 void start_cli_server();
-void cli_manager_init();
+void *cli_manager_init(void *dummyPtr);
 void *client_handler(void *socket_desc);
 
 #endif

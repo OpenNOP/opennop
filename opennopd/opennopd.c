@@ -34,7 +34,7 @@
 #define LOOPBACKIP 16777343UL // Loopback IP address 127.0.0.1.
 /* Global Variables. */
 int servicestate = RUNNING; // Current state of the service.
-__u32 localIP = 0; // Variable to store eth0 IP address used as the device ID.
+__u32 localID = 0; // Variable to store eth0 IP address used as the device ID.
 int isdaemon = true; // Determines how to log the messages and errors.
 
 int main(int argc, char *argv[]) {
@@ -116,14 +116,14 @@ int main(int argc, char *argv[]) {
 				 * Lets fine the largest local IP, and use that as accelleratorID
 				 * Lets also exclude 127.0.0.1 as a valid ID.
 				 */
-				if ((tempIP > localIP) && (tempIP != LOOPBACKIP)) {
-					localIP = tempIP;
+				if ((tempIP > localID) && (tempIP != LOOPBACKIP)) {
+					localID = tempIP;
 				}
 			} // end get all IPv4 addresses.
 		} // end ifa->ifa_addr NULL test.
 	} // end loop through all interfaces.
 
-	if (localIP == 0) { // fail if no usable IP found.
+	if (localID == 0) { // fail if no usable IP found.
 		inet_ntop(AF_INET, &tempIP, strIP, INET_ADDRSTRLEN);
 		sprintf(message, "Initialization: No usable IP Address. %s\n", strIP);
 		logger(LOG_INFO, message);
