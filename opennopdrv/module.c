@@ -72,7 +72,7 @@ static void daemonmonitor_function(unsigned long data){
 	 	daemonstate = UP;
 	 	
 	 	if (DEBUG_HEARTBEAT == TRUE){
-	 		printk(KERN_ALERT "Got a heartbeat.  timespan:%i now:%i, lasthb:%i \n",timespan, (unsigned int)tv_now.tv_sec, (unsigned int)tv_lasthb.tv_sec);
+	 		printk(KERN_ALERT "Got a heartbeat. timespan:%i now:%i, lasthb:%i \n",timespan, (unsigned int)tv_now.tv_sec, (unsigned int)tv_lasthb.tv_sec);
 	 	}
 	 }
 	 
@@ -184,7 +184,7 @@ opennopdrv_init(void){
 		#if (LINUX_VERSION_CODE > KERNEL_VERSION (2, 6, 30))
 			opennop_hook.hooknum = NF_BR_FORWARD; // For bridged traffic only.
 		#else
-			printk(KERN_ALERT, "[OpenNOPDrv]: Bridged mode only supported with kernel > 2.6.30 \n");
+			printk(KERN_ALERT "[OpenNOPDrv]: Bridged mode only supported with kernel > 2.6.30 \n");
 		#endif
 
 	}
