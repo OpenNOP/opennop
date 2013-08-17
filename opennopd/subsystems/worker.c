@@ -27,8 +27,8 @@ int DEBUG_WORKER = false;
 int DEBUG_WORKER_CLI = false;
 int DEBUG_WORKER_COUNTERS = false;
 
-void *optimization_thread(void *dummyPtr) {
-	struct worker *me = NULL;
+void *worker_thread(void *dummyPtr) {
+	struct processor *me = NULL;
 	struct packet *thispacket = NULL;
 	struct session *thissession = NULL;
 	struct iphdr *iph = NULL;
@@ -38,11 +38,13 @@ void *optimization_thread(void *dummyPtr) {
 	char message[LOGSZ];
 	qlz_state_compress *state_compress = (qlz_state_compress *) malloc(
 			sizeof(qlz_state_compress));
+	qlz_state_decompress *state_decompress = (qlz_state_decompress *) malloc(
+			sizeof(qlz_state_decompress));
 	me = dummyPtr;
 
-	me->optimization.lzbuffer = calloc(1, BUFSIZE + 400);
+	me->lzbuffer = calloc(1, BUFSIZE + 400);
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
-	if (me->optimization.lzbuffer == NULL) {
+	if (me->lzbuffer == NULL) {
 		sprintf(message, "Worker: Couldn't allocate buffer");
 		logger(LOG_INFO, message);
 		exit(1);
@@ -51,14 +53,13 @@ void *optimization_thread(void *dummyPtr) {
 	/*
 	 * Register the worker threads metrics so they get updated.
 	 */
-	register_counter(counter_updateworkermetrics, (t_counterdata)
-			& me->optimization.metrics);
+	register_counter(counter_updateworkermetrics, (t_counterdata) & me->metrics);
 
-	if (me->optimization.lzbuffer != NULL) {
+	if (me->lzbuffer != NULL) {
 
 		while (me->state >= STOPPING) {
 
-			thispacket = dequeue_packet(&me->optimization.queue, true);
+			thispacket = dequeue_packet(&me->queue, true);
 
 			if (thispacket != NULL) { // If a packet was taken from the queue.
 				iph = (struct iphdr *) thispacket->data;
@@ -69,33 +70,28 @@ void *optimization_thread(void *dummyPtr) {
 							ntohs(iph->tot_len));
 					logger(LOG_INFO, message);
 				}
-				me->optimization.metrics.bytesin += ntohs(iph->tot_len);
+				me->metrics.bytesin += ntohs(iph->tot_len);
 				remoteID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
 sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
 						iph->saddr,tcph->source,iph->daddr,tcph->dest);
 
-				if (DEBUG_WORKER == true)
-				{
+				if (DEBUG_WORKER == true) {
 					sprintf(message, "Worker: Searching for session.\n");
 					logger(LOG_INFO, message);
 				}
 
 				thissession = getsession(largerIP, largerIPPort, smallerIP,smallerIPPort);
 
-                if (thissession != NULL)
-                {
+                if (thissession != NULL) {
 
-                    if (DEBUG_WORKER == true)
-                    {
+                    if (DEBUG_WORKER == true) {
                         sprintf(message, "Worker: Found a session.\n");
                         logger(LOG_INFO, message);
                     }
 
-                    if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0))
-                    {
+                    if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0)) {
 
-                        if (remoteID == 0)
-                        { // Accelerator ID was not found.
+                        if (remoteID == 0) { // Accelerator ID was not found.
 
                         	saveacceleratorid(largerIP, localID, iph, thissession);
 
@@ -109,174 +105,50 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                                      (thissession->smallerIPAccelerator == localID) &&
                                      (thissession->largerIPAccelerator != 0) &&
                                      (thissession->largerIPAccelerator != localID))) &&
-                                    (thissession->state == TCP_ESTABLISHED))
-                            {
+                                    (thissession->state == TCP_ESTABLISHED)) {
 
                                 /*
-                                	 * Do some acceleration!
-                                	 */
+                                 * Do some acceleration!
+                                 */
 
-                                if (DEBUG_WORKER == true)
-                                {
+                                if (DEBUG_WORKER == true) {
                                     sprintf(message, "Worker: Compressing packet.\n");
                                     logger(LOG_INFO, message);
                                 }
-	                            tcp_compress((__u8 *)iph, me->optimization.lzbuffer,state_compress);
-                            }
-                            else
-                            {
+	                            tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
+                            }else{
 
-                                if (DEBUG_WORKER == true)
-                                {
-                                    sprintf(message, "Worker: Not compressing packet.\n");
+                                if (DEBUG_WORKER == true) {
+
+				               sprintf(message, "Worker: Not compressing packet.\n");
                                     logger(LOG_INFO, message);
                                 }
                             }
-                        }
-                    }
-
-                    if (tcph->rst == 1)
-                    { // Session was reset.
-
-                        if (DEBUG_WORKER == true)
-                        {
-                            sprintf(message, "Worker: Session was reset.\n");
-                            logger(LOG_INFO, message);
-                        }
-                        clearsession(thissession);
-                        thissession = NULL;
-                    }
-
-                    closingsession(tcph, thissession);
-
-                    if (thispacket != NULL)
-                    {
-                        /*
-                        	 * Changing anything requires the IP and TCP
-                        	 * checksum to need recalculated.
-                         	 */
-                        checksum(thispacket->data);
-                        me->optimization.metrics.bytesout += ntohs(iph->tot_len);
-                        nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
-                        put_freepacket_buffer(thispacket);
-                        thispacket = NULL;
-                    }
-
-                } /* End NULL session check. */
-                else
-                { /* Session was NULL. */
-                	me->optimization.metrics.bytesout += ntohs(iph->tot_len);
-                    nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
-                    put_freepacket_buffer(thispacket);
-                    thispacket = NULL;
-                }
-                me->optimization.metrics.packets++;
-            } /* End NULL packet check. */
-			} /* End working loop. */
-			free(me->optimization.lzbuffer);
-			free(state_compress);
-			me->optimization.lzbuffer = NULL;
-		}
-		return NULL;
-	}
-
-void *deoptimization_thread(void *dummyPtr) {
-	struct worker *me = NULL;
-	struct packet *thispacket = NULL;
-	struct session *thissession = NULL;
-	struct iphdr *iph = NULL;
-	struct tcphdr *tcph = NULL;
-	__u32 largerIP, smallerIP, remoteID;
-	__u16 largerIPPort, smallerIPPort;
-	char message[LOGSZ];
-	qlz_state_decompress *state_decompress = (qlz_state_decompress *) malloc(
-			sizeof(qlz_state_decompress));
-	me = dummyPtr;
-
-	me->deoptimization.lzbuffer = calloc(1, BUFSIZE + 400);
-	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
-	if (me->deoptimization.lzbuffer == NULL) {
-		sprintf(message, "Worker: Couldn't allocate buffer");
-		logger(LOG_INFO, message);
-		exit(1);
-	}
-
-	/*
-	 * Register the worker threads metrics so they get updated.
-	 */
-	register_counter(counter_updateworkermetrics, (t_counterdata)
-			& me->deoptimization.metrics);
-
-	if (me->deoptimization.lzbuffer != NULL) {
-
-		while (me->state >= STOPPING) {
-
-			thispacket = dequeue_packet(&me->deoptimization.queue, true);
-
-			if (thispacket != NULL) { // If a packet was taken from the queue.
-				iph = (struct iphdr *) thispacket->data;
-				tcph = (struct tcphdr *) (((u_int32_t *) iph) + iph->ihl);
-
-				if (DEBUG_WORKER == true) {
-					sprintf(message, "Worker: IP Packet length is: %u\n",
-							ntohs(iph->tot_len));
-					logger(LOG_INFO, message);
-				}
-				me->deoptimization.metrics.bytesin += ntohs(iph->tot_len);
-				remoteID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
-sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
-						iph->saddr,tcph->source,iph->daddr,tcph->dest);
-
-				if (DEBUG_WORKER == true)
-				{
-					sprintf(message, "Worker: Searching for session.\n");
-					logger(LOG_INFO, message);
-				}
-
-				thissession = getsession(largerIP, largerIPPort, smallerIP,smallerIPPort);
-
-                if (thissession != NULL)
-                {
-
-                    if (DEBUG_WORKER == true)
-                    {
-                        sprintf(message, "Worker: Found a session.\n");
-                        logger(LOG_INFO, message);
-                    }
-
-                    if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0))
-                    {
-
-                        if (remoteID != 0){
-
+                        }else{
                         	saveacceleratorid(largerIP, remoteID, iph, thissession);
 
-                            if (__get_tcp_option((__u8 *)iph,31) != 0)
-                            { // Packet is flagged as compressed.
+                        	  if (__get_tcp_option((__u8 *)iph,31) != 0) { // Packet is flagged as compressed.
 
-                                if (DEBUG_WORKER == true)
-                                {
-                                    sprintf(message, "Worker: Packet is compressed.\n");
-                                    logger(LOG_INFO, message);
-                                }
+                        		  if (DEBUG_WORKER == true) {
+                        			  sprintf(message, "Worker: Packet is compressed.\n");
+                        			  logger(LOG_INFO, message);
+                        		  }
 
-                                if (((iph->saddr == largerIP) &&
-                                        (thissession->smallerIPAccelerator == localID)) ||
-                                        ((iph->saddr == smallerIP) &&
-                                         (thissession->largerIPAccelerator == localID)))
-                                {
+                        		  if (((iph->saddr == largerIP) &&
+                        				  (thissession->smallerIPAccelerator == localID)) ||
+                        				  ((iph->saddr == smallerIP) &&
+                        				(thissession->largerIPAccelerator == localID))) {
 
-                                    /*
-                                     * Decompress this packet!
-                                     */
-                                    if (tcp_decompress((__u8 *)iph, me->deoptimization.lzbuffer, state_decompress) == 0)
-                                    { // Decompression failed if 0.
-                                        nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
-                                        put_freepacket_buffer(thispacket);
-                                        thispacket = NULL;
-                                    }
-                                }
-                            }
+                        	          /*
+                        	           * Decompress this packet!
+                        	           */
+                        	          if (tcp_decompress((__u8 *)iph, me->lzbuffer, state_decompress) == 0) { // Decompression failed if 0.
+                        	               nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
+                        	               put_freepacket_buffer(thispacket);
+                        	               thispacket = NULL;
+                        	          }
+                        	      }
+                        	  }
                         }
                     }
 
@@ -288,20 +160,22 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                             sprintf(message, "Worker: Session was reset.\n");
                             logger(LOG_INFO, message);
                         }
-                        clearsession(thissession);
-                        thissession = NULL;
+                        thissession = clearsession(thissession);
                     }
 
-                    closingsession(tcph, thissession);
+            		/* Normal session closing sequence. */
+            		if (tcph->fin == 1) {
+            			thissession = closingsession(tcph, thissession);
+            		}
 
                     if (thispacket != NULL)
                     {
                         /*
-                        	 * Changing anything requires the IP and TCP
-                        	 * checksum to need recalculated.
-                         	 */
+                         * Changing anything requires the IP and TCP
+                         * checksum to need recalculated.
+                         */
                         checksum(thispacket->data);
-                        me->deoptimization.metrics.bytesout += ntohs(iph->tot_len);
+                        me->metrics.bytesout += ntohs(iph->tot_len);
                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)thispacket->data);
                         put_freepacket_buffer(thispacket);
                         thispacket = NULL;
@@ -310,17 +184,18 @@ sort_sockets				(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                 } /* End NULL session check. */
                 else
                 { /* Session was NULL. */
-                	me->deoptimization.metrics.bytesout += ntohs(iph->tot_len);
+                	me->metrics.bytesout += ntohs(iph->tot_len);
                     nfq_set_verdict(thispacket->hq, thispacket->id, NF_ACCEPT, 0, NULL);
                     put_freepacket_buffer(thispacket);
                     thispacket = NULL;
                 }
-                me->deoptimization.metrics.packets++;
+                me->metrics.packets++;
             } /* End NULL packet check. */
 			} /* End working loop. */
-			free(me->deoptimization.lzbuffer);
+			free(me->lzbuffer);
+			free(state_compress);
 			free(state_decompress);
-			me->deoptimization.lzbuffer = NULL;
+			me->lzbuffer = NULL;
 		}
 		return NULL;
 	}
@@ -364,10 +239,10 @@ void create_worker(int i) {
 	initialize_worker_processor(&workers[i].deoptimization);
 	workers[i].sessions = 0;
 	pthread_mutex_init(&workers[i].lock, NULL); // Initialize the worker lock.
-	pthread_create(&workers[i].optimization.t_processor, NULL,
-			optimization_thread, (void *) &workers[i]);
-	pthread_create(&workers[i].deoptimization.t_processor, NULL,
-			deoptimization_thread, (void *) &workers[i]);
+	pthread_create(&workers[i].optimization.t_processor, NULL, worker_thread,
+			(void *) &workers[i]);
+	pthread_create(&workers[i].deoptimization.t_processor, NULL, worker_thread,
+			(void *) &workers[i]);
 	set_worker_state_running(&workers[i]);
 }
 
@@ -403,13 +278,15 @@ void joining_worker_processor(struct processor *thisprocessor) {
 
 void set_worker_state_running(struct worker *thisworker) {
 	pthread_mutex_lock(&thisworker->lock);
-	thisworker->state = RUNNING;
+	thisworker->optimization.state = RUNNING;
+	thisworker->deoptimization.state = RUNNING;
 	pthread_mutex_unlock(&thisworker->lock);
 }
 
 void set_worker_state_stopped(struct worker *thisworker) {
 	pthread_mutex_lock(&thisworker->lock);
-	thisworker->state = STOPPED;
+	thisworker->optimization.state = STOPPED;
+	thisworker->deoptimization.state = STOPPED;
 	pthread_mutex_unlock(&thisworker->lock);
 }
 
@@ -542,10 +419,9 @@ void counter_updateworkermetrics(t_counterdata data) {
 	char message[LOGSZ];
 	__u32 counter;
 
-	if (DEBUG_WORKER_COUNTERS == true)
-	{
-	sprintf(message, "Worker: Updating metrics!");
-	logger(LOG_INFO, message);
+	if (DEBUG_WORKER_COUNTERS == true) {
+		sprintf(message, "Worker: Updating metrics!");
+		logger(LOG_INFO, message);
 	}
 
 	metrics = (struct workercounters*) data;
@@ -568,9 +444,6 @@ struct session *closingsession(struct tcphdr *tcph, struct session *thissession)
 
 	if ((tcph != NULL) && (thissession != NULL)) {
 
-		/* Normal session closing sequence. */
-		if (tcph->fin == 1) {
-
 			if (DEBUG_WORKER == true) {
 				sprintf(message, "Worker: Session is closing.\n");
 				logger(LOG_INFO, message);
@@ -587,8 +460,6 @@ struct session *closingsession(struct tcphdr *tcph, struct session *thissession)
 				return thissession;
 			}
 			return thissession; //Session not in good state!
-		}
-		return thissession; //Not a fin packet.
 	}
 	return thissession; // Something went very wrong!
 }

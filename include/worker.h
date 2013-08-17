@@ -57,6 +57,7 @@ struct workercounters {
  */
 struct processor {
 	pthread_t t_processor;
+	int state; // Marks this thread as active. 1=running, 0=stopping, -1=stopped.
 	struct workercounters metrics;
 	struct packet_head queue;
 	__u8 *lzbuffer; // Buffer used for QuickLZ.
@@ -67,12 +68,10 @@ struct worker {
 	struct processor optimization; //Thread that will do all optimizations(input).  Coming from LAN.
 	struct processor deoptimization; //Thread that will undo optimizations(output).  Coming from WAN.
 	u_int32_t sessions; // Number of sessions assigned to the worker.
-	int state; // Marks this thread as active. 1=running, 0=stopping, -1=stopped.
 	pthread_mutex_t lock; // Lock for this worker when adding sessions.
 };
 
-void *optimization_thread(void *dummyPtr);
-void *deoptimization_thread(void *dummyPtr);
+void *worker_thread(void *dummyPtr);
 unsigned char get_workers(void);
 void set_workers(unsigned char desirednumworkers);
 u_int32_t get_worker_sessions(int i);
