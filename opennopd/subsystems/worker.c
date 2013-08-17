@@ -455,8 +455,7 @@ struct session *closingsession(struct tcphdr *tcph, struct session *thissession)
 				return thissession;
 
 			case TCP_CLOSING:
-				clearsession(thissession);
-				thissession = NULL;
+				thissession = clearsession(thissession);
 				return thissession;
 			}
 			return thissession; //Session not in good state!

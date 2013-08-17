@@ -17,7 +17,7 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 		__u32 smallerIP, __u16 smallerIPPort);
 struct session *getsession(__u32 largerIP, __u16 largerIPPort, __u32 smallerIP,
 		__u16 smallerIPPort);
-void clearsession(struct session *currentsession);
+struct session *clearsession(struct session *currentsession);
 void sort_sockets(__u32 *largerIP, __u16 *largerIPPort, __u32 *smallerIP,
 		__u16 *smallerIPPort, __u32 saddr, __u16 source, __u32 daddr,
 		__u16 dest);
