@@ -40,7 +40,7 @@ void *worker_thread(void *dummyPtr) {
 			sizeof(qlz_state_compress));
 	qlz_state_decompress *state_decompress = (qlz_state_decompress *) malloc(
 			sizeof(qlz_state_decompress));
-	me = dummyPtr;
+	me = (struct processor*)dummyPtr;
 
 	me->lzbuffer = calloc(1, BUFSIZE + 400);
 	/* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
@@ -240,9 +240,9 @@ void create_worker(int i) {
 	workers[i].sessions = 0;
 	pthread_mutex_init(&workers[i].lock, NULL); // Initialize the worker lock.
 	pthread_create(&workers[i].optimization.t_processor, NULL, worker_thread,
-			(void *) &workers[i]);
+			(void *) &workers[i].optimization);
 	pthread_create(&workers[i].deoptimization.t_processor, NULL, worker_thread,
-			(void *) &workers[i]);
+			(void *) &workers[i].deoptimization);
 	set_worker_state_running(&workers[i]);
 }
 
