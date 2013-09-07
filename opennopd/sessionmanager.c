@@ -239,7 +239,7 @@ struct session *getsession(__u32 largerIP, __u16 largerIPPort, __u32 smallerIP,
 /*
  * Resets the sessionindex, and session. 
  */
-void clearsession(struct session *currentsession) {
+struct session *clearsession(struct session *currentsession) {
 	__u16 hash = 0;
 	char message[LOGSZ];
 
@@ -294,8 +294,9 @@ void clearsession(struct session *currentsession) {
 		 */
 		decrement_worker_sessions(currentsession->queue);
 		free(currentsession);
+		currentsession = NULL;
 	}
-	return;
+	return currentsession;
 }
 
 /*

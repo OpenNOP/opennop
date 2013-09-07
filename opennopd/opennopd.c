@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
 				inet_pton(AF_INET, (char *) &host, &tempIP); // convert string to decimal.
 
 				/*
-				 * Lets fine the largest local IP, and use that as accelleratorID
+				 * Lets fine the largest local IP, and use that as localID
 				 * Lets also exclude 127.0.0.1 as a valid ID.
 				 */
 				if ((tempIP > localID) && (tempIP != LOOPBACKIP)) {
