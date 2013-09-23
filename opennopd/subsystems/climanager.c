@@ -129,7 +129,6 @@ int cli_quit(int client_fd, char **parameters, int numparameters) {
 }
 
 void *cli_manager_init(void *dummyPtr) {
-	//register_command("help", cli_help, false, false); //todo: This needs integrated into the cli.
 	register_command("quit", cli_quit, false, true);
 	register_command("show parameters", cli_show_param, true, true);
 
