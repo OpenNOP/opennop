@@ -11,6 +11,7 @@
 
 #include "ipc.h"
 #include "clicommands.h"
+#include "logger.h"
 
 struct node *head;
 struct node *tail;
@@ -18,6 +19,7 @@ struct node *tail;
 void start_ipc() {
     /*
      * This will setup and start the IPC threads.
+     * We also register the IPC commands here.
      */
     register_command("node", cli_node, true, false);
     register_command("no node", cli_no_node, true, false);
@@ -35,7 +37,6 @@ void *ipc_listener_thread(void *dummyPtr) {
 }
 
 void *ipc_thread(void *dummyPtr) {
-#include "logger.h"
     /*
      * This thread will have to monitor for any outbound messages
      * and send them to the appropriate queue.  It should test
@@ -49,8 +50,11 @@ void *ipc_thread(void *dummyPtr) {
 }
 
 /*
+ * We only need to validate the number of parameters are correct here.
+ * Lets let the more specific functions do the data validation from the input.
+ * This should accept 1 or 2 parameters.
  * parameter[0] = IP in string format.
- * parameter[1] = Authentication key.
+ * parameter[1] = Authentication key(optional).
  */
 int cli_node(int client_fd, char **parameters, int numparameters) {
     int ERROR = 0;
@@ -70,8 +74,14 @@ int cli_node(int client_fd, char **parameters, int numparameters) {
     return 0;
 }
 
+/*
+ * We only need to validate the number of parameters are correct here.
+ * Lets let the more specific functions do the data validation from the input.
+ * This should accept 1 parameter.
+ * parameter[0] = IP in string format.
+ */
 int cli_no_node(int client_fd, char **parameters, int numparameters) {
-	int ERROR = 0;
+    int ERROR = 0;
     char msg[MAX_BUFFER_SIZE] = { 0 };
 
     sprintf(msg,"Remove node from OpenNOP.\n");
@@ -96,21 +106,27 @@ int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
 }
 
 int add_update_node(int client_fd, char *stringip, char *key) {
-	int ERROR = 0;
-	__u32 nodeIP = 0;
-	char msg[MAX_BUFFER_SIZE] = { 0 };
+    int ERROR = 0;
+    __u32 nodeIP = 0;
+    char msg[MAX_BUFFER_SIZE] = { 0 };
 
-	ERROR = inet_pton(AF_INET, stringip, &nodeIP); //Should return 1.
+    /*
+     * We must validate the user data here
+     * before adding or updating anything.
+     * 1. stringip should convert to an integer using inet_pton()
+     * 2. key should be NULL or < 64 bytes
+     */
 
-	sprintf(msg,"Node string IP is [%s].\n", stringip);
-	cli_send_feedback(client_fd, msg);
-	sprintf(msg,"Node integer IP is [%u].\n", ntohl(nodeIP));
-	cli_send_feedback(client_fd, msg);
-	sprintf(msg,"Node key is [%s].\n", key);
-	cli_send_feedback(client_fd, msg);
-	sprintf(msg,"Node key length is [%u].\n", strlen(key));
-	cli_send_feedback(client_fd, msg);
+    ERROR = inet_pton(AF_INET, stringip, &nodeIP); //Should return 1.
 
+    sprintf(msg,"Node string IP is [%s].\n", stringip);
+    cli_send_feedback(client_fd, msg);
+    sprintf(msg,"Node integer IP is [%u].\n", ntohl(nodeIP));
+    cli_send_feedback(client_fd, msg);
+    sprintf(msg,"Node key is [%s].\n", key);
+    cli_send_feedback(client_fd, msg);
+    sprintf(msg,"Node key length is [%u].\n", strlen(key));
+    cli_send_feedback(client_fd, msg);
 
     return 0;
 }
