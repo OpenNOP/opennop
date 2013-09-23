@@ -119,14 +119,21 @@ int add_update_node(int client_fd, char *stringip, char *key) {
 
     ERROR = inet_pton(AF_INET, stringip, &nodeIP); //Should return 1.
 
+    if(ERROR != 1) {
+        return cli_node_help(client_fd);
+    }
+
     sprintf(msg,"Node string IP is [%s].\n", stringip);
     cli_send_feedback(client_fd, msg);
     sprintf(msg,"Node integer IP is [%u].\n", ntohl(nodeIP));
     cli_send_feedback(client_fd, msg);
     sprintf(msg,"Node key is [%s].\n", key);
     cli_send_feedback(client_fd, msg);
-    sprintf(msg,"Node key length is [%u].\n", strlen(key));
-    cli_send_feedback(client_fd, msg);
+
+    if(key != NULL) {
+        sprintf(msg,"Node key length is [%u].\n", strlen(key));
+        cli_send_feedback(client_fd, msg);
+    }
 
     return 0;
 }
@@ -141,6 +148,7 @@ int cli_node_help(int client_fd) {
 
     sprintf(msg,"Usage: [no] node <ip address> [key]\n");
     cli_send_feedback(client_fd, msg);
+
     return 0;
 }
 
