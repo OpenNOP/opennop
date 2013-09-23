@@ -77,7 +77,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 		currentcommand = find_command(currentnode,token);
 
 		if((!strcmp(token,"help")) || (!strcmp(token,"?"))){
-			cli_node_help(client_fd, currentnode);
+			cli_help(client_fd, currentnode);
 			break;
 		}
 
@@ -329,34 +329,7 @@ struct command* find_command(struct command_head *currentnode, char *command_nam
 	return NULL;
 }
 
-/*
- * This command should be removed.
- * The help functionality should be integrated into the cli_process_message function from climanager.c.
- */
-int cli_help(int client_fd, char *args) {
-	char msg[MAX_BUFFER_SIZE] = { 0 };
-	struct command *currentcommand;
-	int count = 1;
-
-	currentcommand = head->next;
-	//sprintf(msg, "\n Available command list are : \n");
-	//cli_send_feedback(client_fd, msg);
-
-	while (currentcommand) {
-
-		if(currentcommand->hidden == false){
-			sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
-			cli_prompt(client_fd);
-			cli_send_feedback(client_fd, msg);
-			++count;
-		}
-		currentcommand = currentcommand->next;
-	}
-
-	return 0;
-}
-
-int cli_node_help(int client_fd, struct command_head *currentnode) {
+int cli_help(int client_fd, struct command_head *currentnode) {
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	struct command *currentcommand;
 	int count = 1;

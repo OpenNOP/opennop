@@ -28,6 +28,7 @@
 #include "climanager.h"
 #include "compression.h"
 #include "version.h"
+#include "ipc.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -205,6 +206,7 @@ int main(int argc, char *argv[]) {
 	pthread_create(&t_counters, NULL, counters_function, (void *) NULL);
 	pthread_create(&t_memorymanager, NULL, memorymanager_function,
 			(void *) NULL);
+	start_ipc();
 
 	sprintf(message, "[OpenNOP]: Started all threads.\n");
 	logger(LOG_INFO, message);
