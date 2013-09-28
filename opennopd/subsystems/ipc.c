@@ -66,9 +66,9 @@ int cli_node(int client_fd, char **parameters, int numparameters) {
     if ((numparameters < 1) || (numparameters > 2)) {
         ERROR = cli_node_help(client_fd);
     } else if (numparameters == 1) {
-        ERROR = add_update_node(client_fd, parameters[0], NULL);
+        ERROR = validate_node_input(client_fd, parameters[0], NULL);
     } else if (numparameters == 2) {
-        ERROR = add_update_node(client_fd, parameters[0], parameters[1]);
+        ERROR = validate_node_input(client_fd, parameters[0], parameters[1]);
     }
 
     return 0;
@@ -105,8 +105,10 @@ int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
     return 0;
 }
 
-int add_update_node(int client_fd, char *stringip, char *key) {
+int validate_node_input(int client_fd, char *stringip, char *key) {
     int ERROR = 0;
+    char validkey[64] = { 0 };
+    int keylength = 0;
     __u32 nodeIP = 0;
     char msg[MAX_BUFFER_SIZE] = { 0 };
 
@@ -123,6 +125,14 @@ int add_update_node(int client_fd, char *stringip, char *key) {
         return cli_node_help(client_fd);
     }
 
+    if(key != NULL) {
+        keylength = strlen(key);
+
+        if(keylength <= 64) {
+            strcpy(validkey,key);
+        }
+    }
+
     sprintf(msg,"Node string IP is [%s].\n", stringip);
     cli_send_feedback(client_fd, msg);
     sprintf(msg,"Node integer IP is [%u].\n", ntohl(nodeIP));
@@ -134,6 +144,9 @@ int add_update_node(int client_fd, char *stringip, char *key) {
         sprintf(msg,"Node key length is [%u].\n", strlen(key));
         cli_send_feedback(client_fd, msg);
     }
+
+    sprintf(msg,"Node valid key is [%s].\n", validkey);
+    cli_send_feedback(client_fd, msg);
 
     return 0;
 }
