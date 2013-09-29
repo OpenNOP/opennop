@@ -16,9 +16,9 @@ struct node {
     struct node *next;
     struct node *prev;
     __u32 NodeIP;
-    char UUID[16];
+    char UUID[17];
     int sock;
-    char key[64];
+    char key[65];
 };
 
 typedef int (*t_node_command)(int, __u32, char *);

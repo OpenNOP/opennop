@@ -104,7 +104,7 @@ int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
     struct node *currentnode = NULL;
     char temp[20];
     char col1[17];
-    char col2[19];
+    char col2[18];
     char col3[66];
     char end[3];
     char msg[MAX_BUFFER_SIZE] = { 0 };
@@ -116,26 +116,26 @@ int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
 
     sprintf(
         msg,
-        "-------------------------------------------------------------------------------------------------------\n");
+        "---------------------------------------------------------------------------------------------------------\n");
     cli_send_feedback(client_fd, msg);
     sprintf(
         msg,
-        "|    Node IP     |       GUID       |                               Key                               |\n");
+        "|    Node IP      |       GUID       |                               Key                                |\n");
     cli_send_feedback(client_fd, msg);
     sprintf(
         msg,
-        "-------------------------------------------------------------------------------------------------------\n");
+        "---------------------------------------------------------------------------------------------------------\n");
     cli_send_feedback(client_fd, msg);
 
     while(currentnode != NULL) {
         strcpy(msg, "");
         inet_ntop(AF_INET, &currentnode->NodeIP, temp,
                   INET_ADDRSTRLEN);
-        sprintf(col1, "| %-15s", temp);
+        sprintf(col1, "| %-16s", temp);
         strcat(msg, col1);
         sprintf(col2, "| %-17s", currentnode->UUID);
         strcat(msg, col2);
-        sprintf(col3, "| %-64s", currentnode->key);
+        sprintf(col3, "| %-65s", currentnode->key);
         strcat(msg, col3);
         sprintf(end, "|\n");
         strcat(msg, end);
@@ -283,8 +283,8 @@ int del_node(int client_fd, __u32 nodeIP, char *key) {
                 currentnode->prev->next = NULL;
 
             } else if ((currentnode->next != NULL) && (currentnode->prev != NULL)) {
-            	currentnode->prev->next = currentnode->next;
-            	currentnode->next->prev = currentnode->prev;
+                currentnode->prev->next = currentnode->next;
+                currentnode->next->prev = currentnode->prev;
             }
 
             free(currentnode);
