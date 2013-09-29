@@ -18,8 +18,11 @@
  * I was using "head" and "tail" here but that seemed to conflict with another module.
  * Should the internal variable names be isolated between modules?
  * They don't appear to be clicommands.c also uses a variable "head".
+ * Using "static" should fix this.
  */
 static struct node_head ipchead;
+static char UUID[17]; //Local UUID.
+static char key[65]; //Local key.
 
 void start_ipc() {
     /*
@@ -109,9 +112,6 @@ int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
     char end[3];
     char msg[MAX_BUFFER_SIZE] = { 0 };
 
-    sprintf(msg,"Show nodes in OpenNOP.\n");
-    cli_send_feedback(client_fd, msg);
-
     currentnode = ipchead.next;
 
     sprintf(
@@ -180,6 +180,7 @@ int validate_node_input(int client_fd, char *stringip, char *key, t_node_command
      */
     node_command(client_fd, nodeIP, key);
 
+    /*
     sprintf(msg,"Node string IP is [%s].\n", stringip);
     cli_send_feedback(client_fd, msg);
     sprintf(msg,"Node integer IP is [%u].\n", ntohl(nodeIP));
@@ -190,17 +191,14 @@ int validate_node_input(int client_fd, char *stringip, char *key, t_node_command
     if(key != NULL) {
         sprintf(msg,"Node key length is [%u].\n", keylength);
         cli_send_feedback(client_fd, msg);
-    }
+}
+    */
 
     return 0;
 }
 
 int add_update_node(int client_fd, __u32 nodeIP, char *key) {
     struct node *currentnode = NULL;
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-
-    sprintf(msg,"Add or update a node.\n");
-    cli_send_feedback(client_fd, msg);
 
     currentnode = ipchead.next;
 
@@ -208,12 +206,8 @@ int add_update_node(int client_fd, __u32 nodeIP, char *key) {
      * Make sure the node does not already exist.
      */
     while (currentnode != NULL) {
-        sprintf(msg,"Searching for node.\n");
-        cli_send_feedback(client_fd, msg);
 
         if (currentnode->NodeIP == nodeIP) {
-            sprintf(msg,"Node already exists.\n");
-            cli_send_feedback(client_fd, msg);
 
             if(key != NULL) {
                 strcpy(currentnode->key,key);
@@ -228,13 +222,8 @@ int add_update_node(int client_fd, __u32 nodeIP, char *key) {
     /*
      * Did not find the node so lets add it.
      */
-    sprintf(msg,"Creating a new node.\n");
-    cli_send_feedback(client_fd, msg);
 
     currentnode = allocate_node(nodeIP, key);
-
-    sprintf(msg,"Allocated a new node.\n");
-    cli_send_feedback(client_fd, msg);
 
     if (currentnode != NULL) {
 
@@ -255,20 +244,12 @@ int add_update_node(int client_fd, __u32 nodeIP, char *key) {
 
 int del_node(int client_fd, __u32 nodeIP, char *key) {
     struct node *currentnode = NULL;
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-
-    sprintf(msg,"Remove node from OpenNOP.\n");
-    cli_send_feedback(client_fd, msg);
 
     currentnode = ipchead.next;
 
     while (currentnode != NULL) {
-        sprintf(msg,"Searching for node.\n");
-        cli_send_feedback(client_fd, msg);
 
         if (currentnode->NodeIP == nodeIP) {
-            sprintf(msg,"Node exists.\n");
-            cli_send_feedback(client_fd, msg);
 
             if((currentnode->prev == NULL) && (currentnode->next == NULL)) {
                 ipchead.next = NULL;
