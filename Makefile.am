@@ -21,7 +21,8 @@ opennopd_opennopd_SOURCES = \
 	opennopd/subsystems/fetcher.c opennopd/subsystems/healthagent.c \
 	opennopd/subsystems/sessioncleanup.c opennopd/subsystems/counters.c  \
 	opennopd/subsystems/worker.c opennopd/subsystems/memorymanager.c \
-	opennopd/subsystems/climanager.c opennopd/subsystems/clicommands.c
+	opennopd/subsystems/climanager.c opennopd/subsystems/clicommands.c \
+	opennopd/subsystems/ipc.c
 	
 opennopd_opennopd_LDADD = \
 	-lcrypt -ldl -lpthread ${libnetfilter_queue_LIBS}
