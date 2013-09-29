@@ -83,34 +83,80 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                 logger(LOG_INFO, message);
             }
 
-            /*
-             * Validate that the remote accelerator is in the OpenNOP domain.
-             */
-            if(verify_node_in_domain(remoteID) == true) {
+            /* Check if this a SYN packet to identify a new session. */
+            /* This packet will not be placed in a work queue, but  */
+            /* will be accepted here because it does not have any data. */
+            if ((tcph->syn == 1) && (tcph->ack == 0)) {
+                thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort); // Check for an outstanding syn.
 
-                /* Check if this a SYN packet to identify a new session. */
-                /* This packet will not be placed in a work queue, but  */
-                /* will be accepted here because it does not have any data. */
-                if ((tcph->syn == 1) && (tcph->ack == 0)) {
-                    thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort); // Check for an outstanding syn.
+                if (thissession == NULL) {
+                    thissession = insertsession(largerIP, largerIPPort, smallerIP, smallerIPPort); // Insert into sessions list.
+                }
 
-                    if (thissession == NULL) {
-                        thissession = insertsession(largerIP, largerIPPort, smallerIP, smallerIPPort); // Insert into sessions list.
+                /* We need to check for NULL to make sure */
+                /* that a record for the session was created */
+                if (thissession != NULL) {
+
+                    if (DEBUG_FETCHER == true) {
+                        sprintf(message, "Fetcher: The session manager created a new session.\n");
+                        logger(LOG_INFO, message);
                     }
 
-                    /* We need to check for NULL to make sure */
-                    /* that a record for the session was created */
-                    if (thissession != NULL) {
+                    gettimeofday(&tv,NULL); // Get the time from hardware.
+                    thissession->lastactive = tv.tv_sec; // Update the session timestamp.
 
-                        if (DEBUG_FETCHER == true) {
-                            sprintf(message, "Fetcher: The session manager created a new session.\n");
-                            logger(LOG_INFO, message);
+                    sourceisclient(largerIP, iph, thissession);
+                    updateseq(largerIP, iph, tcph, thissession);
+
+                    if (remoteID == 0) { // Accelerator ID was not found.
+                        mms = __get_tcp_option((__u8 *)originalpacket,2);
+
+                        if (mms > 60) {
+                            __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
+                            __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
+                            /*
+                             * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
+                             */
+                            //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
+
+                            saveacceleratorid(largerIP, localID, iph, thissession);
+
+                            /*
+                             * Changing anything requires the IP and TCP
+                             * checksum to need recalculated.
+                             */
+                            checksum(originalpacket);
                         }
 
-                        gettimeofday(&tv,NULL); // Get the time from hardware.
-                        thissession->lastactive = tv.tv_sec; // Update the session timestamp.
+                    } else if(verify_node_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
+                        saveacceleratorid(largerIP, remoteID, iph, thissession);
 
-                        sourceisclient(largerIP, iph, thissession);
+                    } else { // Accelerator ID was found but not in domain.
+                        __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
+                        saveacceleratorid(largerIP, localID, iph, thissession);
+                    }
+
+                    thissession->state = TCP_SYN_SENT;
+                }
+
+                /* Before we return let increment the packets counter. */
+                thefetcher.metrics.packets++;
+
+                /* This is the last step for a SYN packet. */
+                /* accept all SYN packets. */
+                return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
+
+            } else { // Packet was not a SYN packet.
+                thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort);
+
+                if (thissession != NULL) {
+                    gettimeofday(&tv,NULL); // Get the time from hardware.
+                    thissession->lastactive = tv.tv_sec; // Update the active timer.
+                    thissession->deadcounter = 0; // Reset the dead counter.
+
+                    /* Identify SYN/ACK packets that are part of a new */
+                    /* session opening its connection. */
+                    if ((tcph->syn == 1) && (tcph->ack == 1)) {
                         updateseq(largerIP, iph, tcph, thissession);
 
                         if (remoteID == 0) { // Accelerator ID was not found.
@@ -126,139 +172,100 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                                 saveacceleratorid(largerIP, localID, iph, thissession);
 
-                                /*
-                                 * Changing anything requires the IP and TCP
-                                 * checksum to need recalculated.
-                                 */
-                                checksum(originalpacket);
                             }
 
-                        } else { // Accelerator ID was found.
+                        } else if(verify_node_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
                             saveacceleratorid(largerIP, remoteID, iph, thissession);
+
+                        } else { // Accelerator ID was found but not in domain.
+                            __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
+                            saveacceleratorid(largerIP, localID, iph, thissession);
                         }
+                        thissession->state = TCP_ESTABLISHED;
 
-                        thissession->state = TCP_SYN_SENT;
-                    }
+                        /*
+                         * Changing anything requires the IP and TCP
+                         * checksum to need recalculated.
+                         */
+                        checksum(originalpacket);
 
-                    /* Before we return let increment the packets counter. */
-                    thefetcher.metrics.packets++;
-
-                    /* This is the last step for a SYN packet. */
-                    /* accept all SYN packets. */
-                    return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
-
-                } else { // Packet was not a SYN packet.
-                    thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort);
-
-                    if (thissession != NULL) {
-                        gettimeofday(&tv,NULL); // Get the time from hardware.
-                        thissession->lastactive = tv.tv_sec; // Update the active timer.
-                        thissession->deadcounter = 0; // Reset the dead counter.
-
-                        /* Identify SYN/ACK packets that are part of a new */
-                        /* session opening its connection. */
-                        if ((tcph->syn == 1) && (tcph->ack == 1)) {
-                            updateseq(largerIP, iph, tcph, thissession);
-
-                            if (remoteID == 0) { // Accelerator ID was not found.
-                                mms = __get_tcp_option((__u8 *)originalpacket,2);
-
-                                if (mms > 60) {
-                                    __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
-                                    __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
-                                    /*
-                                     * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
-                                     */
-                                    //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
-
-                                    saveacceleratorid(largerIP, localID, iph, thissession);
-
-                                }
-
-                            } else { // Accelerator ID was found.
-                                saveacceleratorid(largerIP, remoteID, iph, thissession);
-                            }
-                            thissession->state = TCP_ESTABLISHED;
-
-                            /*
-                             * Changing anything requires the IP and TCP
-                             * checksum to need recalculated.
-                             */
-                            checksum(originalpacket);
-
-                            /* Before we return let increment the packets counter. */
-                            thefetcher.metrics.packets++;
-                            return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
-                        }
-
-                        /* This is session traffic of an active session. */
-                        /* This packet will be placed in a queue to be processed */
-                        if (DEBUG_FETCHER == true) {
-                            sprintf(message, "Fetcher: Sending the packet to a queue.\n");
-                            logger(LOG_INFO, message);
-                        }
-
-                        if (DEBUG_FETCHER == true) {
-                            sprintf(message, "Fetcher: Packet ID: %u.\n", id);
-                            logger(LOG_INFO, message);
-                        }
-                        thispacket = get_freepacket_buffer();
-
-                        if (thispacket != NULL) {
-                            save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
-
-                            if (remoteID == 0) {
-                                optimize_packet(thissession->queue, thispacket);
-                            } else {
-                                deoptimize_packet(thissession->queue, thispacket);
-                            }
-                        } else {
-
-                            sprintf(message, "Fetcher: Failed getting packet buffer for optimization.\n");
-                            logger(LOG_INFO, message);
-                        }
-                        /* Before we return let increment the packets counter. */
-                        thefetcher.metrics.packets++;
-                        return 0;
-                    } else { // Session does not exist check if it is being tracked by another Accelerator.
-
-                        if (DEBUG_FETCHER == true) {
-                            sprintf(message, "Fetcher: The session manager did not find a session.\n");
-                            logger(LOG_INFO, message);
-                        }
-
-                        /* We only want to create new sessions for active sessions. */
-                        /* This means we exclude anything accept ACK packets. */
-
-                        if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0)) {
-
-                            if (remoteID != 0) { // Detected remote Accelerator its safe to add this session.
-                                thissession = insertsession(largerIP, largerIPPort, smallerIP, smallerIPPort); // Insert into sessions list.
-
-                                if (thissession != NULL) { // Test to make sure the session was added.
-                                    thissession->state = TCP_ESTABLISHED;
-
-                                    saveacceleratorid(largerIP, remoteID, iph, thissession);
-
-                                    thispacket = get_freepacket_buffer();
-
-                                    if (thispacket != NULL) {
-                                        save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
-                                        deoptimize_packet(thissession->queue, thispacket);
-                                    } else {
-                                        sprintf(message, "Fetcher: Failed getting packet buffer for deoptimization.\n");
-                                        logger(LOG_INFO, message);
-                                    }
-                                    /* Before we return let increment the packets counter. */
-                                    thefetcher.metrics.packets++;
-                                    return 0;
-                                }
-                            }
-                        }
                         /* Before we return let increment the packets counter. */
                         thefetcher.metrics.packets++;
                         return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
                     }
+
+                    /* This is session traffic of an active session. */
+                    /* This packet will be placed in a queue to be processed */
+                    if (DEBUG_FETCHER == true) {
+                        sprintf(message, "Fetcher: Sending the packet to a queue.\n");
+                        logger(LOG_INFO, message);
+                    }
+
+                    if (DEBUG_FETCHER == true) {
+                        sprintf(message, "Fetcher: Packet ID: %u.\n", id);
+                        logger(LOG_INFO, message);
+                    }
+                    thispacket = get_freepacket_buffer();
+
+                    if (thispacket != NULL) {
+                        save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
+
+                        if (remoteID == 0) {
+                            optimize_packet(thissession->queue, thispacket);
+                        } else {
+                            deoptimize_packet(thissession->queue, thispacket);
+                        }
+                    } else {
+
+                        sprintf(message, "Fetcher: Failed getting packet buffer for optimization.\n");
+                        logger(LOG_INFO, message);
+                    }
+                    /* Before we return let increment the packets counter. */
+                    thefetcher.metrics.packets++;
+                    return 0;
+                } else { // Session does not exist check if it is being tracked by another Accelerator.
+
+                    if (DEBUG_FETCHER == true) {
+                        sprintf(message, "Fetcher: The session manager did not find a session.\n");
+                        logger(LOG_INFO, message);
+                    }
+
+                    /* We only want to create new sessions for active sessions. */
+                    /* This means we exclude anything accept ACK packets. */
+
+                    if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0)) {
+
+                        if (remoteID != 0) { // Detected remote Accelerator its safe to add this session.
+                            thissession = insertsession(largerIP, largerIPPort, smallerIP, smallerIPPort); // Insert into sessions list.
+
+                            if (thissession != NULL) { // Test to make sure the session was added.
+                                thissession->state = TCP_ESTABLISHED;
+
+                                if(verify_node_in_domain(remoteID) == true) {
+                                    saveacceleratorid(largerIP, remoteID, iph, thissession);
+                                } else {
+                                    __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
+                                    saveacceleratorid(largerIP, localID, iph, thissession);
+                                }
+
+                                thispacket = get_freepacket_buffer();
+
+                                if (thispacket != NULL) {
+                                    save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
+                                    deoptimize_packet(thissession->queue, thispacket);
+                                } else {
+                                    sprintf(message, "Fetcher: Failed getting packet buffer for deoptimization.\n");
+                                    logger(LOG_INFO, message);
+                                }
+                                /* Before we return let increment the packets counter. */
+                                thefetcher.metrics.packets++;
+                                return 0;
+                            }
+                        }
+                    }
+                    /* Before we return let increment the packets counter. */
+                    thefetcher.metrics.packets++;
+                    return nfq_set_verdict(hq, id, NF_ACCEPT, ntohs(iph->tot_len), (unsigned char *)originalpacket);
                 }
             }
         } else { /* Packet was not a TCP Packet or ID was 0. */
