@@ -19,7 +19,7 @@
  * Should the internal variable names be isolated between modules?
  * They don't appear to be clicommands.c also uses a variable "head".
  */
-struct node_head ipchead;
+static struct node_head ipchead;
 
 void start_ipc() {
     /*
