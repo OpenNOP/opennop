@@ -32,5 +32,6 @@ int add_update_node(int client_fd, __u32 nodeIP, char *key);
 int del_node(int client_fd, __u32 nodeIP, char *key);
 int cli_node_help(int client_fd);
 struct node* allocate_node(__u32 nodeIP, char *key);
+int verify_node_in_domain(__u32 nodeIP);
 
 #endif
