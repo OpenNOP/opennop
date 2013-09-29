@@ -8,13 +8,19 @@
 #include <sys/un.h>
 
 #include <linux/types.h>
+#include <arpa/inet.h>
 
 #include "ipc.h"
 #include "clicommands.h"
 #include "logger.h"
 
-struct node *head;
-struct node *tail;
+/*
+ * I was using "head" and "tail" here but that seemed to conflict with another module.
+ * Should the internal variable names be isolated between modules?
+ * They don't appear to be clicommands.c also uses a variable "head".
+ */
+struct node *ipchead;
+struct node *ipctail;
 
 void start_ipc() {
     /*
@@ -24,6 +30,10 @@ void start_ipc() {
     register_command("node", cli_node, true, false);
     register_command("no node", cli_no_node, true, false);
     register_command("show nodes", cli_show_nodes, false, false);
+
+    ipchead = NULL;
+    ipctail = NULL;
+
 }
 
 void *ipc_listener_thread(void *dummyPtr) {
@@ -58,17 +68,15 @@ void *ipc_thread(void *dummyPtr) {
  */
 int cli_node(int client_fd, char **parameters, int numparameters) {
     int ERROR = 0;
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-
-    sprintf(msg,"Add node to OpenNOP.\n");
-    cli_send_feedback(client_fd, msg);
 
     if ((numparameters < 1) || (numparameters > 2)) {
         ERROR = cli_node_help(client_fd);
+
     } else if (numparameters == 1) {
-        ERROR = validate_node_input(client_fd, parameters[0], NULL);
+        ERROR = validate_node_input(client_fd, parameters[0], NULL, &add_update_node);
+
     } else if (numparameters == 2) {
-        ERROR = validate_node_input(client_fd, parameters[0], parameters[1]);
+        ERROR = validate_node_input(client_fd, parameters[0], parameters[1], &add_update_node);
     }
 
     return 0;
@@ -82,13 +90,10 @@ int cli_node(int client_fd, char **parameters, int numparameters) {
  */
 int cli_no_node(int client_fd, char **parameters, int numparameters) {
     int ERROR = 0;
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-
-    sprintf(msg,"Remove node from OpenNOP.\n");
-    cli_send_feedback(client_fd, msg);
 
     if (numparameters == 1) {
-        ERROR = del_node(client_fd, parameters[0]);
+        ERROR = validate_node_input(client_fd, parameters[0], NULL, &del_node);
+
     } else {
         ERROR = cli_node_help(client_fd);
     }
@@ -97,17 +102,54 @@ int cli_no_node(int client_fd, char **parameters, int numparameters) {
 }
 
 int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
+    struct node *currentnode = NULL;
+    char temp[20];
+    char col1[17];
+    char col2[19];
+    char col3[66];
+    char end[3];
     char msg[MAX_BUFFER_SIZE] = { 0 };
 
     sprintf(msg,"Show nodes in OpenNOP.\n");
     cli_send_feedback(client_fd, msg);
 
+    currentnode = ipchead;
+
+    sprintf(
+        msg,
+        "-------------------------------------------------------------------------------------------------------\n");
+    cli_send_feedback(client_fd, msg);
+    sprintf(
+        msg,
+        "|    Node IP     |       GUID       |                               Key                               |\n");
+    cli_send_feedback(client_fd, msg);
+    sprintf(
+        msg,
+        "-------------------------------------------------------------------------------------------------------\n");
+    cli_send_feedback(client_fd, msg);
+
+    while(currentnode != NULL) {
+        strcpy(msg, "");
+        inet_ntop(AF_INET, &currentnode->NodeIP, temp,
+                  INET_ADDRSTRLEN);
+        sprintf(col1, "| %-15s", temp);
+        strcat(msg, col1);
+        sprintf(col2, "| %-17s", currentnode->UUID);
+        strcat(msg, col2);
+        sprintf(col3, "| %-64s", currentnode->key);
+        strcat(msg, col3);
+        sprintf(end, "|\n");
+        strcat(msg, end);
+        cli_send_feedback(client_fd, msg);
+
+        currentnode = currentnode->next;
+    }
+
     return 0;
 }
 
-int validate_node_input(int client_fd, char *stringip, char *key) {
+int validate_node_input(int client_fd, char *stringip, char *key, t_node_command node_command) {
     int ERROR = 0;
-    char validkey[64] = { 0 };
     int keylength = 0;
     __u32 nodeIP = 0;
     char msg[MAX_BUFFER_SIZE] = { 0 };
@@ -128,10 +170,16 @@ int validate_node_input(int client_fd, char *stringip, char *key) {
     if(key != NULL) {
         keylength = strlen(key);
 
-        if(keylength <= 64) {
-            strcpy(validkey,key);
+        if(keylength > 64) {
+            return cli_node_help(client_fd);
         }
     }
+
+    /*
+     * The input is valid so we run the specified command
+     * This will add, update or remove a node.
+     */
+    node_command(client_fd, nodeIP, key);
 
     sprintf(msg,"Node string IP is [%s].\n", stringip);
     cli_send_feedback(client_fd, msg);
@@ -141,17 +189,81 @@ int validate_node_input(int client_fd, char *stringip, char *key) {
     cli_send_feedback(client_fd, msg);
 
     if(key != NULL) {
-        sprintf(msg,"Node key length is [%u].\n", strlen(key));
+        sprintf(msg,"Node key length is [%u].\n", keylength);
         cli_send_feedback(client_fd, msg);
     }
-
-    sprintf(msg,"Node valid key is [%s].\n", validkey);
-    cli_send_feedback(client_fd, msg);
 
     return 0;
 }
 
-int del_node(int client_fd, char *stringip) {
+int add_update_node(int client_fd, __u32 nodeIP, char *key) {
+    struct node *currentnode = NULL;
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+
+    sprintf(msg,"Add or update a node.\n");
+    cli_send_feedback(client_fd, msg);
+
+    currentnode = ipchead;
+
+    if(currentnode == NULL) {
+        sprintf(msg,"Currentnode is NULL.\n");
+        cli_send_feedback(client_fd, msg);
+    }
+
+    /*
+     * Make sure the node does not already exist.
+     */
+    while (currentnode != NULL) {
+        sprintf(msg,"Searching for node.\n");
+        cli_send_feedback(client_fd, msg);
+
+        if (currentnode->NodeIP == nodeIP) {
+            sprintf(msg,"Node already exists.\n");
+            cli_send_feedback(client_fd, msg);
+
+            if(key != NULL) {
+                strcpy(currentnode->key,key);
+            }
+
+            return 0;
+        }
+
+        currentnode = currentnode->next;
+    }
+
+    /*
+     * Did not find the node so lets add it.
+     */
+    sprintf(msg,"Creating a new node.\n");
+    cli_send_feedback(client_fd, msg);
+
+    currentnode = allocate_node(nodeIP, key);
+
+    sprintf(msg,"Allocated a new node.\n");
+    cli_send_feedback(client_fd, msg);
+
+    if (currentnode != NULL) {
+
+        if (ipchead == NULL) {
+            ipchead = currentnode;
+            ipctail = currentnode;
+
+        } else {
+            currentnode->prev = ipctail;
+            ipctail->next = currentnode;
+            ipctail = currentnode;
+        }
+
+    }
+
+    return 0;
+}
+
+int del_node(int client_fd, __u32 nodeIP, char *key) {
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+
+    sprintf(msg,"Remove node from OpenNOP.\n");
+    cli_send_feedback(client_fd, msg);
 
     return 0;
 }
@@ -165,3 +277,27 @@ int cli_node_help(int client_fd) {
     return 0;
 }
 
+struct node* allocate_node(__u32 nodeIP, char *key) {
+    struct node *newnode = (struct node *) malloc (sizeof (struct node));
+
+    if(newnode == NULL) {
+        fprintf(stdout, "Could not allocate memory... \n");
+        exit(1);
+    }
+    newnode->next = NULL;
+    newnode->prev = NULL;
+    newnode->NodeIP = 0;
+    newnode->UUID[0] = '\0';
+    newnode->sock = 0;
+    newnode->key[0] = '\0';
+
+    if (nodeIP != 0) {
+        newnode->NodeIP = nodeIP;
+    }
+
+    if (key != NULL) {
+        strcpy(newnode->key,key);
+    }
+
+    return newnode;
+}
