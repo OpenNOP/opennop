@@ -144,6 +144,11 @@ int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
         currentnode = currentnode->next;
     }
 
+    sprintf(
+        msg,
+        "---------------------------------------------------------------------------------------------------------\n");
+    cli_send_feedback(client_fd, msg);
+
     return 0;
 }
 
@@ -312,4 +317,26 @@ struct node* allocate_node(__u32 nodeIP, char *key) {
     }
 
     return newnode;
+}
+
+/*
+ * We need to verify that the remote accelerator is a member of this domain.
+ * TODO: Later the UUID will need to be used instead of the IP address.
+ */
+int verify_node_in_domain(__u32 nodeIP) {
+    struct node *currentnode = NULL;
+
+    currentnode = ipchead.next;
+
+    while (currentnode != NULL) {
+
+        if (currentnode->NodeIP == nodeIP) {
+
+            return 1;
+        }
+
+        currentnode = currentnode->next;
+    }
+
+    return 0;
 }
