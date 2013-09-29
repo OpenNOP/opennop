@@ -19,8 +19,7 @@
  * Should the internal variable names be isolated between modules?
  * They don't appear to be clicommands.c also uses a variable "head".
  */
-struct node *ipchead;
-struct node *ipctail;
+struct node_head ipchead;
 
 void start_ipc() {
     /*
@@ -31,8 +30,8 @@ void start_ipc() {
     register_command("no node", cli_no_node, true, false);
     register_command("show nodes", cli_show_nodes, false, false);
 
-    ipchead = NULL;
-    ipctail = NULL;
+    ipchead.next = NULL;
+    ipchead.prev = NULL;
 
 }
 
@@ -113,7 +112,7 @@ int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
     sprintf(msg,"Show nodes in OpenNOP.\n");
     cli_send_feedback(client_fd, msg);
 
-    currentnode = ipchead;
+    currentnode = ipchead.next;
 
     sprintf(
         msg,
@@ -203,12 +202,7 @@ int add_update_node(int client_fd, __u32 nodeIP, char *key) {
     sprintf(msg,"Add or update a node.\n");
     cli_send_feedback(client_fd, msg);
 
-    currentnode = ipchead;
-
-    if(currentnode == NULL) {
-        sprintf(msg,"Currentnode is NULL.\n");
-        cli_send_feedback(client_fd, msg);
-    }
+    currentnode = ipchead.next;
 
     /*
      * Make sure the node does not already exist.
@@ -244,14 +238,14 @@ int add_update_node(int client_fd, __u32 nodeIP, char *key) {
 
     if (currentnode != NULL) {
 
-        if (ipchead == NULL) {
-            ipchead = currentnode;
-            ipctail = currentnode;
+        if (ipchead.next == NULL) {
+            ipchead.next = currentnode;
+            ipchead.prev = currentnode;
 
         } else {
-            currentnode->prev = ipctail;
-            ipctail->next = currentnode;
-            ipctail = currentnode;
+            currentnode->prev = ipchead.prev;
+            ipchead.prev->next = currentnode;
+            ipchead.prev = currentnode;
         }
 
     }
@@ -260,10 +254,47 @@ int add_update_node(int client_fd, __u32 nodeIP, char *key) {
 }
 
 int del_node(int client_fd, __u32 nodeIP, char *key) {
+    struct node *currentnode = NULL;
     char msg[MAX_BUFFER_SIZE] = { 0 };
 
     sprintf(msg,"Remove node from OpenNOP.\n");
     cli_send_feedback(client_fd, msg);
+
+    currentnode = ipchead.next;
+
+    while (currentnode != NULL) {
+        sprintf(msg,"Searching for node.\n");
+        cli_send_feedback(client_fd, msg);
+
+        if (currentnode->NodeIP == nodeIP) {
+            sprintf(msg,"Node exists.\n");
+            cli_send_feedback(client_fd, msg);
+
+            if((currentnode->prev == NULL) && (currentnode->next == NULL)) {
+                ipchead.next = NULL;
+                ipchead.prev = NULL;
+
+            } else if ((currentnode->prev == NULL) && (currentnode->next != NULL)) {
+                ipchead.next = currentnode->next;
+                currentnode->next->prev = NULL;
+
+            } else if ((currentnode->prev != NULL) && (currentnode->next == NULL)) {
+                ipchead.prev = currentnode->prev;
+                currentnode->prev->next = NULL;
+
+            } else if ((currentnode->next != NULL) && (currentnode->prev != NULL)) {
+            	currentnode->prev->next = currentnode->next;
+            	currentnode->next->prev = currentnode->prev;
+            }
+
+            free(currentnode);
+            currentnode = NULL;
+
+            return 0;
+        }
+
+        currentnode = currentnode->next;
+    }
 
     return 0;
 }

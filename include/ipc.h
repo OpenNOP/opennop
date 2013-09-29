@@ -5,6 +5,13 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+struct node_head
+{
+    struct node *next; // Points to the first node of the list.
+    struct node *prev; // Points to the last node of the list.
+    pthread_mutex_t lock; // Lock for this node.
+};
+
 struct node {
     struct node *next;
     struct node *prev;
