@@ -108,7 +108,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     sourceisclient(largerIP, iph, thissession);
                     updateseq(largerIP, iph, tcph, thissession);
 
-                    if (remoteID == 0) { // Accelerator ID was not found.
+                    if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) {// Accelerator ID was not found.
                         mms = __get_tcp_option((__u8 *)originalpacket,2);
 
                         if (mms > 60) {
@@ -131,9 +131,6 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     } else if(verify_node_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
                         saveacceleratorid(largerIP, remoteID, iph, thissession);
 
-                    } else { // Accelerator ID was found but not in domain.
-                        __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
-                        saveacceleratorid(largerIP, localID, iph, thissession);
                     }
 
                     thissession->state = TCP_SYN_SENT;
@@ -159,7 +156,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if ((tcph->syn == 1) && (tcph->ack == 1)) {
                         updateseq(largerIP, iph, tcph, thissession);
 
-                        if (remoteID == 0) { // Accelerator ID was not found.
+                        if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) { // Accelerator ID was not found.
                             mms = __get_tcp_option((__u8 *)originalpacket,2);
 
                             if (mms > 60) {
@@ -177,10 +174,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                         } else if(verify_node_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
                             saveacceleratorid(largerIP, remoteID, iph, thissession);
 
-                        } else { // Accelerator ID was found but not in domain.
-                            __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
-                            saveacceleratorid(largerIP, localID, iph, thissession);
                         }
+
                         thissession->state = TCP_ESTABLISHED;
 
                         /*
@@ -210,9 +205,10 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if (thispacket != NULL) {
                         save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
 
-                        if (remoteID == 0) {
+                        if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) {
                             optimize_packet(thissession->queue, thispacket);
-                        } else {
+
+                        } else if(verify_node_in_domain(remoteID) == true) {
                             deoptimize_packet(thissession->queue, thispacket);
                         }
                     } else {
@@ -243,6 +239,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                                 if(verify_node_in_domain(remoteID) == true) {
                                     saveacceleratorid(largerIP, remoteID, iph, thissession);
+
                                 } else {
                                     __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
                                     saveacceleratorid(largerIP, localID, iph, thissession);
@@ -253,6 +250,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                                 if (thispacket != NULL) {
                                     save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
                                     deoptimize_packet(thissession->queue, thispacket);
+
                                 } else {
                                     sprintf(message, "Fetcher: Failed getting packet buffer for deoptimization.\n");
                                     logger(LOG_INFO, message);
