@@ -20,6 +20,7 @@
 #include "memorymanager.h"
 #include "counters.h"
 #include "climanager.h"
+#include "ipc.h"
 
 struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
@@ -91,7 +92,7 @@ void *worker_thread(void *dummyPtr) {
 
                     if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0)) {
 
-                        if (remoteID == 0) {
+                        if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) {
                             /*
                              * An accelerator ID was NOT found.
                              * This is the first accelerator in the traffic path.
@@ -137,7 +138,7 @@ void *worker_thread(void *dummyPtr) {
                             /*
                              * End of what should be the optimize function.
                              */
-                        } else {
+                        } else if(verify_node_in_domain(remoteID) == true) {
                             /*
                              * An accelerator ID WAS found.
                              * Traffic is sent through the de-optimize functions.
