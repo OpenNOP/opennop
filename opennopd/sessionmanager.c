@@ -354,7 +354,7 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 	char col3[14];
 	char col4[17];
 	char col5[14];
-	char col6[13];
+	char col6[14];
 	char end[3];
 
 	sprintf(
