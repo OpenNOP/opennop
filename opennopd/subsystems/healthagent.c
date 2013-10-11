@@ -230,7 +230,7 @@ int send_echo()
 int send_hb()
 {
 	int nl_sd; /*the socket*/
-	char * message;
+	char message[14];
 
 	nl_sd = create_nl_socket(NETLINK_GENERIC,0);
 
@@ -261,10 +261,12 @@ int send_hb()
         na = (struct nlattr *) GENLMSG_DATA(&req);
         na->nla_type = 1; //OPENNOP_A_MSG
         if (servicestate >= RUNNING){
-           	message = "UP"; //message
+           	//message = "UP"; //message
+           	sprintf(message, "UP");
         }
         else{
-			message = "DOWN"; //message
+			//message = "DOWN"; //message
+        	sprintf(message, "DOWN");
         }
         int mlength = 14;
         na->nla_len = mlength+NLA_HDRLEN; //message length
