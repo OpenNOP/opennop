@@ -149,10 +149,10 @@ int get_family_id(int sd)
         }
         return id;
 }
-
+/*
 int send_echo()
 {
-	int nl_sd; /*the socket*/
+	int nl_sd; //the socket//
 	nl_sd = create_nl_socket(NETLINK_GENERIC,0);
     if(nl_sd < 0){
 		printf("create failure\n");
@@ -173,7 +173,7 @@ int send_echo()
 
 	struct nlattr *na;
       
-        /* Send command needed */
+        //Send command needed //
         req.n.nlmsg_len = NLMSG_LENGTH(GENL_HDRLEN);
         req.n.nlmsg_type = id;
         req.n.nlmsg_flags = NLM_F_REQUEST;
@@ -181,7 +181,7 @@ int send_echo()
         req.n.nlmsg_pid = getpid();
         req.g.cmd = 1;//OPENNOP_C_ECHO;
         
-        /*compose message*/
+        // compose message //
         na = (struct nlattr *) GENLMSG_DATA(&req);
         na->nla_type = 1; //DOC_EXMPL_A_MSG
         char * message = "hello world!"; //message
@@ -190,7 +190,7 @@ int send_echo()
         memcpy(NLA_DATA(na), message, mlength);
         req.n.nlmsg_len += NLMSG_ALIGN(na->nla_len);
 
-	/*send message*/
+	//send message//
 	struct sockaddr_nl nladdr;
         int r;
         
@@ -201,8 +201,8 @@ int send_echo()
 			  (struct sockaddr *) &nladdr, sizeof(nladdr));
 	
 	int rep_len = recv(nl_sd, &ans, sizeof(ans), 0);
-        /* Validate response message */
-        if (ans.n.nlmsg_type == NLMSG_ERROR) { /* error */
+        // Validate response message //
+        if (ans.n.nlmsg_type == NLMSG_ERROR) { // error //
                 printf("error received NACK - leaving \n");
                	return -1;
         }
@@ -216,7 +216,7 @@ int send_echo()
 	}
 
         rep_len = GENLMSG_PAYLOAD(&ans.n);
-        /*parse reply message*/
+        //parse reply message//
         na = (struct nlattr *) GENLMSG_DATA(&ans);
         char * result = (char *)NLA_DATA(na);
         printf("kernel says: %s\n",result);
@@ -225,6 +225,7 @@ int send_echo()
         
         return 0;
 }
+*/
 
 int send_hb()
 {
