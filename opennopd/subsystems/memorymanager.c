@@ -54,6 +54,7 @@ void *memorymanager_function(void *dummyPtr) {
 	/*
 	 * Initialize the staging packet buffer queue lock and signal.
 	 */
+	pthread_mutex_init(&packetbufferstaging.lock, NULL);
 	pthread_mutex_lock(&packetbufferstaging.lock);
 	packetbufferstaging.qlen = 0;
 	pthread_mutex_unlock(&packetbufferstaging.lock);
