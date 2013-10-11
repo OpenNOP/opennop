@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 	pthread_t t_counters; // thread for performance counters.
 	pthread_t t_memorymanager; // thread for the memory manager.
 	struct ifaddrs *ifaddr, *ifa;
-	__u32 tempIP;
+	__u32 tempIP = 0;
 	int s;
 	int i;
 	char message[LOGSZ];
