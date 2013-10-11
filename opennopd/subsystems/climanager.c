@@ -74,6 +74,8 @@ void start_cli_server() {
 		exit(1);
 	}
 
+	close(socket_desc);
+
 	return;
 }
 void *client_handler(void *socket_desc) {
