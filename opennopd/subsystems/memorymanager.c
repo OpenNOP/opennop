@@ -46,6 +46,7 @@ void *memorymanager_function(void *dummyPtr) {
 	/*
 	 * Initialize the free packet buffer pool lock and signal.
 	 */
+	pthread_mutex_init(&freepacketbuffers.lock, NULL);
 	pthread_mutex_lock(&freepacketbuffers.lock);
 	freepacketbuffers.qlen = 0;
 	pthread_mutex_unlock(&freepacketbuffers.lock);
