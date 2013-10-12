@@ -55,7 +55,7 @@ void start_cli_server() {
 		puts("Connection accepted");
 
 		pthread_t sniffer_thread;
-		new_sock = malloc(sizeof(new_sock));
+		new_sock = malloc(sizeof(int));
 		*new_sock = client_sock;
 
 		if (pthread_create(&sniffer_thread, NULL, client_handler,
