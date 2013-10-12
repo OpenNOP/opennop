@@ -187,7 +187,7 @@ struct packet *get_freepacket_buffer(void) {
 	}
 
 	if (thispacket != NULL) {
-		memset(thispacket, 0, sizeof(thispacket));
+		memset(thispacket, 0, sizeof(struct packet));
 	} else {
 		sprintf(message, "[OpenNOP]: Failed to allocate packet! \n");
 		logger(LOG_INFO, message);
