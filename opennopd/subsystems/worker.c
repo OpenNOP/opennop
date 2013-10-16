@@ -260,8 +260,10 @@ void decrement_worker_sessions(int i) {
 void create_worker(int i) {
     initialize_worker_processor(&workers[i].optimization);
     initialize_worker_processor(&workers[i].deoptimization);
-    workers[i].sessions = 0;
     pthread_mutex_init(&workers[i].lock, NULL); // Initialize the worker lock.
+    pthread_mutex_lock(&workers[i].lock);
+    workers[i].sessions = 0;
+    pthread_mutex_unlock(&workers[i].lock);
     pthread_create(&workers[i].optimization.t_processor, NULL, worker_thread,
                    (void *) &workers[i].optimization);
     pthread_create(&workers[i].deoptimization.t_processor, NULL, worker_thread,
