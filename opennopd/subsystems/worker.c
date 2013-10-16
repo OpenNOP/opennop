@@ -285,11 +285,12 @@ void rejoin_worker(int i) {
 
 void initialize_worker_processor(struct processor *thisprocessor) {
     pthread_cond_init(&thisprocessor->queue.signal, NULL); // Initialize the thread signal.
+    pthread_mutex_init(&thisprocessor->queue.lock, NULL); // Initialize the queue lock.
+    pthread_mutex_lock(&thisprocessor->queue.lock);
     thisprocessor->queue.next = NULL; // Initialize the queue.
     thisprocessor->queue.prev = NULL;
-    thisprocessor->lzbuffer = NULL;
     thisprocessor->queue.qlen = 0;
-    pthread_mutex_init(&thisprocessor->queue.lock, NULL); // Initialize the queue lock.
+    pthread_mutex_unlock(&thisprocessor->queue.lock);
 }
 
 void joining_worker_processor(struct processor *thisprocessor) {
