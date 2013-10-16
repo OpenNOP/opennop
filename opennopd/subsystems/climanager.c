@@ -131,7 +131,9 @@ int cli_quit(int client_fd, char **parameters, int numparameters) {
 }
 
 void *cli_manager_init(void *dummyPtr) {
-	register_command("quit", cli_quit, false, true);
+	register_command("quit", cli_quit, false, false);
+	register_command("exit", cli_quit, false, true);
+	register_command("end", cli_quit, false, true);
 	register_command("show parameters", cli_show_param, true, true);
 
 	/* Sharwan Joram:t We'll call this in last as we will never return from here */
