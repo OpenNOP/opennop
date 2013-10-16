@@ -103,7 +103,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len){
 				 * We found a command in this node.
 				 * There are no other child nodes so its the last one.
 				 */
-				sprintf(message, "CLI: Locating [%s] command .\n", token);
+				sprintf(message, "CLI: Locating [%s] command.\n", token);
 				logger(LOG_INFO, message);
 
 				while((executedcommand == NULL) && (currentcommand != NULL)){
