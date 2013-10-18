@@ -29,9 +29,9 @@ void start_ipc() {
      * This will setup and start the IPC threads.
      * We also register the IPC commands here.
      */
-    register_command("node", cli_node, true, false);
-    register_command("no node", cli_no_node, true, false);
-    register_command("show nodes", cli_show_nodes, false, false);
+    register_command(NULL, "node", cli_node, true, false);
+    register_command(NULL, "no node", cli_no_node, true, false);
+    register_command(NULL, "show nodes", cli_show_nodes, false, false);
 
     ipchead.next = NULL;
     ipchead.prev = NULL;
@@ -68,8 +68,9 @@ void *ipc_thread(void *dummyPtr) {
  * parameter[0] = IP in string format.
  * parameter[1] = Authentication key(optional).
  */
-int cli_node(int client_fd, char **parameters, int numparameters) {
+struct commandresult cli_node(int client_fd, char **parameters, int numparameters, void *data) {
     int ERROR = 0;
+    struct commandresult result  = { 0 };
 
     if ((numparameters < 1) || (numparameters > 2)) {
         ERROR = cli_node_help(client_fd);
@@ -81,7 +82,11 @@ int cli_node(int client_fd, char **parameters, int numparameters) {
         ERROR = validate_node_input(client_fd, parameters[0], parameters[1], &add_update_node);
     }
 
-    return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
 /*
@@ -90,8 +95,9 @@ int cli_node(int client_fd, char **parameters, int numparameters) {
  * This should accept 1 parameter.
  * parameter[0] = IP in string format.
  */
-int cli_no_node(int client_fd, char **parameters, int numparameters) {
+struct commandresult cli_no_node(int client_fd, char **parameters, int numparameters, void *data) {
     int ERROR = 0;
+    struct commandresult result = { 0 };
 
     if (numparameters == 1) {
         ERROR = validate_node_input(client_fd, parameters[0], NULL, &del_node);
@@ -100,11 +106,16 @@ int cli_no_node(int client_fd, char **parameters, int numparameters) {
         ERROR = cli_node_help(client_fd);
     }
 
-    return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
-int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
+struct commandresult cli_show_nodes(int client_fd, char **parameters, int numparameters, void *data) {
     struct node *currentnode = NULL;
+    struct commandresult result  = { 0 };
     char temp[20];
     char col1[17];
     char col2[18];
@@ -149,7 +160,11 @@ int cli_show_nodes(int client_fd, char **parameters, int numparameters) {
         "---------------------------------------------------------------------------------------------------------\n");
     cli_send_feedback(client_fd, msg);
 
-    return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
 int validate_node_input(int client_fd, char *stringip, char *key, t_node_command node_command) {

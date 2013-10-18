@@ -24,7 +24,7 @@ void sort_sockets(__u32 *largerIP, __u16 *largerIPPort, __u32 *smallerIP,
 void initialize_sessiontable();
 void clear_sessiontable();
 struct session_head *getsessionhead(int i);
-int cli_show_sessionss(int client_fd, char **parameters, int numparameters);
+struct commandresult cli_show_sessionss(int client_fd, char **parameters, int numparameters, void *data);
 int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 		struct session *thissession);
 int sourceisclient(__u32 largerIP, struct iphdr *iph, struct session *thisession);

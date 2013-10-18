@@ -51,7 +51,7 @@ void *fetcher_function(void *dummyPtr);
 void fetcher_graceful_exit();
 void create_fetcher();
 void rejoin_fetcher();
-int cli_show_fetcher(int client_fd, char **parameters, int numparameters);
+struct commandresult cli_show_fetcher(int client_fd, char **parameters, int numparameters, void *data);
 void counter_updatefetchermetrics(t_counterdata data);
 
 #endif /*FETCHER_H_*/

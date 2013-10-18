@@ -344,8 +344,9 @@ struct session_head *getsessionhead(int i) {
 	return &sessiontable[i];
 }
 
-int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
+struct commandresult cli_show_sessionss(int client_fd, char **parameters, int numparameters, void *data) {
 	struct session *currentsession = NULL;
+	struct commandresult result = { 0 };
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	int i;
 	char temp[20];
@@ -437,7 +438,11 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 
 	}
 
-	return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
 int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,

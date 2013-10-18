@@ -324,13 +324,14 @@ int deoptimize_packet(__u8 queue, struct packet *thispacket) {
     return queue_packet(&workers[queue].deoptimization.queue, thispacket);
 }
 
-int cli_show_workers(int client_fd, char **parameters, int numparameters) {
+struct commandresult cli_show_workers(int client_fd, char **parameters, int numparameters, void *data) {
     int i;
     __u32 ppsbps;
     __u32 total_optimization_pps = 0, total_optimization_bpsin = 0,
                                    total_optimization_bpsout = 0;
     __u32 total_deoptimization_pps = 0, total_deoptimization_bpsin = 0,
                                      total_deoptimization_bpsout = 0;
+    struct commandresult result  = { 0 };
     char msg[MAX_BUFFER_SIZE] = { 0 };
     char message[LOGSZ];
     char bps[11];
@@ -437,7 +438,11 @@ int cli_show_workers(int client_fd, char **parameters, int numparameters) {
         "-------------------------------------------------------------------------------\n");
     cli_send_feedback(client_fd, msg);
 
-    return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
 void counter_updateworkermetrics(t_counterdata data) {
