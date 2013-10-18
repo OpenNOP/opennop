@@ -33,13 +33,9 @@ struct commandresult {
     void *data; // Pointer to any data needed to retain context.
 };
 
-struct command* lookup_command(const char *command_name);
 struct commandresult execute_commands(struct command_head *mode, void *data, int client_fd, const char *command_name, int d_len);
 int register_command(struct command_head *mode, const char *command_name, t_commandfunction handler_function, bool, bool);
-struct command* find_command(struct command_head *node, char *command_name);
 int cli_prompt(int client_fd);
-int cli_help(int client_fd, struct command_head *currentnode);
-struct commandresult cli_show_params(int client_fd, char **parameters, int numparameters, void *data);
 void bytestostringbps(char *output, __u32 count);
 int cli_send_feedback(int client_fd, char *msg);
 void initializetestmode();
