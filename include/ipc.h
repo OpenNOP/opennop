@@ -24,9 +24,9 @@ struct node {
 typedef int (*t_node_command)(int, __u32, char *);
 
 void start_ipc();
-int cli_node(int client_fd, char **parameters, int numparameters);
-int cli_no_node(int client_fd, char **parameters, int numparameters);
-int cli_show_nodes(int client_fd, char **parameters, int numparameters);
+struct commandresult cli_node(int client_fd, char **parameters, int numparameters, void *data);
+struct commandresult cli_no_node(int client_fd, char **parameters, int numparameters, void *data);
+struct commandresult cli_show_nodes(int client_fd, char **parameters, int numparameters, void *data);
 int validate_node_input(int client_fd, char *stringip, char *key, t_node_command node_command);
 int add_update_node(int client_fd, __u32 nodeIP, char *key);
 int del_node(int client_fd, __u32 nodeIP, char *key);
