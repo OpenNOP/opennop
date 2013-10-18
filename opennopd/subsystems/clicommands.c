@@ -17,7 +17,7 @@ static const char delimiters[] = " ";
 
 int cli_help(int client_fd, struct command_head *currentnode) {
     char msg[MAX_BUFFER_SIZE] = { 0 };
-    struct command *currentcommand;
+    struct command *currentcommand = NULL;
     int count = 1;
 
     currentcommand = currentnode->next;
