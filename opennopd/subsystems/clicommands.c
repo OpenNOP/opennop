@@ -15,6 +15,28 @@ static struct command_head globalmode;
 static struct command_head testmode;
 static const char delimiters[] = " ";
 
+int cli_help(int client_fd, struct command_head *currentnode) {
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+    struct command *currentcommand;
+    int count = 1;
+
+    currentcommand = currentnode->next;
+    //sprintf(msg, "\n Showing help.\n");
+    //cli_send_feedback(client_fd, msg);
+
+    while (currentcommand) {
+
+        if(currentcommand->hidden == false) {
+            sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
+            cli_send_feedback(client_fd, msg);
+            ++count;
+        }
+        currentcommand = currentcommand->next;
+    }
+
+    return 0;
+}
+
 struct commandresult cli_mode_test(int client_fd, char **parameters, int numparameters, void *data) {
     struct commandresult result = { 0 };
 
@@ -32,6 +54,26 @@ struct commandresult cli_mode_test_exit(int client_fd, char **parameters, int nu
      */
     result.finished = 0;
     result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+/*
+ * Testing params
+ */
+struct commandresult cli_show_params(int client_fd, char **parameters, int numparameters, void *data) {
+    int i = 0;
+    struct commandresult result = { 0 };
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+
+    for (i=0;i<numparameters;i++) {
+        sprintf(msg, "[%d] %s\n", i, parameters[i]);
+        cli_send_feedback(client_fd, msg);
+    }
+
+    result.finished = 0;
+    result.mode = &testmode;
     result.data = NULL;
 
     return result;
@@ -57,6 +99,23 @@ struct command* allocate_command() {
     newcommand->command_handler = NULL;
     newcommand->hasparams = false;
     return newcommand;
+}
+
+/*
+ */
+struct command* find_command(struct command_head *currentnode, char *command_name) {
+    struct command *currentcommand;
+    currentcommand = currentnode->next;
+
+    while(currentcommand != NULL ) {
+
+        if (strcmp(currentcommand->command, command_name) == 0) {
+            return currentcommand;
+        }
+        currentcommand = currentcommand->next;
+    }
+
+    return NULL;
 }
 
 /*
@@ -332,45 +391,6 @@ int register_command(struct command_head *mode, const char *command_name, t_comm
 }
 
 /*
- */
-struct command* find_command(struct command_head *currentnode, char *command_name) {
-    struct command *currentcommand;
-    currentcommand = currentnode->next;
-
-    while(currentcommand != NULL ) {
-
-        if (strcmp(currentcommand->command, command_name) == 0) {
-            return currentcommand;
-        }
-        currentcommand = currentcommand->next;
-    }
-
-    return NULL;
-}
-
-int cli_help(int client_fd, struct command_head *currentnode) {
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-    struct command *currentcommand;
-    int count = 1;
-
-    currentcommand = currentnode->next;
-    //sprintf(msg, "\n Showing help.\n");
-    //cli_send_feedback(client_fd, msg);
-
-    while (currentcommand) {
-
-        if(currentcommand->hidden == false) {
-            sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
-            cli_send_feedback(client_fd, msg);
-            ++count;
-        }
-        currentcommand = currentcommand->next;
-    }
-
-    return 0;
-}
-
-/*
  * Show the opennopd# prompt.
  */
 int cli_prompt(int client_fd) {
@@ -378,26 +398,6 @@ int cli_prompt(int client_fd) {
     sprintf(msg, "opennopd# ");
     cli_send_feedback(client_fd, msg);
     return 0;
-}
-
-/*
- * Testing params
- */
-struct commandresult cli_show_params(int client_fd, char **parameters, int numparameters, void *data) {
-    int i = 0;
-    struct commandresult result = { 0 };
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-
-    for (i=0;i<numparameters;i++) {
-        sprintf(msg, "[%d] %s\n", i, parameters[i]);
-        cli_send_feedback(client_fd, msg);
-    }
-
-    result.finished = 0;
-    result.mode = &testmode;
-    result.data = NULL;
-
-    return result;
 }
 
 void bytestostringbps(char *output, __u32 count) {
