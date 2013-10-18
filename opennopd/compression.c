@@ -14,7 +14,8 @@
 int compression = true; // Determines if opennop should compress tcp data.
 int DEBUG_COMPRESSION = false;
 
-int cli_show_compression(int client_fd, char **parameters, int numparameters) {
+struct commandresult cli_show_compression(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result  = { 0 };
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 
 	if (compression == true) {
@@ -24,32 +25,46 @@ int cli_show_compression(int client_fd, char **parameters, int numparameters) {
 	}
 	cli_send_feedback(client_fd, msg);
 
-	return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
-int cli_compression_enable(int client_fd, char **parameters, int numparameters) {
-	compression = true;
+struct commandresult cli_compression_enable(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
 	char msg[MAX_BUFFER_SIZE] = { 0 };
+	compression = true;
 	sprintf(msg, "compression enabled\n");
 	cli_send_feedback(client_fd, msg);
 
-	return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
-int cli_compression_disable(int client_fd, char **parameters, int numparameters) {
-	compression = false;
+struct commandresult cli_compression_disable(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
 	char msg[MAX_BUFFER_SIZE] = { 0 };
+	compression = false;
 	sprintf(msg, "compression disabled\n");
 	cli_send_feedback(client_fd, msg);
 
-	return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
 /*
  * Compresses the TCP data of an SKB.
  */
 unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
-		qlz_state_compress *state_compress) {
+	qlz_state_compress *state_compress) {
 	struct iphdr *iph = NULL;
 	struct tcphdr *tcph = NULL;
 	__u16 oldsize = 0, newsize = 0; /* Store old, and new size of the TCP data. */

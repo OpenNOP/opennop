@@ -507,8 +507,9 @@ void rejoin_fetcher() {
     pthread_join(thefetcher.t_fetcher, NULL);
 }
 
-int cli_show_fetcher(int client_fd, char **parameters, int numparameters) {
-    char msg[MAX_BUFFER_SIZE] = { 0 };
+struct commandresult cli_show_fetcher(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result  = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
     __u32 ppsbps;
     char bps[11];
     char col1[11];
@@ -544,7 +545,11 @@ int cli_show_fetcher(int client_fd, char **parameters, int numparameters) {
     sprintf(msg, "------------------------\n");
     cli_send_feedback(client_fd, msg);
 
-    return 0;
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
 }
 
 void counter_updatefetchermetrics(t_counterdata data) {

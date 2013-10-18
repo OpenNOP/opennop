@@ -11,10 +11,79 @@
 #include "climanager.h"
 #include "logger.h"
 
-static struct command_head *head;
+static struct command_head globalmode;
+static struct command_head testmode;
 static const char delimiters[] = " ";
-//pthread_mutex_t lock;
-//struct command *tail;
+
+int cli_help(int client_fd, struct command_head *currentnode) {
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+    struct command *currentcommand = NULL;
+    int count = 1;
+
+    currentcommand = currentnode->next;
+    //sprintf(msg, "\n Showing help.\n");
+    //cli_send_feedback(client_fd, msg);
+
+    while (currentcommand) {
+
+        if(currentcommand->hidden == false) {
+            sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
+            cli_send_feedback(client_fd, msg);
+            ++count;
+        }
+        currentcommand = currentcommand->next;
+    }
+
+    return 0;
+}
+
+struct commandresult cli_mode_test(int client_fd, char **parameters, int numparameters, void *data) {
+    struct commandresult result = { 0 };
+
+    result.finished = 0;
+    result.mode = &testmode;
+    result.data = NULL;
+
+    return result;
+}
+
+struct commandresult cli_mode_test_exit(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+    /*
+     * Received a quit command so return 1 to shutdown this cli session.
+     */
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+/*
+ * Testing params
+ */
+struct commandresult cli_show_params(int client_fd, char **parameters, int numparameters, void *data) {
+    int i = 0;
+    struct commandresult result = { 0 };
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+
+    for (i=0;i<numparameters;i++) {
+        sprintf(msg, "[%d] %s\n", i, parameters[i]);
+        cli_send_feedback(client_fd, msg);
+    }
+
+    result.finished = 0;
+    result.mode = &testmode;
+    result.data = NULL;
+
+    return result;
+}
+
+void initializetestmode(){
+    register_command(NULL, "test", cli_mode_test, false, true);
+    register_command(&testmode, "exit", cli_mode_test_exit, false, false);
+    register_command(&testmode, "show parameters", cli_show_params, true, false);
+}
 
 struct command* allocate_command() {
     struct command *newcommand = (struct command *) malloc (sizeof (struct command));
@@ -33,31 +102,60 @@ struct command* allocate_command() {
 }
 
 /*
+ */
+struct command* find_command(struct command_head *currentnode, char *command_name) {
+    struct command *currentcommand;
+    currentcommand = currentnode->next;
+
+    while(currentcommand != NULL ) {
+
+        if (strcmp(currentcommand->command, command_name) == 0) {
+            return currentcommand;
+        }
+        currentcommand = currentcommand->next;
+    }
+
+    return NULL;
+}
+
+/*
  * This replaces cli_process_message().
  * It can execute multiple commands that share the same name.
  */
-int execute_commands(int client_fd, const char *command_name, int d_len) {
+struct commandresult execute_commands(struct command_head *mode, void *data, int client_fd, const char *command_name, int d_len) {
     char *token, *cp, *saved_token;
     int parametercount = 0;
-    int shutdown = 0;
     char **parameters = NULL; //dynamic array of pointers to tokens that are parameters
     char **tempparameters = NULL;
     char *parameter = NULL;
     struct command_head *currentnode = NULL;
     struct command *currentcommand = NULL;
     struct command *executedcommand = NULL;
+    struct commandresult result = {0};
     char message[LOGSZ];
 
     sprintf(message, "CLI: Begin processing a command.\n");
     logger(LOG_INFO, message);
 
-    if((head == NULL) || (head->next == NULL)) {
+    if(mode == NULL) {
+        currentnode = &globalmode;
+    } else {
+        currentnode = mode;
+        result.mode = mode;
+    }
+
+    //if((head == NULL) || (head->next == NULL)) {
+    if(currentnode->next == NULL) {
         /*
          * Cannot execute any commands if there are none.
          */
         sprintf(message, "CLI: No known commands.\n");
         logger(LOG_INFO, message);
-        return 0;
+
+        result.finished = 0;
+        result.data = NULL;
+
+        return result;
     }
 
     /*
@@ -71,7 +169,6 @@ int execute_commands(int client_fd, const char *command_name, int d_len) {
      * The delimiters are globally defined for consistency.
      */
     token = strtok_r(cp, delimiters, &saved_token);
-    currentnode = head;
 
     while((token != NULL) && (executedcommand == NULL)) {
 
@@ -158,7 +255,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len) {
                                 }
                             }
 
-                            shutdown = (currentcommand->command_handler)(client_fd, parameters, parametercount);
+                            result = (currentcommand->command_handler)(client_fd, parameters, parametercount, data);
                         } else {
                             /*
                              * We might want to verify no other TOKENs are left.
@@ -166,7 +263,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len) {
                              */
                             sprintf(message, "CLI: Command has no parameters.\n");
                             logger(LOG_INFO, message);
-                            shutdown = (currentcommand->command_handler)(client_fd, NULL, 0);
+                            result = (currentcommand->command_handler)(client_fd, NULL, 0, data);
                         }
                         executedcommand = currentcommand;
                     } else {
@@ -187,11 +284,11 @@ int execute_commands(int client_fd, const char *command_name, int d_len) {
         token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
     }
 
-    if(shutdown != 1) { // Don't show the last prompt if we are done.
+    if(result.finished != 1) { // Don't show the last prompt if we are done.
         cli_prompt(client_fd);
     }
 
-    return shutdown;
+    return result;
 }
 
 /*
@@ -204,7 +301,7 @@ int execute_commands(int client_fd, const char *command_name, int d_len) {
  * UPDATE: I am trying to use strtok_r().  It seems to be working.
  */
 
-int register_command(const char *command_name, t_commandfunction handler_function, bool hasparams, bool hidden) {
+int register_command(struct command_head *mode, const char *command_name, t_commandfunction handler_function, bool hasparams, bool hidden) {
     char *token, *cp, *saved_token;
     struct command_head *currentnode = NULL;
     struct command *currentcommand = NULL;
@@ -214,11 +311,10 @@ int register_command(const char *command_name, t_commandfunction handler_functio
     sprintf(message, "CLI: Begin registering [%s] command.\n", command_name);
     logger(LOG_INFO, message);
 
-    if(head == NULL) {
-        head = (struct command_head *) malloc (sizeof (struct command_head));
-        head->next = NULL;
-        head->prev = NULL;
-        pthread_mutex_init(&head->lock,NULL);
+    if(mode == NULL) {
+        currentnode = &globalmode;
+    } else {
+        currentnode = mode;
     }
 
     /*
@@ -232,7 +328,7 @@ int register_command(const char *command_name, t_commandfunction handler_functio
      * The delimiters are globally defined for consistency.
      */
     token = strtok_r(cp, delimiters, &saved_token);
-    currentnode = head;
+
 
 
 
@@ -294,84 +390,12 @@ int register_command(const char *command_name, t_commandfunction handler_functio
 }
 
 /*
- * Called by  cli_process_message() in climanager.c.
- * const char *command_name = command the user typed.
- */
-struct command* lookup_command(const char *command_name) {
-    struct command *currentcommand;
-    currentcommand = head->next;
-
-    while(currentcommand != NULL ) {
-        if (!strcmp(currentcommand->command, command_name))
-            return currentcommand;
-        currentcommand = currentcommand->next;
-    }
-
-    /* Sharwan Joram: If we are here, then we didn't find any command with us */
-    return NULL;
-}
-
-/*
- */
-struct command* find_command(struct command_head *currentnode, char *command_name) {
-    struct command *currentcommand;
-    currentcommand = currentnode->next;
-
-    while(currentcommand != NULL ) {
-
-        if (strcmp(currentcommand->command, command_name) == 0) {
-            return currentcommand;
-        }
-        currentcommand = currentcommand->next;
-    }
-
-    return NULL;
-}
-
-int cli_help(int client_fd, struct command_head *currentnode) {
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-    struct command *currentcommand;
-    int count = 1;
-
-    currentcommand = currentnode->next;
-    //sprintf(msg, "\n Showing help.\n");
-    //cli_send_feedback(client_fd, msg);
-
-    while (currentcommand) {
-
-        if(currentcommand->hidden == false) {
-            sprintf(msg, "[%d]: [%s] \n", count, currentcommand->command);
-            cli_send_feedback(client_fd, msg);
-            ++count;
-        }
-        currentcommand = currentcommand->next;
-    }
-
-    return 0;
-}
-
-/*
  * Show the opennopd# prompt.
  */
 int cli_prompt(int client_fd) {
     char msg[MAX_BUFFER_SIZE] = { 0 };
     sprintf(msg, "opennopd# ");
     cli_send_feedback(client_fd, msg);
-    return 0;
-}
-
-/*
- * Testing params
- */
-int cli_show_param(int client_fd, char **parameters, int numparameters) {
-    int i = 0;
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-
-    for (i=0;i<numparameters;i++) {
-        sprintf(msg, "[%d] %s\n", i, parameters[i]);
-        cli_send_feedback(client_fd, msg);
-    }
-
     return 0;
 }
 
