@@ -125,7 +125,6 @@ struct command* find_command(struct command_head *currentnode, char *command_nam
 struct commandresult execute_commands(struct command_head *mode, void *data, int client_fd, const char *command_name, int d_len) {
     char *token, *cp, *saved_token;
     int parametercount = 0;
-    int shutdown = 0;
     char **parameters = NULL; //dynamic array of pointers to tokens that are parameters
     char **tempparameters = NULL;
     char *parameter = NULL;
@@ -285,7 +284,7 @@ struct commandresult execute_commands(struct command_head *mode, void *data, int
         token = strtok_r(NULL, delimiters, &saved_token); //Fetch the next TOKEN of the command.
     }
 
-    if(shutdown != 1) { // Don't show the last prompt if we are done.
+    if(result.finished != 1) { // Don't show the last prompt if we are done.
         cli_prompt(client_fd);
     }
 
