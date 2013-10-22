@@ -202,11 +202,11 @@ int main(int argc, char *argv[]) {
     create_fetcher();
     pthread_create(&t_cleanup, NULL, cleanup_function, (void *) NULL);
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *) NULL);
+    start_ipc();
     pthread_create(&t_cli, NULL, cli_manager_init, (void *) NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *) NULL);
     pthread_create(&t_memorymanager, NULL, memorymanager_function,
                    (void *) NULL);
-    start_ipc();
 
     sprintf(message, "[OpenNOP]: Started all threads.\n");
     logger(LOG_INFO, message);
@@ -229,6 +229,7 @@ int main(int argc, char *argv[]) {
     rejoin_fetcher();
     pthread_join(t_cleanup, NULL);
     pthread_join(t_healthagent, NULL);
+    rejoin_ipc();
     pthread_join(t_cli, NULL);
     pthread_join(t_counters, NULL);
     pthread_join(t_memorymanager, NULL);
