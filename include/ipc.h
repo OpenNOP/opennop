@@ -5,6 +5,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#define MAX_BUFFER_SIZE	1024
+#define OPENNOPD_IPC_PORT 5000 // Random number for now.
+#define	OPENNOPD_IPC_SOCK	"\0opennopd.ipc"
+
 struct node_head
 {
     struct node *next; // Points to the first node of the list.
@@ -24,14 +28,7 @@ struct node {
 typedef int (*t_node_command)(int, __u32, char *);
 
 void start_ipc();
-struct commandresult cli_node(int client_fd, char **parameters, int numparameters, void *data);
-struct commandresult cli_no_node(int client_fd, char **parameters, int numparameters, void *data);
-struct commandresult cli_show_nodes(int client_fd, char **parameters, int numparameters, void *data);
-int validate_node_input(int client_fd, char *stringip, char *key, t_node_command node_command);
-int add_update_node(int client_fd, __u32 nodeIP, char *key);
-int del_node(int client_fd, __u32 nodeIP, char *key);
-int cli_node_help(int client_fd);
-struct node* allocate_node(__u32 nodeIP, char *key);
+void rejoin_ipc();
 int verify_node_in_domain(__u32 nodeIP);
 
 #endif
