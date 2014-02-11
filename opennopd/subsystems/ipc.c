@@ -21,6 +21,7 @@
 #include "logger.h"
 
 #define MAXEVENTS 64
+#define EVENTTIMER 10000; //epoll timeout in ms for event handling
 
 /*
  * I was using "head" and "tail" here but that seemed to conflict with another module.
@@ -29,10 +30,41 @@
  * Using "static" should fix this.
  */
 static pthread_t t_ipc; // thread for cli.
-static struct node_head ipchead;
+static struct neighbor_head ipchead;
 static char UUID[17]; //Local UUID.
 static char key[65]; //Local key.
 
+
+int new_ip_client(__u32 serverip ,int port) {
+    int client_socket = 0;
+    int error = 0;
+    struct sockaddr_in client = {
+                                    0
+                                };
+    char message[LOGSZ];
+
+    client_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (client_socket < 0 ) {
+        sprintf(message, "IPC: Failed to create socket.\n");
+        logger(LOG_INFO, message);
+        exit(1);
+    }
+
+    client.sin_family = AF_INET;
+    client.sin_port = htons(port);
+    client.sin_addr.s_addr = serverip;
+
+    error = connect(client_socket, (struct sockaddr *)&client, sizeof(client));
+
+    if (error < 0) {
+        sprintf(message, "IPC: Failed to connect to remote host.\n");
+        logger(LOG_INFO, message);
+        return -1;
+    }
+
+    return client_socket;
+}
 /*
  * Create an IP socket for the IPC.
  */
@@ -114,6 +146,7 @@ int accept_ip_client(int server_socket) {
     if (error == 0) {
         sprintf(message,"IPC: Accepted connection on descriptor %d "
                 "(host=%s, port=%s)\n", newclient_socket, hbuf, sbuf);
+        logger(LOG_INFO, message);
     }
 
     return newclient_socket;
@@ -304,7 +337,7 @@ void *ipc_thread(void *dummyPtr) {
     int done = 0;
     int i = 0;
     ssize_t count;
-    char buf[MAX_BUFFER_SIZE];
+    char buf[IPC_MESSAGE_SIZE];
     struct epoll_event event = {
                                    0
                                };
@@ -345,7 +378,7 @@ void *ipc_thread(void *dummyPtr) {
      * Third we listen for events and handle them.
      */
     while(1) {
-        numevents = epoll_wait (epoll_fd, events, MAXEVENTS, -1);
+        numevents = epoll_wait(epoll_fd, events, MAXEVENTS, 10000);
 
         for (i = 0; i < numevents; i++) {
 
@@ -423,7 +456,11 @@ void *ipc_thread(void *dummyPtr) {
                     * data.
                  */
                 while(1) {
-                    count = recv(events[i].data.fd, buf, MAX_BUFFER_SIZE, 0);
+                    count = recv(events[i].data.fd, buf, IPC_MESSAGE_SIZE, 0);
+
+                    if(count > 0) {
+                        buf[count - 1] = '\0';
+                    }
 
                     if (count == -1) {
                         /* If errno == EAGAIN, that means we have read all
@@ -437,13 +474,15 @@ void *ipc_thread(void *dummyPtr) {
                     } else if (count == 0) {
                         /* End of file. The remote has closed the
                            connection. */
+                        sprintf(message, "IPC: Remote closed the connection.\n");
+                        logger(LOG_INFO, message);
                         done = 1;
                         break;
                     }
 
                     /* Write the buffer to standard output */
-                    //error = write (1, buf, count);
-                    sprintf(message, "IPC: %s.\n",buf);
+                    //error = send(1, buf, count, 0);
+                    sprintf(message, "IPC: %s\n",buf);
                     logger(LOG_INFO, message);
 
                     if (error == -1) {
@@ -461,11 +500,16 @@ void *ipc_thread(void *dummyPtr) {
                          * Closing the descriptor will make epoll remove it
                          * from the set of descriptors which are monitored.
                          */
-                        close (events[i].data.fd);
+                        close(events[i].data.fd);
                     }
                 }
             }
         }
+
+        /*
+         * Here is where we can execute other tasks.
+         */
+        hello_neighbors();
     }
 
     sprintf(message, "IPC: Is exiting.\n");
@@ -478,42 +522,44 @@ void *ipc_thread(void *dummyPtr) {
     return EXIT_SUCCESS;
 }
 
-struct node* allocate_node(__u32 nodeIP, char *key) {
-    struct node *newnode = (struct node *) malloc (sizeof (struct node));
+struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
+    struct neighbor *newneighbor = (struct neighbor *) malloc (sizeof (struct neighbor));
 
-    if(newnode == NULL) {
+    if(newneighbor == NULL) {
         fprintf(stdout, "Could not allocate memory... \n");
         exit(1);
     }
-    newnode->next = NULL;
-    newnode->prev = NULL;
-    newnode->NodeIP = 0;
-    newnode->UUID[0] = '\0';
-    newnode->sock = 0;
-    newnode->key[0] = '\0';
+    newneighbor->next = NULL;
+    newneighbor->prev = NULL;
+    newneighbor->NeighborIP = 0;
+    newneighbor->state = DOWN;
+    newneighbor->UUID[0] = '\0';
+    newneighbor->sock = 0;
+    newneighbor->key[0] = '\0';
+    time(&newneighbor->timer);
 
-    if (nodeIP != 0) {
-        newnode->NodeIP = nodeIP;
+    if (neighborIP != 0) {
+        newneighbor->NeighborIP = neighborIP;
     }
 
     if (key != NULL) {
-        strncpy(newnode->key, key, sizeof(newnode->key)-1);
+        strncpy(newneighbor->key, key, sizeof(newneighbor->key)-1);
     }
 
-    return newnode;
+    return newneighbor;
 }
 
-int cli_node_help(int client_fd) {
-    char msg[MAX_BUFFER_SIZE] = { 0 };
+int cli_neighbor_help(int client_fd) {
+    char msg[IPC_MESSAGE_SIZE] = { 0 };
 
-    sprintf(msg,"Usage: [no] node <ip address> [key]\n");
+    sprintf(msg,"Usage: [no] neighbor <ip address> [key]\n");
     cli_send_feedback(client_fd, msg);
 
     return 0;
 }
 
-struct commandresult cli_show_nodes(int client_fd, char **parameters, int numparameters, void *data) {
-    struct node *currentnode = NULL;
+struct commandresult cli_show_neighbors(int client_fd, char **parameters, int numparameters, void *data) {
+    struct neighbor *currentneighbor = NULL;
     struct commandresult result  = {
                                        0
                                    };
@@ -522,9 +568,9 @@ struct commandresult cli_show_nodes(int client_fd, char **parameters, int numpar
     char col2[18];
     char col3[66];
     char end[3];
-    char msg[MAX_BUFFER_SIZE] = { 0 };
+    char msg[IPC_MESSAGE_SIZE] = { 0 };
 
-    currentnode = ipchead.next;
+    currentneighbor = ipchead.next;
 
     sprintf(
         msg,
@@ -532,28 +578,28 @@ struct commandresult cli_show_nodes(int client_fd, char **parameters, int numpar
     cli_send_feedback(client_fd, msg);
     sprintf(
         msg,
-        "|    Node IP      |       GUID       |                               Key                                |\n");
+        "|   Neighbor IP   |       GUID       |                               Key                                |\n");
     cli_send_feedback(client_fd, msg);
     sprintf(
         msg,
         "---------------------------------------------------------------------------------------------------------\n");
     cli_send_feedback(client_fd, msg);
 
-    while(currentnode != NULL) {
+    while(currentneighbor != NULL) {
         strcpy(msg, "");
-        inet_ntop(AF_INET, &currentnode->NodeIP, temp,
+        inet_ntop(AF_INET, &currentneighbor->NeighborIP, temp,
                   INET_ADDRSTRLEN);
         sprintf(col1, "| %-16s", temp);
         strcat(msg, col1);
-        sprintf(col2, "| %-17s", currentnode->UUID);
+        sprintf(col2, "| %-17s", currentneighbor->UUID);
         strcat(msg, col2);
-        sprintf(col3, "| %-65s", currentnode->key);
+        sprintf(col3, "| %-65s", currentneighbor->key);
         strcat(msg, col3);
         sprintf(end, "|\n");
         strcat(msg, end);
         cli_send_feedback(client_fd, msg);
 
-        currentnode = currentnode->next;
+        currentneighbor = currentneighbor->next;
     }
 
     sprintf(
@@ -568,44 +614,44 @@ struct commandresult cli_show_nodes(int client_fd, char **parameters, int numpar
     return result;
 }
 
-int add_update_node(int client_fd, __u32 nodeIP, char *key) {
-    struct node *currentnode = NULL;
+int add_update_neighbor(int client_fd, __u32 neighborIP, char *key) {
+    struct neighbor *currentneighbor = NULL;
 
-    currentnode = ipchead.next;
+    currentneighbor = ipchead.next;
 
     /*
-     * Make sure the node does not already exist.
+     * Make sure the neighbor does not already exist.
      */
-    while (currentnode != NULL) {
+    while (currentneighbor != NULL) {
 
-        if (currentnode->NodeIP == nodeIP) {
+        if (currentneighbor->NeighborIP == neighborIP) {
 
             if(key != NULL) {
-                strncpy(currentnode->key, key, sizeof(currentnode->key)-1);
+                strncpy(currentneighbor->key, key, sizeof(currentneighbor->key)-1);
             }
 
             return 0;
         }
 
-        currentnode = currentnode->next;
+        currentneighbor = currentneighbor->next;
     }
 
     /*
-     * Did not find the node so lets add it.
+     * Did not find the neighbor so lets add it.
      */
 
-    currentnode = allocate_node(nodeIP, key);
+    currentneighbor = allocate_neighbor(neighborIP, key);
 
-    if (currentnode != NULL) {
+    if (currentneighbor != NULL) {
 
         if (ipchead.next == NULL) {
-            ipchead.next = currentnode;
-            ipchead.prev = currentnode;
+            ipchead.next = currentneighbor;
+            ipchead.prev = currentneighbor;
 
         } else {
-            currentnode->prev = ipchead.prev;
-            ipchead.prev->next = currentnode;
-            ipchead.prev = currentnode;
+            currentneighbor->prev = ipchead.prev;
+            ipchead.prev->next = currentneighbor;
+            ipchead.prev = currentneighbor;
         }
 
     }
@@ -613,49 +659,49 @@ int add_update_node(int client_fd, __u32 nodeIP, char *key) {
     return 0;
 }
 
-int del_node(int client_fd, __u32 nodeIP, char *key) {
-    struct node *currentnode = NULL;
+int del_neighbor(int client_fd, __u32 neighborIP, char *key) {
+    struct neighbor *currentneighbor = NULL;
 
-    currentnode = ipchead.next;
+    currentneighbor = ipchead.next;
 
-    while (currentnode != NULL) {
+    while (currentneighbor != NULL) {
 
-        if (currentnode->NodeIP == nodeIP) {
+        if (currentneighbor->NeighborIP == neighborIP) {
 
-            if((currentnode->prev == NULL) && (currentnode->next == NULL)) {
+            if((currentneighbor->prev == NULL) && (currentneighbor->next == NULL)) {
                 ipchead.next = NULL;
                 ipchead.prev = NULL;
 
-            } else if ((currentnode->prev == NULL) && (currentnode->next != NULL)) {
-                ipchead.next = currentnode->next;
-                currentnode->next->prev = NULL;
+            } else if ((currentneighbor->prev == NULL) && (currentneighbor->next != NULL)) {
+                ipchead.next = currentneighbor->next;
+                currentneighbor->next->prev = NULL;
 
-            } else if ((currentnode->prev != NULL) && (currentnode->next == NULL)) {
-                ipchead.prev = currentnode->prev;
-                currentnode->prev->next = NULL;
+            } else if ((currentneighbor->prev != NULL) && (currentneighbor->next == NULL)) {
+                ipchead.prev = currentneighbor->prev;
+                currentneighbor->prev->next = NULL;
 
-            } else if ((currentnode->next != NULL) && (currentnode->prev != NULL)) {
-                currentnode->prev->next = currentnode->next;
-                currentnode->next->prev = currentnode->prev;
+            } else if ((currentneighbor->next != NULL) && (currentneighbor->prev != NULL)) {
+                currentneighbor->prev->next = currentneighbor->next;
+                currentneighbor->next->prev = currentneighbor->prev;
             }
 
-            free(currentnode);
-            currentnode = NULL;
+            free(currentneighbor);
+            currentneighbor = NULL;
 
             return 0;
         }
 
-        currentnode = currentnode->next;
+        currentneighbor = currentneighbor->next;
     }
 
     return 0;
 }
 
-int validate_node_input(int client_fd, char *stringip, char *key, t_node_command node_command) {
+int validate_neighbor_input(int client_fd, char *stringip, char *key, t_neighbor_command neighbor_command) {
     int ERROR = 0;
     int keylength = 0;
-    __u32 nodeIP = 0;
-    char msg[MAX_BUFFER_SIZE] = { 0 };
+    __u32 neighborIP = 0;
+    char msg[IPC_MESSAGE_SIZE] = { 0 };
 
     /*
      * We must validate the user data here
@@ -664,36 +710,36 @@ int validate_node_input(int client_fd, char *stringip, char *key, t_node_command
      * 2. key should be NULL or < 64 bytes
      */
 
-    ERROR = inet_pton(AF_INET, stringip, &nodeIP); //Should return 1.
+    ERROR = inet_pton(AF_INET, stringip, &neighborIP); //Should return 1.
 
     if(ERROR != 1) {
-        return cli_node_help(client_fd);
+        return cli_neighbor_help(client_fd);
     }
 
     if(key != NULL) {
         keylength = strlen(key);
 
         if(keylength > 64) {
-            return cli_node_help(client_fd);
+            return cli_neighbor_help(client_fd);
         }
     }
 
     /*
      * The input is valid so we run the specified command
-     * This will add, update or remove a node.
+     * This will add, update or remove a neighbor.
      */
-    node_command(client_fd, nodeIP, key);
+    neighbor_command(client_fd, neighborIP, key);
 
     /*
-    sprintf(msg,"Node string IP is [%s].\n", stringip);
+    sprintf(msg,"Neighbor string IP is [%s].\n", stringip);
     cli_send_feedback(client_fd, msg);
-    sprintf(msg,"Node integer IP is [%u].\n", ntohl(nodeIP));
+    sprintf(msg,"Neighbor integer IP is [%u].\n", ntohl(neighborIP));
     cli_send_feedback(client_fd, msg);
-    sprintf(msg,"Node key is [%s].\n", key);
+    sprintf(msg,"Neighbor key is [%s].\n", key);
     cli_send_feedback(client_fd, msg);
 
     if(key != NULL) {
-        sprintf(msg,"Node key length is [%u].\n", keylength);
+        sprintf(msg,"Neighbor key length is [%u].\n", keylength);
         cli_send_feedback(client_fd, msg);
 }
     */
@@ -707,17 +753,17 @@ int validate_node_input(int client_fd, char *stringip, char *key, t_node_command
  * This should accept 1 parameter.
  * parameter[0] = IP in string format.
  */
-struct commandresult cli_no_node(int client_fd, char **parameters, int numparameters, void *data) {
+struct commandresult cli_no_neighbor(int client_fd, char **parameters, int numparameters, void *data) {
     int ERROR = 0;
     struct commandresult result = {
                                       0
                                   };
 
     if (numparameters == 1) {
-        ERROR = validate_node_input(client_fd, parameters[0], NULL, &del_node);
+        ERROR = validate_neighbor_input(client_fd, parameters[0], NULL, &del_neighbor);
 
     } else {
-        ERROR = cli_node_help(client_fd);
+        ERROR = cli_neighbor_help(client_fd);
     }
 
     result.finished = 0;
@@ -734,44 +780,54 @@ struct commandresult cli_no_node(int client_fd, char **parameters, int numparame
  * parameter[0] = IP in string format.
  * parameter[1] = Authentication key(optional).
  */
-struct commandresult cli_node(int client_fd, char **parameters, int numparameters, void *data) {
+struct commandresult cli_neighbor(int client_fd, char **parameters, int numparameters, void *data) {
     int socket = 0;
     int ERROR = 0;
     struct commandresult result  = {
                                        0
                                    };
+    char buf[IPC_MESSAGE_SIZE];
     char message[LOGSZ] = {0};
 
     result.mode = NULL;
     result.data = NULL;
 
     if ((numparameters < 1) || (numparameters > 2)) {
-        ERROR = cli_node_help(client_fd);
+        ERROR = cli_neighbor_help(client_fd);
 
     } else if (numparameters == 1) {
-        ERROR = validate_node_input(client_fd, parameters[0], NULL, &add_update_node);
+        ERROR = validate_neighbor_input(client_fd, parameters[0], NULL, &add_update_neighbor);
 
     } else if (numparameters == 2) {
-        ERROR = validate_node_input(client_fd, parameters[0], parameters[1], &add_update_node);
+        ERROR = validate_neighbor_input(client_fd, parameters[0], parameters[1], &add_update_neighbor);
     }
 
     socket = new_unix_client(OPENNOPD_IPC_SOCK);
 
     if (socket < 0) {
         sprintf(message, "IPC: CLI failed to connect.\n");
-        result.finished = ERROR;
-
+        logger(LOG_INFO, message);
+        result.finished = 1;
+        close(socket);
         return result;
     }
 
-    ERROR = send(socket, "HELLO!", 6, 0);
+    sprintf(buf,"Hello!\n");
+    ERROR = send(socket, buf, strlen(buf), 0);
 
     if (ERROR < 0) {
         sprintf(message, "IPC: CLI could not write to IPC socket.\n");
+        logger(LOG_INFO, message);
         result.finished = 1;
-
+        close(socket);
         return result;
     }
+    ERROR = shutdown(socket, SHUT_WR);
+
+    /*
+     * TODO: Here we should read from the socket for x seconds.
+     * If we receive the proper shutdown from the server we can close the socket.
+     */
 
     result.finished = 0;
 
@@ -782,19 +838,19 @@ struct commandresult cli_node(int client_fd, char **parameters, int numparameter
  * We need to verify that the remote accelerator is a member of this domain.
  * TODO: Later the UUID will need to be used instead of the IP address.
  */
-int verify_node_in_domain(__u32 nodeIP) {
-    struct node *currentnode = NULL;
+int verify_neighbor_in_domain(__u32 neighborIP) {
+    struct neighbor *currentneighbor = NULL;
 
-    currentnode = ipchead.next;
+    currentneighbor = ipchead.next;
 
-    while (currentnode != NULL) {
+    while (currentneighbor != NULL) {
 
-        if (currentnode->NodeIP == nodeIP) {
+        if (currentneighbor->NeighborIP == neighborIP) {
 
             return 1;
         }
 
-        currentnode = currentnode->next;
+        currentneighbor = currentneighbor->next;
     }
 
     return 0;
@@ -805,9 +861,9 @@ void start_ipc() {
      * This will setup and start the IPC threads.
      * We also register the IPC commands here.
      */
-    register_command(NULL, "node", cli_node, true, false);
-    register_command(NULL, "no node", cli_no_node, true, false);
-    register_command(NULL, "show nodes", cli_show_nodes, false, false);
+    register_command(NULL, "neighbor", cli_neighbor, true, false);
+    register_command(NULL, "no neighbor", cli_no_neighbor, true, false);
+    register_command(NULL, "show neighbors", cli_show_neighbors, false, false);
 
     ipchead.next = NULL;
     ipchead.prev = NULL;
@@ -818,4 +874,64 @@ void start_ipc() {
 
 void rejoin_ipc() {
     pthread_join(t_ipc, NULL);
+}
+
+int ipc_neighbor_hello(int socket){
+    char buf[IPC_MESSAGE_SIZE];
+    int error;
+    sprintf(buf,"Hello!\n");
+    error = send(socket, buf, strlen(buf), 0);
+    return error;
+}
+
+void hello_neighbors() {
+    struct neighbor *currentneighbor = NULL;
+    time_t currenttime;
+    int error = 0;
+    char message[LOGSZ] = {0};
+
+    time(&currenttime);
+
+    for(currentneighbor = ipchead.next; currentneighbor != NULL; currentneighbor = currentneighbor->next) {
+
+        if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->timer) >= 30)) {
+        	currentneighbor->timer = currenttime;
+            sprintf(message, "state is down & timer > 30\n");
+            logger(LOG_INFO, message);
+
+            /*
+             * If neighbor socket = 0 open a new one.
+             */
+            if(currentneighbor->sock == 0) {
+                error = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
+
+                if(error > 0) {
+                    currentneighbor->sock = error;
+                    currentneighbor->state = ATTEMPT;
+
+                }
+            }
+
+        }else if(currentneighbor->state == ATTEMPT){
+            /*
+             * todo:
+             * If we were successful in opening a connection we should sent a hello message.
+             * Write the hello message function.
+             */
+        	if(currentneighbor->sock != 0){
+        		error = ipc_neighbor_hello(currentneighbor->sock);
+
+        		/*
+        		 * Maybe a lot of this should be moved to ipc_neighbor_hello().
+        		 */
+        		if (error < 0){
+        			 sprintf(message, "Failed sending hello.\n");
+        			 logger(LOG_INFO, message);
+        			 currentneighbor->state = DOWN;
+        			 shutdown(currentneighbor->sock, SHUT_RDWR);
+        			 currentneighbor->sock = 0;
+        		}
+        	}
+        }
+    }
 }
