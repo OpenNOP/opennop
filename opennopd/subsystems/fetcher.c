@@ -108,7 +108,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     sourceisclient(largerIP, iph, thissession);
                     updateseq(largerIP, iph, tcph, thissession);
 
-                    if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) {// Accelerator ID was not found.
+                    if ((remoteID == 0) || verify_neighbor_in_domain(remoteID) == false) {// Accelerator ID was not found.
                         mms = __get_tcp_option((__u8 *)originalpacket,2);
 
                         if (mms > 60) {
@@ -128,7 +128,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             checksum(originalpacket);
                         }
 
-                    } else if(verify_node_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
+                    } else if(verify_neighbor_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
                         saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                     }
@@ -156,7 +156,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if ((tcph->syn == 1) && (tcph->ack == 1)) {
                         updateseq(largerIP, iph, tcph, thissession);
 
-                        if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) { // Accelerator ID was not found.
+                        if ((remoteID == 0) || verify_neighbor_in_domain(remoteID) == false) { // Accelerator ID was not found.
                             mms = __get_tcp_option((__u8 *)originalpacket,2);
 
                             if (mms > 60) {
@@ -171,7 +171,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                             }
 
-                        } else if(verify_node_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
+                        } else if(verify_neighbor_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
                             saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                         }
@@ -205,10 +205,10 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if (thispacket != NULL) {
                         save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
 
-                        if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) {
+                        if ((remoteID == 0) || verify_neighbor_in_domain(remoteID) == false) {
                             optimize_packet(thissession->queue, thispacket);
 
-                        } else if(verify_node_in_domain(remoteID) == true) {
+                        } else if(verify_neighbor_in_domain(remoteID) == true) {
                             deoptimize_packet(thissession->queue, thispacket);
                         }
                     } else {
@@ -237,7 +237,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             if (thissession != NULL) { // Test to make sure the session was added.
                                 thissession->state = TCP_ESTABLISHED;
 
-                                if(verify_node_in_domain(remoteID) == true) {
+                                if(verify_neighbor_in_domain(remoteID) == true) {
                                     saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                                 } else {

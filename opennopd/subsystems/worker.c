@@ -92,11 +92,11 @@ void *worker_thread(void *dummyPtr) {
 
                     if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0)) {
 
-                        if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) {
+                        if ((remoteID == 0) || verify_neighbor_in_domain(remoteID) == false) {
                             /*
                              * An accelerator ID was NOT found.
                              * This is the first accelerator in the traffic path.
-                             * This will soon be tested against a list of opennop nodes.
+                             * This will soon be tested against a list of opennop neighbors.
                              * Traffic is sent through the optimize functions.
                              */
 
@@ -138,7 +138,7 @@ void *worker_thread(void *dummyPtr) {
                             /*
                              * End of what should be the optimize function.
                              */
-                        } else if(verify_node_in_domain(remoteID) == true) {
+                        } else if(verify_neighbor_in_domain(remoteID) == true) {
                             /*
                              * An accelerator ID WAS found.
                              * Traffic is sent through the de-optimize functions.
