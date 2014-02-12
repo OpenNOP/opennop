@@ -914,13 +914,14 @@ void hello_neighbors() {
                 }
             }
 
-        }else if(currentneighbor->state == ATTEMPT){
+        }else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 30)){
             /*
              * todo:
              * If we were successful in opening a connection we should sent a hello message.
              * Write the hello message function.
              */
         	if(currentneighbor->sock != 0){
+        		currentneighbor->timer = currenttime;
         		error = ipc_neighbor_hello(currentneighbor->sock);
 
         		/*
