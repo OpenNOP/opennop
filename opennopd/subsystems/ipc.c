@@ -455,6 +455,8 @@ void *ipc_thread(void *dummyPtr) {
                     * and won't get a notification again for the same
                     * data.
                  */
+
+            	done = 0;  //Need to reset this for each message.
                 while(1) {
                     count = recv(events[i].data.fd, buf, IPC_MESSAGE_SIZE, 0);
 
