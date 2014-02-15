@@ -19,6 +19,7 @@
 #include "ipc.h"
 #include "clicommands.h"
 #include "logger.h"
+#include "sockets.h"
 
 #define MAXEVENTS 64
 #define EVENTTIMER 10000; //epoll timeout in ms for event handling
@@ -34,252 +35,67 @@ static struct neighbor_head ipchead;
 static char UUID[17]; //Local UUID.
 static char key[65]; //Local key.
 
-
-int new_ip_client(__u32 serverip ,int port) {
-    int client_socket = 0;
-    int error = 0;
-    struct sockaddr_in client = {
-                                    0
-                                };
-    char message[LOGSZ];
-
-    client_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (client_socket < 0 ) {
-        sprintf(message, "IPC: Failed to create socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    client.sin_family = AF_INET;
-    client.sin_port = htons(port);
-    client.sin_addr.s_addr = serverip;
-
-    error = connect(client_socket, (struct sockaddr *)&client, sizeof(client));
-
-    if (error < 0) {
-        sprintf(message, "IPC: Failed to connect to remote host.\n");
-        logger(LOG_INFO, message);
-        return -1;
-    }
-
-    return client_socket;
-}
-/*
- * Create an IP socket for the IPC.
- */
-int new_ip_server(int port) {
-    int server_socket = 0;
-    int error = 0;
-    struct sockaddr_in server = {
-                                    0
-                                };
-    char message[LOGSZ] = { 0 };
-
-    server_socket = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (server_socket < 0 ) {
-        sprintf(message, "IPC: Failed to create socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    server.sin_family = AF_INET;
-    server.sin_port = htons(port);
-    server.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    error = bind(server_socket, (struct sockaddr *)&server, sizeof(server));
-
-    if (error < 0) {
-        sprintf(message, "IPC: Failed to bind socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    error = listen(server_socket, SOMAXCONN);
-
-    if (error == -1) {
-        sprintf(message, "IPC: Could not listen on socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    return server_socket;
+int ipc_neighbor_hello(int socket){
+    char buf[IPC_MESSAGE_SIZE];
+    int error;
+    sprintf(buf,"Hello!\n");
+    error = send(socket, buf, strlen(buf), 0);
+    return error;
 }
 
-int accept_ip_client(int server_socket) {
-    int newclient_socket = 0;
+void hello_neighbors() {
+    struct neighbor *currentneighbor = NULL;
+    time_t currenttime;
     int error = 0;
-    struct sockaddr_in client = {
-                                    0
-                                };
-    socklen_t in_len = 0;
-    char hbuf[NI_MAXHOST] = {0};
-    char sbuf[NI_MAXSERV] = {0};
-    char message[LOGSZ] = { 0 };
+    char message[LOGSZ] = {0};
 
-    in_len = sizeof client;
+    time(&currenttime);
 
-    newclient_socket = accept(server_socket, (struct sockaddr *)&client, &in_len );
+    for(currentneighbor = ipchead.next; currentneighbor != NULL; currentneighbor = currentneighbor->next) {
 
-    if (newclient_socket == -1) {
-
-        if ((errno == EAGAIN) ||
-                (errno == EWOULDBLOCK)) {
-            /*
-             * We have processed all incoming connections.
-             */
-            return -1;
-
-        } else {
-            sprintf(message, "IPC: Failed to accept socket.\n");
+        if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->timer) >= 30)) {
+        	currentneighbor->timer = currenttime;
+            sprintf(message, "state is down & timer > 30\n");
             logger(LOG_INFO, message);
-            return -1;
+
+            /*
+             * If neighbor socket = 0 open a new one.
+             */
+            if(currentneighbor->sock == 0) {
+                error = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
+
+                if(error > 0) {
+                    currentneighbor->sock = error;
+                    currentneighbor->state = ATTEMPT;
+
+                }
+            }
+
+        }else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 10)){
+            /*
+             * todo:
+             * If we were successful in opening a connection we should sent a hello message.
+             * Write the hello message function.
+             */
+        	if(currentneighbor->sock != 0){
+        		currentneighbor->timer = currenttime;
+        		error = ipc_neighbor_hello(currentneighbor->sock);
+
+        		/*
+        		 * Maybe a lot of this should be moved to ipc_neighbor_hello().
+        		 */
+        		if (error < 0){
+        			 sprintf(message, "Failed sending hello.\n");
+        			 logger(LOG_INFO, message);
+        			 currentneighbor->state = DOWN;
+        			 shutdown(currentneighbor->sock, SHUT_RDWR);
+        			 currentneighbor->sock = 0;
+        		}
+        	}
         }
     }
-
-    error = getnameinfo((struct sockaddr*)&client, sizeof client,
-                        hbuf, sizeof hbuf,
-                        sbuf, sizeof sbuf,
-                        NI_NUMERICHOST | NI_NUMERICSERV);
-
-    if (error == 0) {
-        sprintf(message,"IPC: Accepted connection on descriptor %d "
-                "(host=%s, port=%s)\n", newclient_socket, hbuf, sbuf);
-        logger(LOG_INFO, message);
-    }
-
-    return newclient_socket;
 }
 
-int new_unix_client(char* path) {
-    int client_socket = 0;
-    int error = 0;
-    struct sockaddr_un client = {
-                                    0
-                                };
-    char message[LOGSZ];
-
-    client_socket = socket(AF_UNIX, SOCK_STREAM, 0);
-
-    if (client_socket < 0 ) {
-        sprintf(message, "IPC: Failed to create socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    client.sun_family = AF_UNIX;
-    strncpy(client.sun_path, path,sizeof(client.sun_path)-1);
-    unlink(client.sun_path);
-
-    error = connect(client_socket, (struct sockaddr *)&client, sizeof(client));
-
-    if (error < 0) {
-        sprintf(message, "IPC: Failed to connect.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    return client_socket;
-}
-
-
-/*
- * Creates a new UNIX domain server socket.
- * http://troydhanson.github.io/misc/Unix_domain_sockets.html
- */
-int new_unix_server(char* path) {
-    int server_socket = 0;
-    int error = 0;
-    struct sockaddr_un server = {
-                                    0
-                                };
-    char message[LOGSZ];
-
-    server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
-
-    if (server_socket < 0 ) {
-        sprintf(message, "IPC: Failed to create socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    server.sun_family = AF_UNIX;
-    strncpy(server.sun_path, path,sizeof(server.sun_path)-1);
-    unlink(server.sun_path);
-
-    error = bind(server_socket, (struct sockaddr *)&server, sizeof(server));
-
-    if (error < 0) {
-        sprintf(message, "IPC: Failed to bind socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    error = listen(server_socket, SOMAXCONN);
-
-    if (error == -1) {
-        sprintf(message, "IPC: Could not listen on socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    return server_socket;
-}
-
-int accept_unix_client(int server_socket) {
-    int newclient_socket = 0;
-    int error = 0;
-    struct sockaddr_un client = {
-                                    0
-                                };
-    socklen_t in_len = 0;
-    char message[LOGSZ] = { 0 };
-
-    in_len = sizeof client;
-
-    newclient_socket = accept(server_socket, (struct sockaddr *)&client, &in_len );
-
-    if (newclient_socket == -1) {
-
-        if ((errno == EAGAIN) ||
-                (errno == EWOULDBLOCK)) {
-            /*
-             * We have processed all incoming connections.
-             */
-            return -1;
-
-        } else {
-            sprintf(message, "IPC: Failed to accept socket.\n");
-            logger(LOG_INFO, message);
-            return -1;
-        }
-    }
-
-    return newclient_socket;
-}
-
-int make_socket_non_blocking (int socket) {
-    int flags, s;
-    char message[LOGSZ];
-
-    flags = fcntl (socket, F_GETFL, 0);
-    if (flags == -1) {
-        sprintf(message, "IPC: Failed getting socket flags.\n");
-        logger(LOG_INFO, message);
-        return -1;
-    }
-
-    flags |= O_NONBLOCK;
-    s = fcntl(socket, F_SETFL, flags);
-    if (s == -1) {
-        sprintf(message, "IPC: Failed setting socket flags.\n");
-        logger(LOG_INFO, message);
-        return -1;
-    }
-
-    return 0;
-}
 
 int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event) {
     int error = 0;
@@ -876,65 +692,4 @@ void start_ipc() {
 
 void rejoin_ipc() {
     pthread_join(t_ipc, NULL);
-}
-
-int ipc_neighbor_hello(int socket){
-    char buf[IPC_MESSAGE_SIZE];
-    int error;
-    sprintf(buf,"Hello!\n");
-    error = send(socket, buf, strlen(buf), 0);
-    return error;
-}
-
-void hello_neighbors() {
-    struct neighbor *currentneighbor = NULL;
-    time_t currenttime;
-    int error = 0;
-    char message[LOGSZ] = {0};
-
-    time(&currenttime);
-
-    for(currentneighbor = ipchead.next; currentneighbor != NULL; currentneighbor = currentneighbor->next) {
-
-        if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->timer) >= 30)) {
-        	currentneighbor->timer = currenttime;
-            sprintf(message, "state is down & timer > 30\n");
-            logger(LOG_INFO, message);
-
-            /*
-             * If neighbor socket = 0 open a new one.
-             */
-            if(currentneighbor->sock == 0) {
-                error = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
-
-                if(error > 0) {
-                    currentneighbor->sock = error;
-                    currentneighbor->state = ATTEMPT;
-
-                }
-            }
-
-        }else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 30)){
-            /*
-             * todo:
-             * If we were successful in opening a connection we should sent a hello message.
-             * Write the hello message function.
-             */
-        	if(currentneighbor->sock != 0){
-        		currentneighbor->timer = currenttime;
-        		error = ipc_neighbor_hello(currentneighbor->sock);
-
-        		/*
-        		 * Maybe a lot of this should be moved to ipc_neighbor_hello().
-        		 */
-        		if (error < 0){
-        			 sprintf(message, "Failed sending hello.\n");
-        			 logger(LOG_INFO, message);
-        			 currentneighbor->state = DOWN;
-        			 shutdown(currentneighbor->sock, SHUT_RDWR);
-        			 currentneighbor->sock = 0;
-        		}
-        	}
-        }
-    }
 }
