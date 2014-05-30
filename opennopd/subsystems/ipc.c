@@ -21,9 +21,6 @@
 #include "logger.h"
 #include "sockets.h"
 
-#define MAXEVENTS 64
-#define EVENTTIMER 10000; //epoll timeout in ms for event handling
-
 /*
  * I was using "head" and "tail" here but that seemed to conflict with another module.
  * Should the internal variable names be isolated between modules?
@@ -43,7 +40,7 @@ int ipc_neighbor_hello(int socket){
     return error;
 }
 
-void hello_neighbors() {
+int hello_neighbors(void) {
     struct neighbor *currentneighbor = NULL;
     time_t currenttime;
     int error = 0;
@@ -94,38 +91,7 @@ void hello_neighbors() {
         	}
         }
     }
-}
-
-
-int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event) {
-    int error = 0;
-    char message[LOGSZ] = {0};
-
-    if (listener_socket < 0) {
-        sprintf(message, "IPC: Failed to get socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    error = make_socket_non_blocking(listener_socket);
-
-    if (error == -1) {
-        sprintf(message, "IPC: Failed setting socket.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    event->data.fd = listener_socket;
-    event->events = EPOLLIN | EPOLLET;
-    error = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listener_socket, event);
-
-    if (error == -1) {
-        sprintf(message, "IPC: Failed adding remote listener to epoll instance.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
-
-    return error;
+    return 0;
 }
 
 /*
@@ -144,199 +110,25 @@ int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event
  * http://www.beej.us/guide/bgnet/output/html/multipage/fcntlman.html
  */
 void *ipc_thread(void *dummyPtr) {
-    int remote_listener_socket = 0; // Listens for connections from remote neighbors.
-    int local_listener_socket = 0; // Listens for connections from the local CLI.
-    int client_socket = 0;
-    int epoll_fd = 0;
     int error = 0;
-    int numevents = 0;
-    int done = 0;
-    int i = 0;
-    ssize_t count;
-    char buf[IPC_MESSAGE_SIZE];
-    struct epoll_event event = {
-                                   0
-                               };
-    struct epoll_event *events = NULL;
+    struct epoll_server ipc_server = {0};
     char message[LOGSZ] = {0};
 
     sprintf(message, "IPC: Is starting.\n");
     logger(LOG_INFO, message);
 
-    events = calloc (MAXEVENTS, sizeof event);
-
-    epoll_fd = epoll_create1(0);
-
-    if(epoll_fd == -1) {
-        sprintf(message, "IPC: Could not create epoll instance.\n");
-        logger(LOG_INFO, message);
-        exit(1);
-    }
+    error = new_ip_epoll_server(&ipc_server, hello_neighbors, OPENNOPD_IPC_PORT);
 
     /*
-     * First we setup the remote IPC listener socket.
-     * This accepts connections from the remote neighbors.
+     * This should not return until the epoll server is shutdown.
      */
-
-    remote_listener_socket = new_ip_server(OPENNOPD_IPC_PORT);
-
-    error = register_socket(remote_listener_socket, epoll_fd, &event);
-
-    /*
-     * Second we setup the local IPC listener socket.
-     * This accepts connections from the local CLI.
-     */
-    local_listener_socket = new_unix_server(OPENNOPD_IPC_SOCK);
-
-    error = register_socket(local_listener_socket, epoll_fd, &event);
-
-    /*
-     * Third we listen for events and handle them.
-     */
-    while(1) {
-        numevents = epoll_wait(epoll_fd, events, MAXEVENTS, 10000);
-
-        for (i = 0; i < numevents; i++) {
-
-            if ((events[i].events & EPOLLERR) ||
-                    (events[i].events & EPOLLHUP) ||
-                    (!(events[i].events & EPOLLIN))) {
-                /*
-                 * An error has occurred on this fd, or the socket is not
-                 * ready for reading (why were we notified then?)
-                 */
-
-                sprintf(message, "IPC: Epoll error.\n");
-                logger(LOG_INFO, message);
-
-                close (events[i].data.fd);
-
-                continue;
-
-            } else if (events[i].data.fd == remote_listener_socket) {
-                /*
-                 * We have a notification on the listening socket,
-                 * which means one or more incoming connections.
-                 */
-                while (1) {
-                    client_socket = accept_ip_client(remote_listener_socket);
-
-                    if (client_socket == -1) {
-                        break;
-                    }
-
-                    error = make_socket_non_blocking(client_socket);
-
-                    if (error == -1) {
-                        sprintf(message, "IPC: Failed setting socket on client.\n");
-                        logger(LOG_INFO, message);
-                        exit(1);
-                    }
-
-                    error = register_socket(client_socket, epoll_fd, &event);
-
-                    continue;
-                }
-
-            } else if (events[i].data.fd == local_listener_socket) {
-                /*
-                 * We have a notification on the listening socket,
-                 * which means one or more incoming connections.
-                 */
-                while (1) {
-                    client_socket = accept_unix_client(local_listener_socket);
-
-                    if (client_socket == -1) {
-                        break;
-                    }
-
-                    error = make_socket_non_blocking(client_socket);
-
-                    if (error == -1) {
-                        sprintf(message, "IPC: Failed setting socket on client.\n");
-                        logger(LOG_INFO, message);
-                        exit(1);
-                    }
-
-                    error = register_socket(client_socket, epoll_fd, &event);
-
-                    continue;
-                }
-
-            } else {
-                /*
-                 * We have data on the fd waiting to be read. Read and
-                 * display it. We must read whatever data is available
-                    * completely, as we are running in edge-triggered mode
-                    * and won't get a notification again for the same
-                    * data.
-                 */
-
-            	done = 0;  //Need to reset this for each message.
-                while(1) {
-                    count = recv(events[i].data.fd, buf, IPC_MESSAGE_SIZE, 0);
-
-                    if(count > 0) {
-                        buf[count - 1] = '\0';
-                    }
-
-                    if (count == -1) {
-                        /* If errno == EAGAIN, that means we have read all
-                           data. So go back to the main loop. */
-                        if (errno != EAGAIN) {
-                            sprintf(message, "IPC: Failed reading message.\n");
-                            logger(LOG_INFO, message);
-                            done = 1;
-                        }
-                        break;
-                    } else if (count == 0) {
-                        /* End of file. The remote has closed the
-                           connection. */
-                        sprintf(message, "IPC: Remote closed the connection.\n");
-                        logger(LOG_INFO, message);
-                        done = 1;
-                        break;
-                    }
-
-                    /* Write the buffer to standard output */
-                    //error = send(1, buf, count, 0);
-                    sprintf(message, "IPC: %s\n",buf);
-                    logger(LOG_INFO, message);
-
-                    if (error == -1) {
-                        sprintf(message, "IPC: Failed writing message.\n");
-                        logger(LOG_INFO, message);
-                        abort ();
-                    }
-
-                    if (done) {
-                        sprintf(message, "IPC: Closed connection on descriptor %d\n",
-                                events[i].data.fd);
-                        logger(LOG_INFO, message);
-
-                        /*
-                         * Closing the descriptor will make epoll remove it
-                         * from the set of descriptors which are monitored.
-                         */
-                        close(events[i].data.fd);
-                    }
-                }
-            }
-        }
-
-        /*
-         * Here is where we can execute other tasks.
-         */
-        hello_neighbors();
-    }
+    epoll_handler(&ipc_server);
 
     sprintf(message, "IPC: Is exiting.\n");
     logger(LOG_INFO, message);
 
+    shutdown_epoll_server(&ipc_server);
 
-    free(events);
-    close(remote_listener_socket);
-    close(local_listener_socket);
     return EXIT_SUCCESS;
 }
 
@@ -620,7 +412,10 @@ struct commandresult cli_neighbor(int client_fd, char **parameters, int numparam
         ERROR = validate_neighbor_input(client_fd, parameters[0], parameters[1], &add_update_neighbor);
     }
 
-    socket = new_unix_client(OPENNOPD_IPC_SOCK);
+    /*
+     * The IPC does not respond to UNIX sockets anymore.
+     */
+    /*socket = new_unix_client(OPENNOPD_IPC_SOCK);
 
     if (socket < 0) {
         sprintf(message, "IPC: CLI failed to connect.\n");
@@ -641,6 +436,7 @@ struct commandresult cli_neighbor(int client_fd, char **parameters, int numparam
         return result;
     }
     ERROR = shutdown(socket, SHUT_WR);
+	*/
 
     /*
      * TODO: Here we should read from the socket for x seconds.
