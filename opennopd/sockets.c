@@ -308,7 +308,7 @@ int epoll_handler(struct epoll_server *server){
     int i = 0;
     ssize_t count;
     char message[LOGSZ] = {0};
-    char buf[IPC_MESSAGE_SIZE];
+    char buf[IPC_MAX_MESSAGE_SIZE];
 
     /*
      * Third we listen for events and handle them.
@@ -375,7 +375,7 @@ int epoll_handler(struct epoll_server *server){
 
             	done = 0;  //Need to reset this for each message.
                 while(1) {
-                    count = recv(server->events[i].data.fd, buf, IPC_MESSAGE_SIZE, 0);
+                    count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
                     /*
                      * Third we listen for events and handle them.
                      */
@@ -435,7 +435,7 @@ int epoll_handler(struct epoll_server *server){
 
                             	done = 0;  //Need to reset this for each message.
                                 while(1) {
-                                    count = recv(server->events[i].data.fd, buf, IPC_MESSAGE_SIZE, 0);
+                                    count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
 
                                     if(count > 0) {
                                         buf[count - 1] = '\0';
