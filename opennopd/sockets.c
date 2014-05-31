@@ -576,7 +576,7 @@ int new_ip_epoll_server(struct epoll_server *server, int (*callback)(void), int 
      * This accepts connections from the remote neighbors.
      */
 
-    server->socket = new_ip_server(OPENNOPD_IPC_PORT);
+    server->socket = new_ip_server(port);
 
     register_socket(server->socket, server->epoll_fd, &server->event);
 
