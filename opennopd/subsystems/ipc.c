@@ -29,11 +29,11 @@
  */
 static pthread_t t_ipc; // thread for cli.
 static struct neighbor_head ipchead;
-static char UUID[17]; //Local UUID.
+static char UUID[33]; //Local UUID.
 static char key[65]; //Local key.
 
 int ipc_neighbor_hello(int socket){
-    char buf[IPC_MESSAGE_SIZE];
+    char buf[IPC_MAX_MESSAGE_SIZE];
     int error;
     sprintf(buf,"Hello!\n");
     error = send(socket, buf, strlen(buf), 0);
@@ -70,7 +70,7 @@ int hello_neighbors(void) {
 
         }else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 10)){
             /*
-             * todo:
+             * TODO:
              * If we were successful in opening a connection we should sent a hello message.
              * Write the hello message function.
              */
@@ -160,7 +160,7 @@ struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
 }
 
 int cli_neighbor_help(int client_fd) {
-    char msg[IPC_MESSAGE_SIZE] = { 0 };
+    char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
 
     sprintf(msg,"Usage: [no] neighbor <ip address> [key]\n");
     cli_send_feedback(client_fd, msg);
@@ -178,7 +178,7 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
     char col2[18];
     char col3[66];
     char end[3];
-    char msg[IPC_MESSAGE_SIZE] = { 0 };
+    char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
 
     currentneighbor = ipchead.next;
 
@@ -311,7 +311,7 @@ int validate_neighbor_input(int client_fd, char *stringip, char *key, t_neighbor
     int ERROR = 0;
     int keylength = 0;
     __u32 neighborIP = 0;
-    char msg[IPC_MESSAGE_SIZE] = { 0 };
+    char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
 
     /*
      * We must validate the user data here
@@ -396,7 +396,7 @@ struct commandresult cli_neighbor(int client_fd, char **parameters, int numparam
     struct commandresult result  = {
                                        0
                                    };
-    char buf[IPC_MESSAGE_SIZE];
+    char buf[IPC_MAX_MESSAGE_SIZE];
     char message[LOGSZ] = {0};
 
     result.mode = NULL;
