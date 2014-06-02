@@ -376,132 +376,7 @@ int epoll_handler(struct epoll_server *server){
             	done = 0;  //Need to reset this for each message.
                 while(1) {
                     count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
-                    /*
-                     * Third we listen for events and handle them.
-                     */
-                    while(1) {
-                        numevents = epoll_wait(server->epoll_fd, server->events, MAXEVENTS, 0);
 
-                        for (i = 0; i < numevents; i++) {
-
-                            if ((server->events[i].events & EPOLLERR) ||
-                                    (server->events[i].events & EPOLLHUP) ||
-                                    (!(server->events[i].events & EPOLLIN))) {
-                                /*
-                                 * An error has occurred on this fd, or the socket is not
-                                 * ready for reading (why were we notified then?)
-                                 */
-
-                                sprintf(message, "IPC: Epoll error.\n");
-                                logger(LOG_INFO, message);
-
-                                close (server->events[i].data.fd);
-
-                                continue;
-
-                            } else if (server->events[i].data.fd == server->socket) {
-                                /*
-                                 * We have a notification on the listening socket,
-                                 * which means one or more incoming connections.
-                                 */
-                                while (1) {
-                                    client_socket = accept_ip_client(server->socket);
-
-                                    if (client_socket == -1) {
-                                        break;
-                                    }
-
-                                    error = make_socket_non_blocking(client_socket);
-
-                                    if (error == -1) {
-                                        sprintf(message, "IPC: Failed setting socket on client.\n");
-                                        logger(LOG_INFO, message);
-                                        exit(1);
-                                    }
-
-                                    error = register_socket(client_socket, server->epoll_fd, &server->event);
-
-                                    continue;
-                                }
-
-                            }  else {
-                                /*
-                                 * We have data on the fd waiting to be read. Read and
-                                 * display it. We must read whatever data is available
-                                    * completely, as we are running in edge-triggered mode
-                                    * and won't get a notification again for the same
-                                    * data.
-                                 */
-
-                            	done = 0;  //Need to reset this for each message.
-                                while(1) {
-                                    count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
-
-                                    if(count > 0) {
-                                        buf[count - 1] = '\0';
-                                    }
-
-                                    if (count == -1) {
-                                        /* If errno == EAGAIN, that means we have read all
-                                           data. So go back to the main loop. */
-                                        if (errno != EAGAIN) {
-                                            sprintf(message, "IPC: Failed reading message.\n");
-                                            logger(LOG_INFO, message);
-                                            done = 1;
-                                        }
-                                        break;
-                                    } else if (count == 0) {
-                                        /* End of file. The remote has closed the
-                                           connection. */
-                                        sprintf(message, "IPC: Remote closed the connection.\n");
-                                        logger(LOG_INFO, message);
-                                        done = 1;
-                                        break;
-                                    }
-
-                                    /* Write the buffer to standard output */
-                                    //error = send(1, buf, count, 0);
-                                    sprintf(message, "IPC: Received a message\n");
-                                    logger(LOG_INFO, message);
-                                    /*
-                                     * TODO:
-                                     * This is bad and should not be done.  Just testing here.
-                                     * This is where we need to use the callback
-                                     * and send the data back to whatever function is going to handle it.
-                                     */
-                                    print_opennnop_header((struct opennop_message_header *)&buf);
-
-
-                                    if (error == -1) {
-                                        sprintf(message, "IPC: Failed writing message.\n");
-                                        logger(LOG_INFO, message);
-                                        abort ();
-                                    }
-
-                                    if (done) {
-                                        sprintf(message, "IPC: Closed connection on descriptor %d\n",
-                                        		server->events[i].data.fd);
-                                        logger(LOG_INFO, message);
-
-                                        /*
-                                         * Closing the descriptor will make epoll remove it
-                                         * from the set of descriptors which are monitored.
-                                         */
-                                        close(server->events[i].data.fd);
-                                    }
-                                }
-                            }
-                        }
-
-                        /*
-                         * TODO:
-                         * Here is where we can execute other tasks.
-                         * I think this needs moved to a tasks thread.
-                         * There is no point in it being here.
-                         */
-                        //hello_neighbors();
-                        (server->callback());
-                    }
                     if(count > 0) {
                         buf[count - 1] = '\0';
                     }
@@ -524,16 +399,13 @@ int epoll_handler(struct epoll_server *server){
                         break;
                     }
 
-                    /* Write the buffer to standard output */
-                    //error = send(1, buf, count, 0);
-                    sprintf(message, "IPC: %s\n",buf);
-                    logger(LOG_INFO, message);
-
-                    if (error == -1) {
-                        sprintf(message, "IPC: Failed writing message.\n");
-                        logger(LOG_INFO, message);
-                        abort ();
-                    }
+                    /*
+                     * TODO:
+                     * This is bad and should not be done.  Just testing here.
+                     * This is where we need to use the callback
+                     * and send the data back to whatever function is going to handle it.
+                     */
+                    print_opennnop_header((struct opennop_message_header *)&buf);
 
                     if (done) {
                         sprintf(message, "IPC: Closed connection on descriptor %d\n",
