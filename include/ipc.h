@@ -81,5 +81,9 @@ typedef int (*t_neighbor_command)(int, __u32, char *);
 void start_ipc();
 void rejoin_ipc();
 int verify_neighbor_in_domain(__u32 neighborIP);
+/*
+ * Adding this for some debugging.  There really is not any need for it to be a public function.
+ */
+int print_opennnop_header(struct opennop_message_header *opennop_msg_header);
 
 #endif

@@ -463,6 +463,14 @@ int epoll_handler(struct epoll_server *server){
                                     //error = send(1, buf, count, 0);
                                     sprintf(message, "IPC: %s\n",buf);
                                     logger(LOG_INFO, message);
+                                    /*
+                                     * TODO:
+                                     * This is bad and should not be done.  Just testing here.
+                                     * This is where we need to use the callback
+                                     * and send the data back to whatever function is going to handle it.
+                                     */
+                                    print_opennnop_header((struct opennop_message_header *)&buf);
+
 
                                     if (error == -1) {
                                         sprintf(message, "IPC: Failed writing message.\n");
