@@ -31,11 +31,28 @@ static pthread_t t_ipc; // thread for cli.
 static struct neighbor_head ipchead;
 static char UUID[33]; //Local UUID.
 static char key[65]; //Local key.
+struct opennop_message_header *opennop_msg_header;
+
+int initialize_opennop_message_header(struct opennop_message_header *opennop_msg_header){
+    opennop_msg_header->type = OPENNOP_MSG_TYPE_IPC;
+    opennop_msg_header->version = OPENNOP_MSG_VERSION;
+    opennop_msg_header->length = OPENNOP_DEFAULT_HEADER_LENGTH; // Header is at least 8 bytes.
+    opennop_msg_header->security = OPENNOP_MSG_SECURITY_NO;
+    opennop_msg_header->antireplay = OPENNOP_MSG_ANTI_REPLAY_NO;
+
+    return 0;
+}
 
 int ipc_neighbor_hello(int socket){
     char buf[IPC_MAX_MESSAGE_SIZE];
     int error;
     sprintf(buf,"Hello!\n");
+
+    /*
+     * Setting up the OpenNOP Message Header.
+     */
+    opennop_msg_header = &buf;
+    initialize_opennop_message_header(opennop_msg_header);
     error = send(socket, buf, strlen(buf), 0);
     return error;
 }

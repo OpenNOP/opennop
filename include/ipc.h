@@ -35,6 +35,8 @@ struct neighbor {
     time_t timer; // Remote timer.
 };
 
+#define OPENNOP_DEFAULT_HEADER_LENGTH	8
+
 struct opennop_message_header {
     __u16 type;
     __u16 version;
@@ -53,7 +55,7 @@ enum {
 };
 
 enum {
-	OPENNOP_MSG_VERSION_1 = 1
+	OPENNOP_MSG_VERSION = 1
 };
 
 enum {
