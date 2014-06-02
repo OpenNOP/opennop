@@ -405,6 +405,9 @@ int epoll_handler(struct epoll_server *server){
                      * This is where we need to use the callback
                      * and send the data back to whatever function is going to handle it.
                      */
+                    sprintf(message, "IPC: Received a message\n");
+                    logger(LOG_INFO, message);
+
                     print_opennnop_header((struct opennop_message_header *)&buf);
 
                     if (done) {
