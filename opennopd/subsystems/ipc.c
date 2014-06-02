@@ -55,6 +55,7 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header){
 	logger(LOG_INFO, message);
     sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
 	logger(LOG_INFO, message);
+
     return 0;
 }
 
@@ -66,7 +67,7 @@ int ipc_neighbor_hello(int socket){
     /*
      * Setting up the OpenNOP Message Header.
      */
-    opennop_msg_header = &buf;
+    opennop_msg_header = (struct opennop_message_header *)&buf;
     initialize_opennop_message_header(opennop_msg_header);
     print_opennnop_header(opennop_msg_header);
     error = send(socket, buf, opennop_msg_header->length, 0);
