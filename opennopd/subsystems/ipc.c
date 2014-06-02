@@ -62,6 +62,7 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header){
 int ipc_neighbor_hello(int socket){
     char buf[IPC_MAX_MESSAGE_SIZE];
     int error;
+    char message[LOGSZ] = {0};
     sprintf(buf,"Hello!\n");
 
     /*
@@ -69,6 +70,8 @@ int ipc_neighbor_hello(int socket){
      */
     opennop_msg_header = (struct opennop_message_header *)&buf;
     initialize_opennop_message_header(opennop_msg_header);
+    sprintf(message, "IPC: Sending a message\n");
+    logger(LOG_INFO, message);
     print_opennnop_header(opennop_msg_header);
     error = send(socket, buf, opennop_msg_header->length, 0);
     return error;

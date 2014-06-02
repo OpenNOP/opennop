@@ -461,7 +461,7 @@ int epoll_handler(struct epoll_server *server){
 
                                     /* Write the buffer to standard output */
                                     //error = send(1, buf, count, 0);
-                                    sprintf(message, "IPC: %s\n",buf);
+                                    sprintf(message, "IPC: Received a message\n");
                                     logger(LOG_INFO, message);
                                     /*
                                      * TODO:
