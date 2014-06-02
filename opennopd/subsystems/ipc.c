@@ -43,6 +43,21 @@ int initialize_opennop_message_header(struct opennop_message_header *opennop_msg
     return 0;
 }
 
+int print_opennnop_header(struct opennop_message_header *opennop_msg_header){
+    char message[LOGSZ] = {0};
+    sprintf(message, "Type: %u\n", opennop_msg_header->type);
+	logger(LOG_INFO, message);
+    sprintf(message, "Version: %u\n", opennop_msg_header->version);
+	logger(LOG_INFO, message);
+    sprintf(message, "Length: %u\n", opennop_msg_header->length);
+	logger(LOG_INFO, message);
+    sprintf(message, "Security: %u\n", opennop_msg_header->security);
+	logger(LOG_INFO, message);
+    sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
+	logger(LOG_INFO, message);
+    return 0;
+}
+
 int ipc_neighbor_hello(int socket){
     char buf[IPC_MAX_MESSAGE_SIZE];
     int error;
@@ -53,7 +68,8 @@ int ipc_neighbor_hello(int socket){
      */
     opennop_msg_header = &buf;
     initialize_opennop_message_header(opennop_msg_header);
-    error = send(socket, buf, strlen(buf), 0);
+    print_opennnop_header(opennop_msg_header);
+    error = send(socket, buf, opennop_msg_header->length, 0);
     return error;
 }
 
