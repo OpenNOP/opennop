@@ -35,34 +35,42 @@ static char UUID[OPENNOP_IPC_UUID_LENGTH]; //Local UUID.
 static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 struct opennop_message_header *opennop_msg_header;
 
-int initialize_opennop_message_header(struct opennop_message_header *opennop_msg_header){
+int set_opennop_message_security(struct opennop_message_header *opennop_msg_header) {
+
+    if (strcmp(key, "") == 0) {
+        opennop_msg_header->security = OPENNOP_MSG_SECURITY_SHA;
+    }
+
+    return 0;
+}
+
+int initialize_opennop_message_header(struct opennop_message_header *opennop_msg_header) {
     opennop_msg_header->type = OPENNOP_MSG_TYPE_IPC;
     opennop_msg_header->version = OPENNOP_MSG_VERSION;
     opennop_msg_header->length = OPENNOP_DEFAULT_HEADER_LENGTH; // Header is at least 8 bytes.
-    opennop_msg_header->security = OPENNOP_MSG_SECURITY_NO;
+    set_opennop_message_security(opennop_msg_header);
     opennop_msg_header->antireplay = OPENNOP_MSG_ANTI_REPLAY_NO;
-
     return 0;
 }
 
-int print_opennnop_header(struct opennop_message_header *opennop_msg_header){
+int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
     char message[LOGSZ] = {0};
     sprintf(message, "Type: %u\n", opennop_msg_header->type);
-	logger(LOG_INFO, message);
+    logger(LOG_INFO, message);
     sprintf(message, "Version: %u\n", opennop_msg_header->version);
-	logger(LOG_INFO, message);
+    logger(LOG_INFO, message);
     sprintf(message, "Length: %u\n", opennop_msg_header->length);
-	logger(LOG_INFO, message);
+    logger(LOG_INFO, message);
     sprintf(message, "Security: %u\n", opennop_msg_header->security);
-	logger(LOG_INFO, message);
+    logger(LOG_INFO, message);
     sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
-	logger(LOG_INFO, message);
+    logger(LOG_INFO, message);
 
     return 0;
 }
 
-int ipc_handler(int fd, void *buf){
-	char message[LOGSZ] = {0};
+int ipc_handler(int fd, void *buf) {
+    char message[LOGSZ] = {0};
     /*
      * TODO:
      */
@@ -70,10 +78,10 @@ int ipc_handler(int fd, void *buf){
     logger(LOG_INFO, message);
     print_opennnop_header((struct opennop_message_header *)buf);
 
-	return 0;
+    return 0;
 }
 
-int ipc_neighbor_hello(int socket){
+int ipc_neighbor_hello(int socket) {
     char buf[IPC_MAX_MESSAGE_SIZE];
     int error;
     char message[LOGSZ] = {0};
@@ -106,7 +114,7 @@ int hello_neighbors(void) {
     for(currentneighbor = ipchead.next; currentneighbor != NULL; currentneighbor = currentneighbor->next) {
 
         if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->timer) >= 30)) {
-        	currentneighbor->timer = currenttime;
+            currentneighbor->timer = currenttime;
             sprintf(message, "state is down & timer > 30\n");
             logger(LOG_INFO, message);
 
@@ -123,27 +131,27 @@ int hello_neighbors(void) {
                 }
             }
 
-        }else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 10)){
+        } else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 10)) {
             /*
              * TODO:
              * If we were successful in opening a connection we should sent a hello message.
              * Write the hello message function.
              */
-        	if(currentneighbor->sock != 0){
-        		currentneighbor->timer = currenttime;
-        		error = ipc_neighbor_hello(currentneighbor->sock);
+            if(currentneighbor->sock != 0) {
+                currentneighbor->timer = currenttime;
+                error = ipc_neighbor_hello(currentneighbor->sock);
 
-        		/*
-        		 * Maybe a lot of this should be moved to ipc_neighbor_hello().
-        		 */
-        		if (error < 0){
-        			 sprintf(message, "Failed sending hello.\n");
-        			 logger(LOG_INFO, message);
-        			 currentneighbor->state = DOWN;
-        			 shutdown(currentneighbor->sock, SHUT_RDWR);
-        			 currentneighbor->sock = 0;
-        		}
-        	}
+                /*
+                 * Maybe a lot of this should be moved to ipc_neighbor_hello().
+                 */
+                if (error < 0) {
+                    sprintf(message, "Failed sending hello.\n");
+                    logger(LOG_INFO, message);
+                    currentneighbor->state = DOWN;
+                    shutdown(currentneighbor->sock, SHUT_RDWR);
+                    currentneighbor->sock = 0;
+                }
+            }
         }
     }
     return 0;
@@ -166,7 +174,9 @@ int hello_neighbors(void) {
  */
 void *ipc_thread(void *dummyPtr) {
     int error = 0;
-    struct epoll_server ipc_server = {0};
+    struct epoll_server ipc_server = {
+                                         0
+                                     };
     char message[LOGSZ] = {0};
 
     sprintf(message, "IPC: Is starting.\n");
@@ -252,13 +262,13 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
     return result;
 }
 
-int set_neighbor_key(struct neighbor *currentneighbor, char *key){
-	memset(currentneighbor->key, 0, sizeof(currentneighbor->key));
+int set_neighbor_key(struct neighbor *currentneighbor, char *key) {
+    memset(currentneighbor->key, 0, sizeof(currentneighbor->key));
 
-	if(key != NULL) {
-		strncpy(currentneighbor->key, key, strlen(key));
-	}
-	return 0;
+    if(key != NULL) {
+        strncpy(currentneighbor->key, key, strlen(key));
+    }
+    return 0;
 }
 
 struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
@@ -282,7 +292,7 @@ struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
     }
 
     if (key != NULL) {
-    	set_neighbor_key(newneighbor, key);
+        set_neighbor_key(newneighbor, key);
     }
 
     return newneighbor;
@@ -415,8 +425,8 @@ int validate_neighbor_input(int client_fd, char *stringip, char *key, t_neighbor
     if(key != NULL) {
         sprintf(msg,"Neighbor key length is [%u].\n", keylength);
         cli_send_feedback(client_fd, msg);
-	}
-	*/
+}
+    */
 
     return 0;
 }
@@ -487,7 +497,7 @@ struct commandresult cli_neighbor(int client_fd, char **parameters, int numparam
         result.finished = 1;
         close(socket);
         return result;
-    }
+}
 
     sprintf(buf,"Hello!\n");
     ERROR = send(socket, buf, strlen(buf), 0);
@@ -498,9 +508,9 @@ struct commandresult cli_neighbor(int client_fd, char **parameters, int numparam
         result.finished = 1;
         close(socket);
         return result;
-    }
+}
     ERROR = shutdown(socket, SHUT_WR);
-	*/
+    */
 
     /*
      * TODO: Here we should read from the socket for x seconds.
@@ -509,6 +519,56 @@ struct commandresult cli_neighbor(int client_fd, char **parameters, int numparam
 
     result.finished = 0;
 
+    return result;
+}
+
+struct commandresult cli_set_key(int client_fd, char **parameters, int numparameters, void *data) {
+    int ERROR = 0;
+    int keylength = 0;
+    struct commandresult result  = {
+                                       0
+                                   };
+    char buf[IPC_MAX_MESSAGE_SIZE];
+    char message[LOGSZ] = {0};
+
+    result.mode = NULL;
+    result.data = NULL;
+
+    if (numparameters == 1){
+
+        if(parameters[0] != NULL) {
+            keylength = strlen(parameters[0]);
+
+            if(keylength > 64) {
+                result.finished = 0;
+                return result;
+            }
+            memset(key, 0, sizeof(key));
+            strncpy(key, parameters[0], strlen(parameters[0]));
+
+        }
+    }
+
+    if(numparameters == 0){
+    	memset(key, 0, sizeof(key));
+    }
+
+    result.finished = 0;
+
+    return result;
+}
+
+struct commandresult cli_show_key(int client_fd, char **parameters, int numparameters, void *data) {
+    char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
+    struct commandresult result  = {
+                                       0
+                                   };
+
+    result.mode = NULL;
+    result.data = NULL;
+    sprintf(msg,"Key: [%s]\n",key);
+    cli_send_feedback(client_fd, msg);
+    result.finished = 0;
     return result;
 }
 
@@ -542,6 +602,8 @@ void start_ipc() {
     register_command(NULL, "neighbor", cli_neighbor, true, false);
     register_command(NULL, "no neighbor", cli_no_neighbor, true, false);
     register_command(NULL, "show neighbors", cli_show_neighbors, false, false);
+    register_command(NULL, "key", cli_set_key, true, true);
+    register_command(NULL, "show key", cli_show_key, false, true);
 
     ipchead.next = NULL;
     ipchead.prev = NULL;
