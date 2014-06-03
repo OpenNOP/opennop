@@ -344,6 +344,7 @@ int epoll_handler(struct epoll_server *server){
                 	 * Here we need to detect if the "server" was UNIX or IP.
                 	 * We might use the family type and add it to "struct epoll_server"
                 	 * and set it when we create the new epoll server.
+                	 * It would probably be better to check the server->socket.
                 	 */
                     client_socket = accept_ip_client(server->socket);
 
@@ -375,6 +376,14 @@ int epoll_handler(struct epoll_server *server){
 
             	done = 0;  //Need to reset this for each message.
                 while(1) {
+
+                	/*
+                	 * TODO:
+                	 * I am unsure if this is the best way to handle reading the data.
+                	 * It might be better to just have the callback function accept the socket FD
+                	 * as a param and recv() the data itself but having all data validation
+                	 * in one spot is kind of nice too.
+                	 */
                     count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
 
                     if(count > 0) {
@@ -399,17 +408,12 @@ int epoll_handler(struct epoll_server *server){
                         break;
                     }
 
+                    (server->callback(server->events[i].data.fd, &buf));
+
+
                     /*
-                     * TODO:
-                     * This is bad and should not be done.  Just testing here.
-                     * This is where we need to use the callback
-                     * and send the data back to whatever function is going to handle it.
+                     * If the remote end is done sending data let close the connection.
                      */
-                    sprintf(message, "IPC: Received a message\n");
-                    logger(LOG_INFO, message);
-
-                    print_opennnop_header((struct opennop_message_header *)&buf);
-
                     if (done) {
                         sprintf(message, "IPC: Closed connection on descriptor %d\n",
                         		server->events[i].data.fd);
@@ -431,13 +435,18 @@ int epoll_handler(struct epoll_server *server){
          * I think this needs moved to a tasks thread.
          * There is no point in it being here.
          */
-        //hello_neighbors();
-        (server->callback());
+        hello_neighbors();
+
     }
     return 0;
 }
 
-int new_ip_epoll_server(struct epoll_server *server, int (*callback)(void), int port){
+/*
+ * TODO:
+ * A new epoll server should include a max length for the messages it is expected to receive.
+ * If it receives a message larger than this is should shutdown that socket right away.
+ */
+int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback callback, int port){
 	char message[LOGSZ] = {0};
 
 	server->events = calloc (MAXEVENTS, sizeof server->event);

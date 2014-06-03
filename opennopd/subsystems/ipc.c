@@ -59,6 +59,18 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header){
     return 0;
 }
 
+int ipc_handler(int fd, void *buf){
+	char message[LOGSZ] = {0};
+    /*
+     * TODO:
+     */
+    sprintf(message, "IPC: Received a message\n");
+    logger(LOG_INFO, message);
+    print_opennnop_header((struct opennop_message_header *)buf);
+
+	return 0;
+}
+
 int ipc_neighbor_hello(int socket){
     char buf[IPC_MAX_MESSAGE_SIZE];
     int error;
@@ -154,7 +166,7 @@ void *ipc_thread(void *dummyPtr) {
     sprintf(message, "IPC: Is starting.\n");
     logger(LOG_INFO, message);
 
-    error = new_ip_epoll_server(&ipc_server, hello_neighbors, OPENNOPD_IPC_PORT);
+    error = new_ip_epoll_server(&ipc_server, ipc_handler, OPENNOPD_IPC_PORT);
 
     /*
      * This should not return until the epoll server is shutdown.

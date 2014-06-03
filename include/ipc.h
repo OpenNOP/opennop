@@ -54,9 +54,7 @@ enum {
 	OPENNOP_MSG_TYPE_DRV
 };
 
-enum {
-	OPENNOP_MSG_VERSION = 1
-};
+#define OPENNOP_MSG_VERSION 	1
 
 enum {
 	OPENNOP_MSG_SECURITY_NO = 0,
@@ -85,5 +83,6 @@ int verify_neighbor_in_domain(__u32 neighborIP);
  * Adding this for some debugging.  There really is not any need for it to be a public function.
  */
 int print_opennnop_header(struct opennop_message_header *opennop_msg_header);
+int hello_neighbors(void);
 
 #endif
