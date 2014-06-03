@@ -85,7 +85,11 @@ int ipc_neighbor_hello(int socket){
     sprintf(message, "IPC: Sending a message\n");
     logger(LOG_INFO, message);
     print_opennnop_header(opennop_msg_header);
-    error = send(socket, buf, opennop_msg_header->length, 0);
+    /*
+     * Must ignore the signal typically caused when the remote end is crashed.
+     * http://stackoverflow.com/questions/1330397/tcp-send-does-not-return-cause-crashing-process
+     */
+    error = send(socket, buf, opennop_msg_header->length, MSG_NOSIGNAL);
     return error;
 }
 
