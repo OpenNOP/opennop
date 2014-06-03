@@ -58,9 +58,6 @@ struct opennop_message_header {
     __u16 length;
     __u8 security;
     __u8 antireplay;
-    __u32 *sudotime;
-    char *securitydata[32];
-    char *messages;
 };
 
 enum {
