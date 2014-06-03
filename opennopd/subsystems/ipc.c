@@ -21,6 +21,8 @@
 #include "logger.h"
 #include "sockets.h"
 
+typedef int (*t_neighbor_command)(int, __u32, char *);
+
 /*
  * I was using "head" and "tail" here but that seemed to conflict with another module.
  * Should the internal variable names be isolated between modules?
@@ -29,8 +31,8 @@
  */
 static pthread_t t_ipc; // thread for cli.
 static struct neighbor_head ipchead;
-static char UUID[33]; //Local UUID.
-static char key[65]; //Local key.
+static char UUID[OPENNOP_IPC_UUID_LENGTH]; //Local UUID.
+static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 struct opennop_message_header *opennop_msg_header;
 
 int initialize_opennop_message_header(struct opennop_message_header *opennop_msg_header){
@@ -185,33 +187,6 @@ void *ipc_thread(void *dummyPtr) {
     return EXIT_SUCCESS;
 }
 
-struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
-    struct neighbor *newneighbor = (struct neighbor *) malloc (sizeof (struct neighbor));
-
-    if(newneighbor == NULL) {
-        fprintf(stdout, "Could not allocate memory... \n");
-        exit(1);
-    }
-    newneighbor->next = NULL;
-    newneighbor->prev = NULL;
-    newneighbor->NeighborIP = 0;
-    newneighbor->state = DOWN;
-    newneighbor->UUID[0] = '\0';
-    newneighbor->sock = 0;
-    newneighbor->key[0] = '\0';
-    time(&newneighbor->timer);
-
-    if (neighborIP != 0) {
-        newneighbor->NeighborIP = neighborIP;
-    }
-
-    if (key != NULL) {
-        strncpy(newneighbor->key, key, sizeof(newneighbor->key)-1);
-    }
-
-    return newneighbor;
-}
-
 int cli_neighbor_help(int client_fd) {
     char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
 
@@ -228,7 +203,7 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
                                    };
     char temp[20];
     char col1[17];
-    char col2[18];
+    char col2[33];
     char col3[66];
     char end[3];
     char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
@@ -277,6 +252,44 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
     return result;
 }
 
+int set_neighbor_key(struct neighbor *currentneighbor, char *key){
+	memset(currentneighbor->key, 0, sizeof(currentneighbor->key));
+
+	if(key != NULL) {
+		strncpy(currentneighbor->key, key, strlen(key));
+	}
+	return 0;
+}
+
+struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
+    struct neighbor *newneighbor = (struct neighbor *) malloc (sizeof (struct neighbor));
+
+    if(newneighbor == NULL) {
+        fprintf(stdout, "Could not allocate memory... \n");
+        exit(1);
+    }
+    newneighbor->next = NULL;
+    newneighbor->prev = NULL;
+    newneighbor->NeighborIP = 0;
+    newneighbor->state = DOWN;
+    newneighbor->UUID[0] = '\0';
+    newneighbor->sock = 0;
+    newneighbor->key[0] = '\0';
+    time(&newneighbor->timer);
+
+    if (neighborIP != 0) {
+        newneighbor->NeighborIP = neighborIP;
+    }
+
+    if (key != NULL) {
+    	set_neighbor_key(newneighbor, key);
+    }
+
+    return newneighbor;
+}
+
+
+
 int add_update_neighbor(int client_fd, __u32 neighborIP, char *key) {
     struct neighbor *currentneighbor = NULL;
 
@@ -289,9 +302,7 @@ int add_update_neighbor(int client_fd, __u32 neighborIP, char *key) {
 
         if (currentneighbor->NeighborIP == neighborIP) {
 
-            if(key != NULL) {
-                strncpy(currentneighbor->key, key, sizeof(currentneighbor->key)-1);
-            }
+            set_neighbor_key(currentneighbor, key);
 
             return 0;
         }
@@ -404,8 +415,8 @@ int validate_neighbor_input(int client_fd, char *stringip, char *key, t_neighbor
     if(key != NULL) {
         sprintf(msg,"Neighbor key length is [%u].\n", keylength);
         cli_send_feedback(client_fd, msg);
-}
-    */
+	}
+	*/
 
     return 0;
 }

@@ -1,3 +1,15 @@
+/**
+ * @file ipc.h
+ * @author Justin Yaple <yaplej@opennop.org>
+ * @date 3 Jun 2014
+ * @brief Header file for IPC communications between OpenNOP nodes.
+ *
+ * The IPC header provides functionality to verify neighboring nodes
+ * in a OpenNOP @Domain or @Stub-Domain.
+ * @see http://www.stack.nl/~dimitri/doxygen/docblocks.html
+ * @see http://www.stack.nl/~dimitri/doxygen/commands.html
+ */
+
 #ifndef	_IPC_H_
 #define	_IPC_H_
 
@@ -23,15 +35,18 @@ struct neighbor_head
     pthread_mutex_t lock; // Lock for this neighbor.
 };
 
+#define OPENNOP_IPC_UUID_LENGTH		33
+#define OPENNOP_IPC_KEY_LENGTH		65
+
 struct neighbor {
     struct neighbor *next;
     struct neighbor *prev;
-    char name[65]; //unique name for the remote OpenNOP accelerator.
-    __u32 NeighborIP; // IP address of a remote OpenNOP accelerator.
-    neighborstate state; // Detected state of this remote.
-    char UUID[33]; // Detected ID of this remote.
-    int sock; // Socket FD used to communicate to this remote.
-    char key[65]; // Encryption key used by this remote.
+    char name[65]; // Unique name for this neighbor.
+    __u32 NeighborIP; // IP address of this neighbor.
+    neighborstate state; // Detected state of this neighbor.
+    char UUID[OPENNOP_IPC_UUID_LENGTH]; // Detected ID of this neighbor.
+    int sock; // Socket FD used to communicate to this neighbor.
+    char key[OPENNOP_IPC_KEY_LENGTH]; // Encryption key used by this neighbor.
     time_t timer; // Remote timer.
 };
 
@@ -73,8 +88,6 @@ enum {
 	OPENNOP_IPC_BAD_UUID,
 	OPENNOP_IPC_DEDUP_MAP
 };
-
-typedef int (*t_neighbor_command)(int, __u32, char *);
 
 void start_ipc();
 void rejoin_ipc();
