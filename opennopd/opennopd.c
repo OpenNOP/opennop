@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, signal_handler);
     signal(SIGINT, signal_handler);
     signal(SIGQUIT, signal_handler);
+    signal(SIGPIPE,SIG_IGN); // Ignore SIGPIPE on write errors.
 
     int c;
     while ((c = getopt(argc, argv, "nh|help")) != -1) {
