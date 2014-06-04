@@ -76,7 +76,7 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
     logger(LOG_INFO, message);
 
     if(opennop_msg_header->security == 1){
-        	data.securitydata = opennop_msg_header + sizeof(opennop_msg_header);
+        	data.securitydata = opennop_msg_header + sizeof(struct opennop_message_header);
         	memset(&securitydata, 0, sizeof(securitydata));
         	memcpy(&securitydata, data.securitydata, 32);
             sprintf(message, "Security Data: %s\n", securitydata);
@@ -115,14 +115,14 @@ int ipc_neighbor_hello(int socket) {
     print_opennnop_header(opennop_msg_header);
 
     if(opennop_msg_header->security == 1){
-    	data.securitydata = opennop_msg_header + sizeof(opennop_msg_header);
+    	data.securitydata = opennop_msg_header + sizeof(struct opennop_message_header);
     	memset(data.securitydata, 0, 32);
     	memcpy(data.securitydata, &key, 32);
     	data.messages = data.securitydata + 32;
     	opennop_msg_header->length = opennop_msg_header->length + 32;
     }else{
     	data.securitydata = NULL;
-    	data.messages = opennop_msg_header + sizeof(opennop_msg_header);
+    	data.messages = opennop_msg_header + sizeof(struct opennop_message_header);
     }
 
     /*
