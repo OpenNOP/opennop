@@ -308,7 +308,7 @@ int epoll_handler(struct epoll_server *server){
     int i = 0;
     ssize_t count;
     char message[LOGSZ] = {0};
-    char buf[IPC_MAX_MESSAGE_SIZE];
+    char buf[IPC_MAX_MESSAGE_SIZE] = {0};
 
     /*
      * Third we listen for events and handle them.

@@ -100,7 +100,7 @@ int ipc_handler(int fd, void *buf) {
 
 int ipc_neighbor_hello(int socket) {
 	struct opennop_message_data data;
-    char buf[IPC_MAX_MESSAGE_SIZE];
+    char buf[IPC_MAX_MESSAGE_SIZE] = {0};
     int error;
     char message[LOGSZ] = {0};
     sprintf(buf,"Hello!\n");

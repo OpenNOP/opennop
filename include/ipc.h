@@ -53,17 +53,17 @@ struct neighbor {
 #define OPENNOP_DEFAULT_HEADER_LENGTH	8
 
 struct opennop_message_header {
-    __u16 type;
-    __u16 version;
-    __u16 length;
-    __u8 security;
-    __u8 antireplay;
+    __u16 type;				/** OpenNOP message type */
+    __u16 version;			/** Version of the message system */
+    __u16 length;			/** Total length of this message */
+    __u8 security;			/** Indicates if security is required */
+    __u8 antireplay;		/** Indicates if anti-replay is enabled */
 };
 
 struct opennop_message_data {
-    char *securitydata;
-    __u32 *antireplaydata;
-    char *messages;
+    char *securitydata;		/** SHA256 data of the entire message */
+    __u32 *antireplaydata;	/** Anti-replay data */
+    char *messages;			/** Beginning of any OpenNOP messages */
 };
 
 enum {
