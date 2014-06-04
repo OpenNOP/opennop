@@ -36,10 +36,16 @@ static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 struct opennop_message_header *opennop_msg_header;
 
 int set_opennop_message_security(struct opennop_message_header *opennop_msg_header) {
+	char message[LOGSZ] = {0};
 
     if (strcmp(key, "") == 0) {
-        opennop_msg_header->security = OPENNOP_MSG_SECURITY_SHA;
+        opennop_msg_header->security = OPENNOP_MSG_SECURITY_NO;
+        sprintf(message, "IPC: NO security.\n");
+    }else{
+    	opennop_msg_header->security = OPENNOP_MSG_SECURITY_SHA;
+    	sprintf(message, "IPC: SHA security.\n");
     }
+    logger(LOG_INFO, message);
 
     return 0;
 }
