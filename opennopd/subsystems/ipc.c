@@ -112,7 +112,6 @@ int ipc_neighbor_hello(int socket) {
     initialize_opennop_message_header(opennop_msg_header);
     sprintf(message, "IPC: Sending a message\n");
     logger(LOG_INFO, message);
-    print_opennnop_header(opennop_msg_header);
 
     if(opennop_msg_header->security == 1){
     	data.securitydata = opennop_msg_header + sizeof(struct opennop_message_header);
@@ -124,6 +123,8 @@ int ipc_neighbor_hello(int socket) {
     	data.securitydata = NULL;
     	data.messages = opennop_msg_header + sizeof(struct opennop_message_header);
     }
+
+    print_opennnop_header(opennop_msg_header);
 
     /*
      * Must ignore the signal typically caused when the remote end is crashed.
