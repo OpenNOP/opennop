@@ -116,8 +116,10 @@ int ipc_neighbor_hello(int socket) {
 
     if(opennop_msg_header->security == 1){
     	data.securitydata = opennop_msg_header + sizeof(opennop_msg_header);
+    	memset(data.securitydata, 0, 32);
     	memcpy(data.securitydata, &key, 32);
     	data.messages = data.securitydata + 32;
+    	opennop_msg_header->length = opennop_msg_header->length + 32;
     }else{
     	data.securitydata = NULL;
     	data.messages = opennop_msg_header + sizeof(opennop_msg_header);
