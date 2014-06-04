@@ -60,6 +60,12 @@ struct opennop_message_header {
     __u8 antireplay;
 };
 
+struct opennop_message_data {
+    char *securitydata;
+    __u32 *antireplaydata;
+    char *messages;
+};
+
 enum {
 	OPENNOP_MSG_TYPE_IPC = 1,
 	OPENNOP_MSG_TYPE_CLI,

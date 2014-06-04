@@ -60,7 +60,10 @@ int initialize_opennop_message_header(struct opennop_message_header *opennop_msg
 }
 
 int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
+	struct opennop_message_data data;
     char message[LOGSZ] = {0};
+    char securitydata[33] = {0};
+
     sprintf(message, "Type: %u\n", opennop_msg_header->type);
     logger(LOG_INFO, message);
     sprintf(message, "Version: %u\n", opennop_msg_header->version);
@@ -71,6 +74,14 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
     logger(LOG_INFO, message);
     sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
     logger(LOG_INFO, message);
+
+    if(opennop_msg_header->security == 1){
+        	data.securitydata = opennop_msg_header + sizeof(opennop_msg_header);
+        	memset(&securitydata, 0, sizeof(securitydata));
+        	memcpy(&securitydata, data.securitydata, 32);
+            sprintf(message, "Security Data: %s\n", securitydata);
+            logger(LOG_INFO, message);
+    }
 
     return 0;
 }
@@ -88,6 +99,7 @@ int ipc_handler(int fd, void *buf) {
 }
 
 int ipc_neighbor_hello(int socket) {
+	struct opennop_message_data data;
     char buf[IPC_MAX_MESSAGE_SIZE];
     int error;
     char message[LOGSZ] = {0};
@@ -101,6 +113,16 @@ int ipc_neighbor_hello(int socket) {
     sprintf(message, "IPC: Sending a message\n");
     logger(LOG_INFO, message);
     print_opennnop_header(opennop_msg_header);
+
+    if(opennop_msg_header->security == 1){
+    	data.securitydata = opennop_msg_header + sizeof(opennop_msg_header);
+    	memcpy(data.securitydata, &key, 32);
+    	data.messages = data.securitydata + 32;
+    }else{
+    	data.securitydata = NULL;
+    	data.messages = opennop_msg_header + sizeof(opennop_msg_header);
+    }
+
     /*
      * Must ignore the signal typically caused when the remote end is crashed.
      * http://stackoverflow.com/questions/1330397/tcp-send-does-not-return-cause-crashing-process
