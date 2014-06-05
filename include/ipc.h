@@ -18,9 +18,9 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 
-#define IPC_MAX_MESSAGE_SIZE	1024
-#define OPENNOPD_IPC_PORT 5000 // Random number for now.
-#define	OPENNOPD_IPC_SOCK	"\0opennopd.ipc" // '\0' makes this sock hidden.
+#define IPC_MAX_MESSAGE_SIZE	1024 /** Largest size the IPC messages can be */
+#define OPENNOPD_IPC_PORT 		5000 /** Random number for now */
+#define	OPENNOPD_IPC_SOCK		"\0opennopd.ipc" /** '\0' makes this sock hidden */
 
 typedef enum {
 	DOWN, // Remote system not functioning or authorized.

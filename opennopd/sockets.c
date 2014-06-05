@@ -340,11 +340,10 @@ int epoll_handler(struct epoll_server *server){
                  */
                 while (1) {
                 	/*
-                	 * TODO:
-                	 * Here we need to detect if the "server" was UNIX or IP.
-                	 * We might use the family type and add it to "struct epoll_server"
-                	 * and set it when we create the new epoll server.
-                	 * It would probably be better to check the server->socket.
+                	 *TODO: Here we need to detect if the "server" was UNIX or IP.
+                	 *TODO: We might use the family type and add it to "struct epoll_server"
+                	 *TODO: and set it when we create the new epoll server.
+                	 *TODO: It would probably be better to check the server->socket.
                 	 */
                     client_socket = accept_ip_client(server->socket);
 
@@ -360,6 +359,13 @@ int epoll_handler(struct epoll_server *server){
                         exit(1);
                     }
 
+                    /**
+                     *TODO: We should add another callback for security/authentication.
+                     *TODO: This callback should verify that the connection is originated from an
+                     *TODO: authorized source.
+                     *TODO: The callback should return AUTHORIZED or UNAUTHORIZED and close or register
+                     *TODO: the socket appropriately.
+                     */
                     error = register_socket(client_socket, server->epoll_fd, &server->event);
 
                     continue;
@@ -387,7 +393,12 @@ int epoll_handler(struct epoll_server *server){
                     count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
 
                     if(count > 0) {
-                        buf[count - 1] = '\0';
+                        /**
+                         *TODO: Need to dynamically allocate a buffer for each epoll server.
+                         *
+                         * We should not overwrite the last char as NUL.  This is not a char string.
+                         */
+                    	//buf[count - 1] = '\0';
                     }
 
                     if (count == -1) {
