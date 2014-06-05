@@ -89,7 +89,9 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
 int ipc_handler(int fd, void *buf) {
     char message[LOGSZ] = {0};
     /*
-     * TODO:
+     *TODO: Here we need to check the message type of process it.
+     *TODO: The epoll server should have a 2nd callback function that verifies the security of a connection.
+     *TODO: So data passed from the epoll server to the handler *should* be considered secure.
      */
     sprintf(message, "IPC: Received a message\n");
     logger(LOG_INFO, message);
@@ -103,7 +105,6 @@ int ipc_neighbor_hello(int socket) {
     char buf[IPC_MAX_MESSAGE_SIZE] = {0};
     int error;
     char message[LOGSZ] = {0};
-    sprintf(buf,"Hello!\n");
 
     /*
      * Setting up the OpenNOP Message Header.
@@ -126,8 +127,13 @@ int ipc_neighbor_hello(int socket) {
 
     print_opennnop_header(opennop_msg_header);
 
-    /*
-     * Must ignore the signal typically caused when the remote end is crashed.
+
+    /**
+     *TODO: When sending the buffer "opennop_msg_header->length" does not work correctly to transmit all the data.
+     *TODO: I'm not sure if its caused by receiving side or the sending.
+     *TODO: The length is reporting as 40 that is correct.  Sending 41 bytes seems to work correctly.
+     *
+     * Must ignore the signal typically caused when the remote stops responding by adding the MSG_NOSIGNAL flag.
      * http://stackoverflow.com/questions/1330397/tcp-send-does-not-return-cause-crashing-process
      */
     error = send(socket, buf, opennop_msg_header->length, MSG_NOSIGNAL);
