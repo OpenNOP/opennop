@@ -392,9 +392,6 @@ int epoll_handler(struct epoll_server *server){
                 	 */
                     count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
 
-                    sprintf(message, "[epoll]: received %u bytes.\n", count);
-                    logger(LOG_INFO, message);
-
                     if(count > 0) {
                         /**
                          *TODO: Need to dynamically allocate a buffer for each epoll server.
@@ -402,6 +399,8 @@ int epoll_handler(struct epoll_server *server){
                          * We should not overwrite the last char as NUL.  This is not a char string.
                          */
                     	//buf[count - 1] = '\0';
+                        sprintf(message, "[epoll]: received %u bytes.\n", (unsigned int)count);
+                        logger(LOG_INFO, message);
                     }
 
                     if (count == -1) {
