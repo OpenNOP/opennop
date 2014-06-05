@@ -36,14 +36,14 @@ static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 struct opennop_message_header *opennop_msg_header;
 
 int set_opennop_message_security(struct opennop_message_header *opennop_msg_header) {
-	char message[LOGSZ] = {0};
+    char message[LOGSZ] = {0};
 
     if (strcmp(key, "") == 0) {
         opennop_msg_header->security = OPENNOP_MSG_SECURITY_NO;
         sprintf(message, "IPC: NO security.\n");
-    }else{
-    	opennop_msg_header->security = OPENNOP_MSG_SECURITY_SHA;
-    	sprintf(message, "IPC: SHA security.\n");
+    } else {
+        opennop_msg_header->security = OPENNOP_MSG_SECURITY_SHA;
+        sprintf(message, "IPC: SHA security.\n");
     }
     logger(LOG_INFO, message);
 
@@ -60,7 +60,7 @@ int initialize_opennop_message_header(struct opennop_message_header *opennop_msg
 }
 
 int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
-	struct opennop_message_data data;
+    struct opennop_message_data data;
     char message[LOGSZ] = {0};
     char securitydata[33] = {0};
 
@@ -75,12 +75,12 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
     sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
     logger(LOG_INFO, message);
 
-    if(opennop_msg_header->security == 1){
-        	data.securitydata = (char*)opennop_msg_header + sizeof(struct opennop_message_header);
-        	memset(&securitydata, 0, sizeof(securitydata));
-        	memcpy(&securitydata, data.securitydata, 32);
-            sprintf(message, "Security Data: %s\n", securitydata);
-            logger(LOG_INFO, message);
+    if(opennop_msg_header->security == 1) {
+        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_message_header);
+        memset(&securitydata, 0, sizeof(securitydata));
+        memcpy(&securitydata, data.securitydata, 32);
+        sprintf(message, "Security Data: %s\n", securitydata);
+        logger(LOG_INFO, message);
     }
 
     return 0;
@@ -101,7 +101,7 @@ int ipc_handler(int fd, void *buf) {
 }
 
 int ipc_neighbor_hello(int socket) {
-	struct opennop_message_data data;
+    struct opennop_message_data data;
     char buf[IPC_MAX_MESSAGE_SIZE] = {0};
     int error;
     char message[LOGSZ] = {0};
@@ -114,15 +114,15 @@ int ipc_neighbor_hello(int socket) {
     sprintf(message, "IPC: Sending a message\n");
     logger(LOG_INFO, message);
 
-    if(opennop_msg_header->security == 1){
-    	data.securitydata = (char*)opennop_msg_header + sizeof(struct opennop_message_header);
-    	memset(data.securitydata, 0, 32);
-    	memcpy(data.securitydata, &key, 32);
-    	data.messages = data.securitydata + 32;
-    	opennop_msg_header->length = opennop_msg_header->length + 32;
-    }else{
-    	data.securitydata = NULL;
-    	data.messages = (char*)opennop_msg_header + sizeof(struct opennop_message_header);
+    if(opennop_msg_header->security == 1) {
+        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_message_header);
+        memset(data.securitydata, 0, 32);
+        memcpy(data.securitydata, &key, 32);
+        data.messages = data.securitydata + 32;
+        opennop_msg_header->length = opennop_msg_header->length + 32;
+    } else {
+        data.securitydata = NULL;
+        data.messages = (char *)opennop_msg_header + sizeof(struct opennop_message_header);
     }
 
     print_opennnop_header(opennop_msg_header);
@@ -143,7 +143,7 @@ int ipc_neighbor_hello(int socket) {
      *TODO: That function should check the results of send() to make sure all the data was send.
      *TODO: If not try sending the rest or error.
      */
-    if(error != opennop_msg_header->length){
+    if(error != opennop_msg_header->length) {
         sprintf(message, "[socket]: Only send %u bytes!\n", (unsigned int)error);
         logger(LOG_INFO, message);
     }
@@ -582,7 +582,7 @@ struct commandresult cli_set_key(int client_fd, char **parameters, int numparame
     result.mode = NULL;
     result.data = NULL;
 
-    if (numparameters == 1){
+    if (numparameters == 1) {
 
         if(parameters[0] != NULL) {
             keylength = strlen(parameters[0]);
@@ -597,8 +597,8 @@ struct commandresult cli_set_key(int client_fd, char **parameters, int numparame
         }
     }
 
-    if(numparameters == 0){
-    	memset(key, 0, sizeof(key));
+    if(numparameters == 0) {
+        memset(key, 0, sizeof(key));
     }
 
     result.finished = 0;
