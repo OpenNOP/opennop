@@ -76,7 +76,7 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
     logger(LOG_INFO, message);
 
     if(opennop_msg_header->security == 1){
-        	data.securitydata = opennop_msg_header + sizeof(struct opennop_message_header);
+        	data.securitydata = (char*)opennop_msg_header + sizeof(struct opennop_message_header);
         	memset(&securitydata, 0, sizeof(securitydata));
         	memcpy(&securitydata, data.securitydata, 32);
             sprintf(message, "Security Data: %s\n", securitydata);
@@ -115,14 +115,14 @@ int ipc_neighbor_hello(int socket) {
     logger(LOG_INFO, message);
 
     if(opennop_msg_header->security == 1){
-    	data.securitydata = opennop_msg_header + sizeof(struct opennop_message_header);
+    	data.securitydata = (char*)opennop_msg_header + sizeof(struct opennop_message_header);
     	memset(data.securitydata, 0, 32);
     	memcpy(data.securitydata, &key, 32);
     	data.messages = data.securitydata + 32;
     	opennop_msg_header->length = opennop_msg_header->length + 32;
     }else{
     	data.securitydata = NULL;
-    	data.messages = opennop_msg_header + sizeof(struct opennop_message_header);
+    	data.messages = (char*)opennop_msg_header + sizeof(struct opennop_message_header);
     }
 
     print_opennnop_header(opennop_msg_header);
@@ -137,6 +137,17 @@ int ipc_neighbor_hello(int socket) {
      * http://stackoverflow.com/questions/1330397/tcp-send-does-not-return-cause-crashing-process
      */
     error = send(socket, buf, opennop_msg_header->length, MSG_NOSIGNAL);
+
+    /**
+     *TODO: It might be nice to make a separate function in sockets.c to handle sending data.
+     *TODO: That function should check the results of send() to make sure all the data was send.
+     *TODO: If not try sending the rest or error.
+     */
+    if(error != opennop_msg_header->length){
+        sprintf(message, "[socket]: Only send %u bytes!\n", (unsigned int)error);
+        logger(LOG_INFO, message);
+    }
+
     return error;
 }
 
