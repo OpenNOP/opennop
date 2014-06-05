@@ -326,7 +326,7 @@ int epoll_handler(struct epoll_server *server){
                  * ready for reading (why were we notified then?)
                  */
 
-                sprintf(message, "IPC: Epoll error.\n");
+                sprintf(message, "[epoll]: error.\n");
                 logger(LOG_INFO, message);
 
                 close (server->events[i].data.fd);
@@ -354,7 +354,7 @@ int epoll_handler(struct epoll_server *server){
                     error = make_socket_non_blocking(client_socket);
 
                     if (error == -1) {
-                        sprintf(message, "IPC: Failed setting socket on client.\n");
+                        sprintf(message, "[epoll]: Failed setting socket on client.\n");
                         logger(LOG_INFO, message);
                         exit(1);
                     }
@@ -392,6 +392,9 @@ int epoll_handler(struct epoll_server *server){
                 	 */
                     count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
 
+                    sprintf(message, "[epoll]: received %u bytes.\n", count);
+                    logger(LOG_INFO, message);
+
                     if(count > 0) {
                         /**
                          *TODO: Need to dynamically allocate a buffer for each epoll server.
@@ -405,7 +408,7 @@ int epoll_handler(struct epoll_server *server){
                         /* If errno == EAGAIN, that means we have read all
                            data. So go back to the main loop. */
                         if (errno != EAGAIN) {
-                            sprintf(message, "IPC: Failed reading message.\n");
+                            sprintf(message, "[epoll]: Failed reading message.\n");
                             logger(LOG_INFO, message);
                             done = 1;
                         }
@@ -413,7 +416,7 @@ int epoll_handler(struct epoll_server *server){
                     } else if (count == 0) {
                         /* End of file. The remote has closed the
                            connection. */
-                        sprintf(message, "IPC: Remote closed the connection.\n");
+                        sprintf(message, "[epoll]: Remote closed the connection.\n");
                         logger(LOG_INFO, message);
                         done = 1;
                         break;
@@ -426,7 +429,7 @@ int epoll_handler(struct epoll_server *server){
                      * If the remote end is done sending data let close the connection.
                      */
                     if (done) {
-                        sprintf(message, "IPC: Closed connection on descriptor %d\n",
+                        sprintf(message, "[epoll]: Closed connection on descriptor %d\n",
                         		server->events[i].data.fd);
                         logger(LOG_INFO, message);
 
