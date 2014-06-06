@@ -16,6 +16,8 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <uuid/uuid.h>
+
 #include <openssl/engine.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
@@ -37,7 +39,7 @@ static pthread_t t_ipc; // thread for cli.
 static struct neighbor_head ipchead;
 static char UUID[OPENNOP_IPC_UUID_LENGTH]; //Local UUID.
 static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
-struct opennop_message_header *opennop_msg_header;
+struct opennop_ipc_header *opennop_msg_header;
 
 /**
  * This will generate the securitydata field of the OpenNOP messages.
@@ -48,21 +50,40 @@ struct opennop_message_header *opennop_msg_header;
  * @see http://www.openssl.org/docs/crypto/hmac.html
  * @see http://stackoverflow.com/questions/242665/understanding-engine-initialization-in-openssl
  */
-int calculate_hmac_sha256(struct opennop_message_header *data, char *key, char *result){
-	unsigned int result_len = 32;
-	HMAC_CTX ctx;
+int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *result) {
+    unsigned int result_len = 32;
+    HMAC_CTX ctx;
 
     ENGINE_load_builtin_engines();
     ENGINE_register_all_complete();
     HMAC_CTX_init(&ctx);
     HMAC_Init_ex(&ctx, key, 64, EVP_sha256(), NULL);
     HMAC_Update(&ctx, (unsigned char*)data, data->length);
-    HMAC_Final(&ctx, result, &result_len);
+    HMAC_Final(&ctx, (unsigned char*)result, &result_len);
     HMAC_CTX_cleanup(&ctx);
-	return 0;
+    return 0;
 }
 
-int set_opennop_message_security(struct opennop_message_header *opennop_msg_header) {
+/**
+ * @see http://linux.die.net/man/3/uuid_generate
+ */
+int add_hello_message(struct opennop_ipc_header *opennop_msg_header) {
+    struct opennop_hello_message *message;
+
+    message = (char*)opennop_msg_header + opennop_msg_header->length;
+    message->header.type = OPENNOP_IPC_HERE_I_AM;
+    message->header.length = sizeof(struct opennop_hello_message);
+    /**
+     *TODO: Generating the UUID should be done when the IPC module starts.
+     *TODO: After its generated we should just copy it from the UUID variable.
+     */
+    uuid_generate_time((unsigned char*)message->uuid);
+    opennop_msg_header->length += sizeof(struct opennop_hello_message);
+
+    return 0;
+}
+
+int set_opennop_message_security(struct opennop_ipc_header *opennop_msg_header) {
     char message[LOGSZ] = {0};
 
     if (strcmp(key, "") == 0) {
@@ -77,7 +98,7 @@ int set_opennop_message_security(struct opennop_message_header *opennop_msg_head
     return 0;
 }
 
-int initialize_opennop_message_header(struct opennop_message_header *opennop_msg_header) {
+int initialize_opennop_ipc_header(struct opennop_ipc_header *opennop_msg_header) {
     opennop_msg_header->type = OPENNOP_MSG_TYPE_IPC;
     opennop_msg_header->version = OPENNOP_MSG_VERSION;
     opennop_msg_header->length = OPENNOP_DEFAULT_HEADER_LENGTH; // Header is at least 8 bytes.
@@ -86,7 +107,7 @@ int initialize_opennop_message_header(struct opennop_message_header *opennop_msg
     return 0;
 }
 
-int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
+int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
     struct opennop_message_data data;
     char message[LOGSZ] = {0};
     char securitydata[33] = {0};
@@ -103,7 +124,7 @@ int print_opennnop_header(struct opennop_message_header *opennop_msg_header) {
     logger(LOG_INFO, message);
 
     if(opennop_msg_header->security == 1) {
-        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_message_header);
+        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
         memset(&securitydata, 0, sizeof(securitydata));
         memcpy(&securitydata, data.securitydata, 32);
         sprintf(message, "Security Data: %s\n", securitydata);
@@ -122,7 +143,7 @@ int ipc_handler(int fd, void *buf) {
      */
     sprintf(message, "IPC: Received a message\n");
     logger(LOG_INFO, message);
-    print_opennnop_header((struct opennop_message_header *)buf);
+    print_opennnop_header((struct opennop_ipc_header *)buf);
 
     return 0;
 }
@@ -136,20 +157,22 @@ int ipc_neighbor_hello(int socket) {
     /*
      * Setting up the OpenNOP Message Header.
      */
-    opennop_msg_header = (struct opennop_message_header *)&buf;
-    initialize_opennop_message_header(opennop_msg_header);
+    opennop_msg_header = (struct opennop_ipc_header *)&buf;
+    initialize_opennop_ipc_header(opennop_msg_header);
     sprintf(message, "IPC: Sending a message\n");
     logger(LOG_INFO, message);
 
     if(opennop_msg_header->security == 1) {
-        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_message_header);
-        calculate_hmac_sha256(opennop_msg_header, &key, data.securitydata);
+        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
+        calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
         data.messages = data.securitydata + 32;
         opennop_msg_header->length = opennop_msg_header->length + 32;
     } else {
         data.securitydata = NULL;
-        data.messages = (char *)opennop_msg_header + sizeof(struct opennop_message_header);
+        data.messages = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
     }
+
+    add_hello_message(opennop_msg_header);
 
     print_opennnop_header(opennop_msg_header);
 
