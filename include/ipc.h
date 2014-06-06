@@ -18,24 +18,26 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 
-#define IPC_MAX_MESSAGE_SIZE	1024 /** Largest size the IPC messages can be */
-#define OPENNOPD_IPC_PORT 		5000 /** Random number for now */
-#define	OPENNOPD_IPC_SOCK		"\0opennopd.ipc" /** '\0' makes this sock hidden */
+#define IPC_MAX_MESSAGE_SIZE	1024				/** Largest size the IPC messages can be */
+#define OPENNOPD_IPC_PORT 		5000				/** Random number for now */
+#define	OPENNOPD_IPC_SOCK		"\0opennopd.ipc"	/** '\0' makes this sock hidden */
 
 typedef enum {
-	DOWN, // Remote system not functioning or authorized.
-	ATTEMPT, // Establishing communication channel.
-	ESTABLISHED // Connection established and verified.
+    DOWN, // Remote system not functioning or authorized.
+    ATTEMPT, // Establishing communication channel.
+    ESTABLISHED // Connection established and verified.
 } neighborstate;
 
-struct neighbor_head
-{
+struct neighbor_head {
     struct neighbor *next; // Points to the first neighbor of the list.
     struct neighbor *prev; // Points to the last neighbor of the list.
     pthread_mutex_t lock; // Lock for this neighbor.
 };
-
-#define OPENNOP_IPC_UUID_LENGTH		33
+/**
+ * UUID is only 16 bytes.
+ * @see http://linux.die.net/man/3/uuid_generate
+ */
+#define OPENNOP_IPC_UUID_LENGTH		17
 #define OPENNOP_IPC_KEY_LENGTH		65
 
 struct neighbor {
@@ -52,8 +54,8 @@ struct neighbor {
 
 #define OPENNOP_DEFAULT_HEADER_LENGTH	8
 
-struct opennop_message_header {
-    __u16 type;				/** OpenNOP message type */
+struct opennop_ipc_header {
+    __u16 type;				/** OpenNOP IPC type */
     __u16 version;			/** Version of the message system */
     __u16 length;			/** Total length of this message */
     __u8 security;			/** Indicates if security is required */
@@ -66,30 +68,43 @@ struct opennop_message_data {
     char *messages;			/** Beginning of any OpenNOP messages */
 };
 
+struct opennop_message_header {
+    __u16 type;				/** OpenNOP message type */
+    __u16 length;			/** Total length of this message */
+};
+
+/**
+ * @see http://linux.die.net/man/3/uuid_generate
+ */
+struct opennop_hello_message{
+	struct opennop_message_header header;
+	char uuid[16];
+};
+
 enum {
-	OPENNOP_MSG_TYPE_IPC = 1,
-	OPENNOP_MSG_TYPE_CLI,
-	OPENNOP_MSG_TYPE_DRV
+    OPENNOP_MSG_TYPE_IPC = 1,
+    OPENNOP_MSG_TYPE_CLI,
+    OPENNOP_MSG_TYPE_DRV
 };
 
 #define OPENNOP_MSG_VERSION 	1
 
 enum {
-	OPENNOP_MSG_SECURITY_NO = 0,
-	OPENNOP_MSG_SECURITY_SHA
+    OPENNOP_MSG_SECURITY_NO = 0,
+    OPENNOP_MSG_SECURITY_SHA
 };
 
 enum {
-	OPENNOP_MSG_ANTI_REPLAY_NO = 0,
-	OPENNOP_MSG_ANTI_REPLAY_YES
+    OPENNOP_MSG_ANTI_REPLAY_NO = 0,
+    OPENNOP_MSG_ANTI_REPLAY_YES
 };
 
 enum {
-	OPENNOP_IPC_HERE_I_AM = 1,
-	OPENNOP_IPC_I_SEE_YOU,
-	OPENNOP_IPC_AUTH_ERR,
-	OPENNOP_IPC_BAD_UUID,
-	OPENNOP_IPC_DEDUP_MAP
+    OPENNOP_IPC_HERE_I_AM = 1,
+    OPENNOP_IPC_I_SEE_YOU,
+    OPENNOP_IPC_AUTH_ERR,
+    OPENNOP_IPC_BAD_UUID,
+    OPENNOP_IPC_DEDUP_MAP
 };
 
 void start_ipc();
@@ -98,7 +113,6 @@ int verify_neighbor_in_domain(__u32 neighborIP);
 /*
  * Adding this for some debugging.  There really is not any need for it to be a public function.
  */
-int print_opennnop_header(struct opennop_message_header *opennop_msg_header);
 int hello_neighbors(void);
 
 #endif
