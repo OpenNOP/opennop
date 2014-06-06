@@ -16,6 +16,10 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include <openssl/engine.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+
 #include "ipc.h"
 #include "clicommands.h"
 #include "logger.h"
@@ -34,6 +38,29 @@ static struct neighbor_head ipchead;
 static char UUID[OPENNOP_IPC_UUID_LENGTH]; //Local UUID.
 static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 struct opennop_message_header *opennop_msg_header;
+
+/**
+ * This will generate the securitydata field of the OpenNOP messages.
+ * The messages should already be encrypted at this point.
+ * The securitydata field will be 0's before this operation.
+ * The next operation should be sending the message.
+ * @see http://linux.die.net/man/3/evp_sha256
+ * @see http://www.openssl.org/docs/crypto/hmac.html
+ * @see http://stackoverflow.com/questions/242665/understanding-engine-initialization-in-openssl
+ */
+int calculate_hmac_sha256(struct opennop_message_header *data, char *key, char *result){
+	unsigned int result_len = 32;
+	HMAC_CTX ctx;
+
+    ENGINE_load_builtin_engines();
+    ENGINE_register_all_complete();
+    HMAC_CTX_init(&ctx);
+    HMAC_Init_ex(&ctx, key, 64, EVP_sha256(), NULL);
+    HMAC_Update(&ctx, (unsigned char*)data, data->length);
+    HMAC_Final(&ctx, result, &result_len);
+    HMAC_CTX_cleanup(&ctx);
+	return 0;
+}
 
 int set_opennop_message_security(struct opennop_message_header *opennop_msg_header) {
     char message[LOGSZ] = {0};
@@ -116,8 +143,7 @@ int ipc_neighbor_hello(int socket) {
 
     if(opennop_msg_header->security == 1) {
         data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_message_header);
-        memset(data.securitydata, 0, 32);
-        memcpy(data.securitydata, &key, 32);
+        calculate_hmac_sha256(opennop_msg_header, &key, data.securitydata);
         data.messages = data.securitydata + 32;
         opennop_msg_header->length = opennop_msg_header->length + 32;
     } else {
