@@ -300,8 +300,8 @@ int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event
 }
 
 
-int epoll_handler(struct epoll_server *server){
-	int client_socket;
+int epoll_handler(struct epoll_server *server) {
+    int client_socket;
     int error = 0;
     int numevents = 0;
     int done = 0;
@@ -314,7 +314,7 @@ int epoll_handler(struct epoll_server *server){
      * Third we listen for events and handle them.
      */
     while(1) {
-        numevents = epoll_wait(server->epoll_fd, server->events, MAXEVENTS, 10000);
+        numevents = epoll_wait(server->epoll_fd, server->events, MAXEVENTS, server->timeout);
 
         for (i = 0; i < numevents; i++) {
 
@@ -339,12 +339,12 @@ int epoll_handler(struct epoll_server *server){
                  * which means one or more incoming connections.
                  */
                 while (1) {
-                	/*
-                	 *TODO: Here we need to detect if the "server" was UNIX or IP.
-                	 *TODO: We might use the family type and add it to "struct epoll_server"
-                	 *TODO: and set it when we create the new epoll server.
-                	 *TODO: It would probably be better to check the server->socket.
-                	 */
+                    /*
+                     *TODO: Here we need to detect if the "server" was UNIX or IP.
+                     *TODO: We might use the family type and add it to "struct epoll_server"
+                     *TODO: and set it when we create the new epoll server.
+                     *TODO: It would probably be better to check the server->socket.
+                     */
                     client_socket = accept_ip_client(server->socket);
 
                     if (client_socket == -1) {
@@ -358,14 +358,6 @@ int epoll_handler(struct epoll_server *server){
                         logger(LOG_INFO, message);
                         exit(1);
                     }
-
-                    /**
-                     *TODO: We should add another callback for security/authentication.
-                     *TODO: This callback should verify that the connection is originated from an
-                     *TODO: authorized source.
-                     *TODO: The callback should return AUTHORIZED or UNAUTHORIZED and close or register
-                     *TODO: the socket appropriately.
-                     */
                     error = register_socket(client_socket, server->epoll_fd, &server->event);
 
                     continue;
@@ -380,16 +372,16 @@ int epoll_handler(struct epoll_server *server){
                     * data.
                  */
 
-            	done = 0;  //Need to reset this for each message.
+                done = 0;  //Need to reset this for each message.
                 while(1) {
 
-                	/*
-                	 * TODO:
-                	 * I am unsure if this is the best way to handle reading the data.
-                	 * It might be better to just have the callback function accept the socket FD
-                	 * as a param and recv() the data itself but having all data validation
-                	 * in one spot is kind of nice too.
-                	 */
+                    /*
+                     * TODO:
+                     * I am unsure if this is the best way to handle reading the data.
+                     * It might be better to just have the callback function accept the socket FD
+                     * as a param and recv() the data itself but having all data validation
+                     * in one spot is kind of nice too.
+                     */
                     count = recv(server->events[i].data.fd, buf, IPC_MAX_MESSAGE_SIZE, 0);
 
                     if(count > 0) {
@@ -398,7 +390,7 @@ int epoll_handler(struct epoll_server *server){
                          *
                          * We should not overwrite the last char as NUL.  This is not a char string.
                          */
-                    	//buf[count - 1] = '\0';
+                        //buf[count - 1] = '\0';
                         sprintf(message, "[epoll]: received %u bytes.\n", (unsigned int)count);
                         logger(LOG_INFO, message);
                     }
@@ -429,7 +421,7 @@ int epoll_handler(struct epoll_server *server){
                      */
                     if (done) {
                         sprintf(message, "[epoll]: Closed connection on descriptor %d\n",
-                        		server->events[i].data.fd);
+                                server->events[i].data.fd);
                         logger(LOG_INFO, message);
 
                         /*
@@ -444,11 +436,12 @@ int epoll_handler(struct epoll_server *server){
 
         /*
          * TODO:
-         * Here is where we can execute other tasks.
-         * I think this needs moved to a tasks thread.
-         * There is no point in it being here.
+         * If the epoll instance has a timeout and a timeout callback function it is executed.
+         * This also is executed each time the epoll instance returns.
          */
-        hello_neighbors();
+        if(server->timeoutfunction != NULL) {
+            (server->timeoutfunction());
+        }
 
     }
     return 0;
@@ -459,16 +452,16 @@ int epoll_handler(struct epoll_server *server){
  * A new epoll server should include a max length for the messages it is expected to receive.
  * If it receives a message larger than this is should shutdown that socket right away.
  */
-int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback callback, int port){
-	char message[LOGSZ] = {0};
+int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback callback, int port, cb_epoll_timeout timeoutfunction, int timeout) {
+    char message[LOGSZ] = {0};
 
-	server->events = calloc (MAXEVENTS, sizeof server->event);
+    server->events = calloc (MAXEVENTS, sizeof server->event);
 
-	if(server->events == NULL){
-		exit(1);
-	}
+    if(server->events == NULL) {
+        exit(1);
+    }
 
-	server->epoll_fd = epoll_create1(0);
+    server->epoll_fd = epoll_create1(0);
 
     if(server->epoll_fd == -1) {
         sprintf(message, "IPC: Could not create epoll instance.\n");
@@ -482,16 +475,18 @@ int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback callback, 
      */
 
     server->socket = new_ip_server(port);
+    server->timeoutfunction = timeoutfunction;
+    server->timeout = timeout;
 
     register_socket(server->socket, server->epoll_fd, &server->event);
 
     server->callback = callback;
 
-	return 0;
+    return 0;
 }
 
 
-int shutdown_epoll_server(struct epoll_server *server){
+int shutdown_epoll_server(struct epoll_server *server) {
     free(server->events);
     close(server->socket);
     return 0;

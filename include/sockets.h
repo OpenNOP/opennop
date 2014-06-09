@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 
 typedef int (*t_epoll_callback)(int fd, void *buf);
+typedef void (*cb_epoll_timeout)(void);
 
 struct epoll_server {
 	int socket;
@@ -14,6 +15,8 @@ struct epoll_server {
 	struct epoll_event event;
 	struct epoll_event *events;
 	t_epoll_callback callback;
+	cb_epoll_timeout timeoutfunction;
+	int timeout;
 };
 
 int new_ip_client(__u32 serverip ,int port);
@@ -24,7 +27,7 @@ int new_unix_server(char* path);
 int accept_unix_client(int server_socket);
 int make_socket_non_blocking (int socket);
 int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event);
-int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback callback, int port);
+int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback callback, int port, cb_epoll_timeout timeoutfunction, int timeout);
 int shutdown_epoll_server(struct epoll_server *server);
 int epoll_handler(struct epoll_server *server);
 
