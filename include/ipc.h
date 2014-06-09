@@ -21,6 +21,7 @@
 #define IPC_MAX_MESSAGE_SIZE	1024				/** Largest size the IPC messages can be */
 #define OPENNOPD_IPC_PORT 		5000				/** Random number for now */
 #define	OPENNOPD_IPC_SOCK		"\0opennopd.ipc"	/** '\0' makes this sock hidden */
+#define OPENNOP_IPC_HELLO		10000				/** Timeout for epoll */
 
 typedef enum {
     DOWN, // Remote system not functioning or authorized.
@@ -37,13 +38,14 @@ struct neighbor_head {
  * UUID is only 16 bytes.
  * @see http://linux.die.net/man/3/uuid_generate
  */
-#define OPENNOP_IPC_UUID_LENGTH		17
+#define OPENNOP_IPC_UUID_LENGTH		16
 #define OPENNOP_IPC_KEY_LENGTH		65
+#define OPENNOP_IPC_NAME_LENGTH		64
 
 struct neighbor {
     struct neighbor *next;
     struct neighbor *prev;
-    char name[65]; // Unique name for this neighbor.
+    char name[OPENNOP_IPC_NAME_LENGTH]; // Unique name for this neighbor.
     __u32 NeighborIP; // IP address of this neighbor.
     neighborstate state; // Detected state of this neighbor.
     char UUID[OPENNOP_IPC_UUID_LENGTH]; // Detected ID of this neighbor.
@@ -78,7 +80,7 @@ struct opennop_message_header {
  */
 struct opennop_hello_message{
 	struct opennop_message_header header;
-	char uuid[16];
+	char uuid[OPENNOP_IPC_UUID_LENGTH];
 };
 
 enum {
@@ -110,9 +112,5 @@ enum {
 void start_ipc();
 void rejoin_ipc();
 int verify_neighbor_in_domain(__u32 neighborIP);
-/*
- * Adding this for some debugging.  There really is not any need for it to be a public function.
- */
-int hello_neighbors(void);
 
 #endif

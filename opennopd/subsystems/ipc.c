@@ -279,7 +279,7 @@ void *ipc_thread(void *dummyPtr) {
     sprintf(message, "IPC: Is starting.\n");
     logger(LOG_INFO, message);
 
-    error = new_ip_epoll_server(&ipc_server, ipc_handler, OPENNOPD_IPC_PORT);
+    error = new_ip_epoll_server(&ipc_server, ipc_handler, OPENNOPD_IPC_PORT, hello_neighbors, OPENNOP_IPC_HELLO);
 
     /*
      * This should not return until the epoll server is shutdown.
