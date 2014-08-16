@@ -64,6 +64,57 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
     return 0;
 }
 
+void sha256_to_string() {}
+
+int check_hmac_sha256(struct opennop_ipc_header *opennop_msg_header) {
+    return 0;
+}
+
+int validate_security(struct opennop_ipc_header *opennop_msg_header, OPENNOP_MSG_SECURITY security) {
+
+    if(opennop_msg_header->security == security) { // Security matched.  Next check.
+
+        if(opennop_msg_header->security == security) { // No security required we are OK.
+            return 1;
+        } else {
+            /*
+             * This next function should test the HMAC data stored in the message header.
+             */
+            if(check_hmac_sha256(opennop_msg_header) == 1) {
+                return 1;
+            }
+            /*
+             * Failed security check!
+             */
+            return 0;
+        }
+    }
+    /*
+     * Security mismatch!
+     */
+    return 0;
+}
+
+/**
+ * Check if the message has a security component.
+ * TODO: 1st Check if security is enabled.
+ *       2nd Check message for security.
+ *
+ */
+int check_security(struct opennop_ipc_header *opennop_msg_header) {
+
+    if (strcmp(key, "") == 0) { // No security required.
+        return validate_security(opennop_msg_header, OPENNOP_MSG_SECURITY_NO);
+    } else { // Security required.
+        return validate_security(opennop_msg_header, OPENNOP_MSG_SECURITY_SHA);
+    }
+    /*
+     * Dead code.
+     * Failed!
+     */
+    return 0;
+}
+
 /**
  * @see http://linux.die.net/man/3/uuid_generate
  */
@@ -134,16 +185,64 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
     return 0;
 }
 
-int ipc_handler(int fd, void *buf) {
+int process_ipc_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
+    /*
+     * Check to make sure the socket is from a known neighbor.
+     */
+    socklen_t len;
+    struct sockaddr_storage address;
+    char ipstr[INET_ADDRSTRLEN];
+    char message[LOGSZ] = {0};
+
+    len = sizeof address;
+    getpeername(fd, (struct sockaddr*)&address, &len);
+
+    if (address.ss_family == AF_INET) {
+        struct sockaddr_in *t = (struct sockaddr_in *)&address;
+        inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof ipstr);
+    }
+    sprintf(message, "Peer IP address: %s\n", ipstr);
+    logger(LOG_INFO, message);
+
+
+    return 0;
+}
+
+/*
+ * This function is called from epoll_handler() in sockets.c
+ * as defined in ipc_thread() in ipc.c.
+ */
+int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
+    struct opennop_ipc_header *opennop_msg_header = NULL;
     char message[LOGSZ] = {0};
     /*
-     *TODO: Here we need to check the message type of process it.
+     *TODO: Here we need to check the message type and process it.
      *TODO: The epoll server should have a 2nd callback function that verifies the security of a connection.
      *TODO: So data passed from the epoll server to the handler *should* be considered secure.
      */
     sprintf(message, "IPC: Received a message\n");
     logger(LOG_INFO, message);
     print_opennnop_header((struct opennop_ipc_header *)buf);
+
+    if(buf != NULL) {
+        opennop_msg_header = buf;
+
+        /*
+         * Check the type and process it with the correct function.
+         * Currently there is only one type being handled.
+         */
+        switch(opennop_msg_header->type) {
+        case OPENNOP_MSG_TYPE_IPC:
+            /*
+             * To check the security we will pass the socket this message came from.
+             * Also epoller is the instance of epoll used to handle this message.
+             */
+            process_ipc_message(fd, opennop_msg_header);
+            break;
+        default: //non-standard type.
+            break;
+        }
+    }
 
     return 0;
 }

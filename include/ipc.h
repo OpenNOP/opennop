@@ -83,18 +83,18 @@ struct opennop_hello_message{
 	char uuid[OPENNOP_IPC_UUID_LENGTH];
 };
 
-enum {
+typedef enum {
     OPENNOP_MSG_TYPE_IPC = 1,
     OPENNOP_MSG_TYPE_CLI,
     OPENNOP_MSG_TYPE_DRV
-};
+} OPENNOP_MSG_TYPE;
 
 #define OPENNOP_MSG_VERSION 	1
 
-enum {
+typedef enum {
     OPENNOP_MSG_SECURITY_NO = 0,
     OPENNOP_MSG_SECURITY_SHA
-};
+} OPENNOP_MSG_SECURITY;
 
 enum {
     OPENNOP_MSG_ANTI_REPLAY_NO = 0,
