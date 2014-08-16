@@ -413,7 +413,7 @@ int epoll_handler(struct epoll_server *server) {
                         break;
                     }
 
-                    (server->callback(server->events[i].data.fd, &buf));
+                    (server->callback(&server, server->events[i].data.fd, &buf));
 
 
                     /*
