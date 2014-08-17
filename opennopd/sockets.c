@@ -353,6 +353,17 @@ int epoll_handler(struct epoll_server *server) {
         sprintf(message, "[epoll]: processing events.\n");
         logger(LOG_INFO, message);
 
+        /*
+         * TODO:
+         * Moved to top because it was not being executed due to "break;" in this function.
+         * This could be artificially increasing traffic by making both systems send & receive
+         * hello messages.  There could be a better way to do this by just handling events.
+         * I need both to be sending hello message for testing though.
+         */
+        if(server->timeoutfunction != NULL) {
+            (server->timeoutfunction(server));
+        }
+
         for (i = 0; i < numevents; i++) {
 
             if ((server->events[i].events & EPOLLERR) ||
@@ -482,16 +493,6 @@ int epoll_handler(struct epoll_server *server) {
                         close(server->events[i].data.fd);
                     }
                 }
-            }
-
-            /*
-             * TODO:
-             * This could be artificially increasing traffic by making both systems send & receive
-             * hello messages.  There could be a better way to do this by just handling events.
-             * I need both to be sending hello message for testing though.
-             */
-            if(server->timeoutfunction != NULL) {
-                (server->timeoutfunction(server));
             }
         }
 
