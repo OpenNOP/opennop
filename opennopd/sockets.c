@@ -488,7 +488,7 @@ int epoll_handler(struct epoll_server *server) {
          * This also is executed each time the epoll instance returns.
          */
         if(server->timeoutfunction != NULL) {
-            (server->timeoutfunction(&server));
+            (server->timeoutfunction(server));
         }
 
     }
