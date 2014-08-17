@@ -361,6 +361,8 @@ int epoll_handler(struct epoll_server *server) {
          * I need both to be sending hello message for testing though.
          */
         if(server->timeoutfunction != NULL) {
+        	sprintf(message, "[epoll]: calling timeout function!\n");
+        	logger(LOG_INFO, message);
             (server->timeoutfunction(server));
         }
 
