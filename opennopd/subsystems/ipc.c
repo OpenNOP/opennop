@@ -206,10 +206,10 @@ struct neighbor *find_neighbor(struct in_addr *addr) {
 
     while (currentneighbor != NULL) {
 
-    	if(currentneighbor->NeighborIP == addr->s_addr){
-    		return currentneighbor;
-    	}
-    	currentneighbor = currentneighbor->next;
+        if(currentneighbor->NeighborIP == addr->s_addr) {
+            return currentneighbor;
+        }
+        currentneighbor = currentneighbor->next;
     }
     return NULL;
 }
@@ -228,7 +228,7 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
     /*
      * Check to make sure the socket is from a known neighbor.
      */
-	struct neighbor *thisneighbor = NULL;
+    struct neighbor *thisneighbor = NULL;
     socklen_t len;
     struct sockaddr_storage address;
     struct sockaddr_in *t;
@@ -247,12 +247,12 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
 
     thisneighbor = find_neighbor(&t->sin_addr);
 
-    if(thisneighbor != NULL){
+    if(thisneighbor != NULL) {
         sprintf(message, "Found a neighbor!\n");
         logger(LOG_INFO, message);
         thisneighbor->sock = fd;
         thisneighbor->state = ATTEMPT;
-    	return 1;
+        return 1;
     }
 
     /*
@@ -361,6 +361,9 @@ int hello_neighbors(struct epoll_server *epoller) {
 
     time(&currenttime);
 
+    sprintf(message, "[IPC] Starting hello_neighbors().\n");
+    logger(LOG_INFO, message);
+
     for(currentneighbor = ipchead.next; currentneighbor != NULL; currentneighbor = currentneighbor->next) {
 
         if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->timer) >= 30)) {
@@ -372,7 +375,7 @@ int hello_neighbors(struct epoll_server *epoller) {
              * If neighbor socket = 0 open a new one.
              */
             if(currentneighbor->sock == 0) {
-            	newsocket = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
+                newsocket = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
 
                 if(newsocket > 0) {
                     currentneighbor->sock = error;
