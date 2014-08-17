@@ -352,10 +352,11 @@ int ipc_neighbor_hello(int socket) {
     return error;
 }
 
-int hello_neighbors(void) {
+int hello_neighbors(struct epoll_server *epoller) {
     struct neighbor *currentneighbor = NULL;
     time_t currenttime;
     int error = 0;
+    int newsocket = 0;
     char message[LOGSZ] = {0};
 
     time(&currenttime);
@@ -371,11 +372,15 @@ int hello_neighbors(void) {
              * If neighbor socket = 0 open a new one.
              */
             if(currentneighbor->sock == 0) {
-                error = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
+            	newsocket = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
 
-                if(error > 0) {
+                if(newsocket > 0) {
                     currentneighbor->sock = error;
                     currentneighbor->state = ATTEMPT;
+                    /*
+                     * This socket has to be registered with the epoll server.
+                     */
+                    register_socket(newsocket, epoller->epoll_fd, &epoller->event);
 
                 }
             }
