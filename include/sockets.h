@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 
 typedef int (*t_epoll_callback)(struct epoll_server *epoller, int fd, void *buf);
-typedef void (*cb_epoll_timeout)(void);
+typedef void (*cb_epoll_timeout)(struct epoll_server *epoller);
 
 struct epoll_server {
 	int socket;
