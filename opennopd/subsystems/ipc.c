@@ -230,10 +230,13 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
      */
     struct neighbor *thisneighbor = NULL;
     socklen_t len;
+    time_t currenttime;
     struct sockaddr_storage address;
     struct sockaddr_in *t;
     char ipstr[INET_ADDRSTRLEN];
     char message[LOGSZ] = {0};
+
+    time(&currenttime);
 
     len = sizeof address;
     getpeername(fd, (struct sockaddr*)&address, &len);
@@ -252,6 +255,7 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
         logger(LOG_INFO, message);
         thisneighbor->sock = fd;
         thisneighbor->state = ATTEMPT;
+        thisneighbor->timer = currenttime;
         return 1;
     }
 
