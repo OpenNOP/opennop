@@ -185,12 +185,53 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
     return 0;
 }
 
+/*
+ * TODO: Perhaps this should be just part of a security function assigned to the epoll server?
+ * If the security part passes then the socket FD would be assigned to the neighbor
+ * and the connection would be accepted.
+ */
 int process_ipc_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
+
+    return 0;
+}
+
+/*
+ * Searches the neighbors list for an IP.
+ * Returns NULL if no match is found.
+ */
+struct neighbor *find_neighbor(struct in_addr *addr) {
+    struct neighbor *currentneighbor = NULL;
+
+    currentneighbor = ipchead.next;
+
+    while (currentneighbor != NULL) {
+
+    	if(currentneighbor->NeighborIP == addr->s_addr){
+    		return currentneighbor;
+    	}
+    	currentneighbor = currentneighbor->next;
+    }
+    return NULL;
+}
+
+/*
+ * This function is called from epoll_handler() in sockets.c
+ * as defined in ipc_thread() in ipc.c.
+ *
+ * It functions as an ACL and ensures new connections originate from an IP
+ * address of a neighbor in the neighbors list.
+ *
+ * Returns 0 if security check failed.
+ * Returns 1 if security check passed.
+ */
+int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
     /*
      * Check to make sure the socket is from a known neighbor.
      */
+	struct neighbor *thisneighbor = NULL;
     socklen_t len;
     struct sockaddr_storage address;
+    struct sockaddr_in *t;
     char ipstr[INET_ADDRSTRLEN];
     char message[LOGSZ] = {0};
 
@@ -198,13 +239,24 @@ int process_ipc_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     getpeername(fd, (struct sockaddr*)&address, &len);
 
     if (address.ss_family == AF_INET) {
-        struct sockaddr_in *t = (struct sockaddr_in *)&address;
+        t = (struct sockaddr_in *)&address;
         inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof ipstr);
     }
     sprintf(message, "Peer IP address: %s\n", ipstr);
     logger(LOG_INFO, message);
 
+    thisneighbor = find_neighbor(&t->sin_addr);
 
+    if(thisneighbor != NULL){
+        sprintf(message, "Found a neighbor!\n");
+        logger(LOG_INFO, message);
+        thisneighbor->sock = fd;
+    	return 1;
+    }
+
+    /*
+     * Failed to find a neighbor.
+     */
     return 0;
 }
 
@@ -378,7 +430,7 @@ void *ipc_thread(void *dummyPtr) {
     sprintf(message, "IPC: Is starting.\n");
     logger(LOG_INFO, message);
 
-    error = new_ip_epoll_server(&ipc_server, ipc_handler, OPENNOPD_IPC_PORT, hello_neighbors, OPENNOP_IPC_HELLO);
+    error = new_ip_epoll_server(&ipc_server, ipc_check_neighbor, ipc_handler, OPENNOPD_IPC_PORT, hello_neighbors, OPENNOP_IPC_HELLO);
 
     /*
      * This should not return until the epoll server is shutdown.
