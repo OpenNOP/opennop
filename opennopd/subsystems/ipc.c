@@ -251,6 +251,7 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
         sprintf(message, "Found a neighbor!\n");
         logger(LOG_INFO, message);
         thisneighbor->sock = fd;
+        thisneighbor->state = ATTEMPT;
     	return 1;
     }
 
