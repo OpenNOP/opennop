@@ -363,7 +363,7 @@ int epoll_handler(struct epoll_server *server) {
                     	error = (server->secure(&server, client_socket, NULL));
 
                         if(error == 1){ // Error == 1 passed security check.
-
+                        	error = register_socket(client_socket, server->epoll_fd, &server->event);
                         }else{
                         	close(client_socket);
                         }
