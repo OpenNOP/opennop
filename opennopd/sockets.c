@@ -480,6 +480,16 @@ int epoll_handler(struct epoll_server *server) {
                     }
                 }
             }
+
+            /*
+             * TODO:
+             * This could be artificially increasing traffic by making both systems send & receive
+             * hello messages.  There could be a better way to do this by just handling events.
+             * I need both to be sending hello message for testing though.
+             */
+            if(server->timeoutfunction != NULL) {
+                (server->timeoutfunction(server));
+            }
         }
 
         /*
