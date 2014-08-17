@@ -291,6 +291,40 @@ int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event
     error = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listener_socket, event);
 
     if (error == -1) {
+    	switch (errno){
+    	case EBADF:
+    		sprintf(message, "EBADF  epfd or fd is not a valid file descriptor.\n");
+    		break;
+    	case EEXIST:
+    		sprintf(message, "EEXIST op was EPOLL_CTL_ADD, and the supplied file descriptor fd is\n \
+              already registered with this epoll instance.\n");
+    		break;
+    	case EINVAL:
+    		sprintf(message, "EINVAL epfd is not an epoll file descriptor, or fd is the same as\n \
+              epfd, or the requested operation op is not supported by this\n \
+              interface.\n");
+    		break;
+    	case ENOENT:
+    		sprintf(message, "ENOENT op was EPOLL_CTL_MOD or EPOLL_CTL_DEL, and fd is not\n \
+              registered with this epoll instance.\n");
+    		break;
+    	case ENOMEM:
+    		sprintf(message, "ENOMEM There was insufficient memory to handle the requested op\n \
+              control operation.\n");
+    		break;
+    	case ENOSPC:
+    		sprintf(message, "ENOSPC The limit imposed by /proc/sys/fs/epoll/max_user_watches was\n \
+              encountered while trying to register (EPOLL_CTL_ADD) a new\n \
+              file descriptor on an epoll instance.  See epoll(7) for\n \
+              further details.\n");
+    		break;
+    	case EPERM:
+    		sprintf(message, "EPERM  The target file fd does not support epoll.\n");
+    		break;
+    	default:
+    		break;
+    	}
+    	logger(LOG_INFO, message);
         sprintf(message, "IPC: Failed adding remote listener to epoll instance.\n");
         logger(LOG_INFO, message);
         exit(1);
