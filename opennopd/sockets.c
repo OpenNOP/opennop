@@ -358,7 +358,21 @@ int epoll_handler(struct epoll_server *server) {
                         logger(LOG_INFO, message);
                         exit(1);
                     }
-                    error = register_socket(client_socket, server->epoll_fd, &server->event);
+
+                    if(server->secure != NULL){
+                    	error = (server->secure(&server, client_socket, NULL));
+
+                        if(error == 1){ // Error == 1 passed security check.
+
+                        }else{
+                        	close(client_socket);
+                        }
+                    }else{
+                    	error = register_socket(client_socket, server->epoll_fd, &server->event);
+                    }
+
+
+
 
                     continue;
                 }
@@ -452,7 +466,7 @@ int epoll_handler(struct epoll_server *server) {
  * A new epoll server should include a max length for the messages it is expected to receive.
  * If it receives a message larger than this is should shutdown that socket right away.
  */
-int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback callback, int port, cb_epoll_timeout timeoutfunction, int timeout) {
+int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_epoll_callback callback, int port, cb_epoll_timeout timeoutfunction, int timeout) {
     char message[LOGSZ] = {0};
 
     server->events = calloc (MAXEVENTS, sizeof server->event);
@@ -480,6 +494,7 @@ int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback callback, 
 
     register_socket(server->socket, server->epoll_fd, &server->event);
 
+    server->secure = secure;
     server->callback = callback;
 
     return 0;
