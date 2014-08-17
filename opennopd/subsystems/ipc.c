@@ -369,6 +369,27 @@ int hello_neighbors(struct epoll_server *epoller) {
     logger(LOG_INFO, message);
 
     for(currentneighbor = ipchead.next; currentneighbor != NULL; currentneighbor = currentneighbor->next) {
+        sprintf(message, "[IPC] Found at least one neighbor.\n");
+        logger(LOG_INFO, message);
+
+        switch (currentneighbor->state) {
+        case DOWN:
+            sprintf(message, "[IPC] Neighbor is DOWN.\n");
+            logger(LOG_INFO, message);
+            break;
+        case ATTEMPT:
+            sprintf(message, "[IPC] Neighbor is ATTEMPT.\n");
+            logger(LOG_INFO, message);
+            break;
+        default:
+            sprintf(message, "[IPC] Neighbor is in an unknown state.\n");
+            logger(LOG_INFO, message);
+            break;
+        }
+        if(currentneighbor->sock > 0) {
+            sprintf(message, "[IPC] Neighbor has a valid socket.\n");
+            logger(LOG_INFO, message);
+        }
 
         if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->timer) >= 30)) {
             currentneighbor->timer = currenttime;
@@ -382,7 +403,7 @@ int hello_neighbors(struct epoll_server *epoller) {
                 newsocket = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
 
                 if(newsocket > 0) {
-                    currentneighbor->sock = error;
+                    currentneighbor->sock = newsocket;
                     currentneighbor->state = ATTEMPT;
                     /*
                      * This socket has to be registered with the epoll server.
