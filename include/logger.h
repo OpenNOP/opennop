@@ -4,7 +4,7 @@
 
 #include <syslog.h>
 
-#define LOGSZ     256
+#define LOGSZ     1024
 
 void logger(int LOG_TYPE, char *message);
 #endif

@@ -229,26 +229,29 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
      * Check to make sure the socket is from a known neighbor.
      */
     struct neighbor *thisneighbor = NULL;
+    int error = 0;
     socklen_t len;
     time_t currenttime;
     struct sockaddr_storage address;
-    struct sockaddr_in *t;
+    struct sockaddr_in *t = NULL;
     char ipstr[INET_ADDRSTRLEN];
     char message[LOGSZ] = {0};
 
     time(&currenttime);
 
-    len = sizeof address;
-    getpeername(fd, (struct sockaddr*)&address, &len);
+    len = sizeof(address);
+    error = getpeername(fd, (struct sockaddr*)&address, &len);
 
-    if (address.ss_family == AF_INET) {
+    if ((address.ss_family == AF_INET) && (error == 0)) {
         t = (struct sockaddr_in *)&address;
         inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof ipstr);
     }
     sprintf(message, "Peer IP address: %s\n", ipstr);
     logger(LOG_INFO, message);
 
-    thisneighbor = find_neighbor(&t->sin_addr);
+    if(t != NULL) {
+        thisneighbor = find_neighbor(&t->sin_addr);
+    }
 
     if(thisneighbor != NULL) {
         sprintf(message, "Found a neighbor!\n");
@@ -279,9 +282,15 @@ int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
      */
     sprintf(message, "IPC: Received a message\n");
     logger(LOG_INFO, message);
-    print_opennnop_header((struct opennop_ipc_header *)buf);
+
 
     if(buf != NULL) {
+
+        /*
+         * Write the message structure to log for testing.
+         */
+        print_opennnop_header((struct opennop_ipc_header *)buf);
+
         opennop_msg_header = buf;
 
         /*

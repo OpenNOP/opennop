@@ -476,24 +476,23 @@ int epoll_handler(struct epoll_server *server) {
                         done = 1;
                         break;
                     }
+                }
 
-                    (server->callback(&server, server->events[i].data.fd, &buf));
+                (server->callback(&server, server->events[i].data.fd, &buf));
 
+                /*
+                 * If the remote end is done sending data let close the connection.
+                 */
+                if (done) {
+                    sprintf(message, "[epoll]: Closed connection on descriptor %d\n",
+                            server->events[i].data.fd);
+                    logger(LOG_INFO, message);
 
                     /*
-                     * If the remote end is done sending data let close the connection.
+                     * Closing the descriptor will make epoll remove it
+                     * from the set of descriptors which are monitored.
                      */
-                    if (done) {
-                        sprintf(message, "[epoll]: Closed connection on descriptor %d\n",
-                                server->events[i].data.fd);
-                        logger(LOG_INFO, message);
-
-                        /*
-                         * Closing the descriptor will make epoll remove it
-                         * from the set of descriptors which are monitored.
-                         */
-                        close(server->events[i].data.fd);
-                    }
+                    close(server->events[i].data.fd);
                 }
             }
         }
@@ -516,7 +515,7 @@ int epoll_handler(struct epoll_server *server) {
  * A new epoll server should include a max length for the messages it is expected to receive.
  * If it receives a message larger than this is should shutdown that socket right away.
  */
-int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_epoll_callback callback, int port, cb_epoll_timeout timeoutfunction, int timeout) {
+int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_epoll_callback callback, int port, t_epoll_timeout timeoutfunction, int timeout) {
     char message[LOGSZ] = {0};
 
     server->events = calloc (MAXEVENTS, sizeof server->event);
