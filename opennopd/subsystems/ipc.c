@@ -69,8 +69,6 @@ void sha256_to_string() {}
 int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     char message[LOGSZ] = {0};
 
-    sprintf(message, "[IPC] Security passed checks!.\n");
-    logger(LOG_INFO, message);
     sprintf(message, "[IPC] Processing message!.\n");
     logger(LOG_INFO, message);
 
@@ -80,6 +78,7 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
 int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
     char securitydata[32] = {0};
     struct opennop_message_data data;
+    char message[LOGSZ] = {0};
 
     data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
     memcpy(&securitydata, data.securitydata, 32);
@@ -91,8 +90,12 @@ int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
          * TODO:
          * This needs to execute process_message() next.
          */
+        sprintf(message, "[IPC] Security passed checks!.\n");
+        logger(LOG_INFO, message);
         return process_message(fd, opennop_msg_header);
     } else { // Failed security check!
+        sprintf(message, "[IPC] Security failed checks!.\n");
+        logger(LOG_INFO, message);
         return -1;
     }
 
@@ -100,10 +103,13 @@ int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
 }
 
 int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPENNOP_MSG_SECURITY security) {
+    char message[LOGSZ] = {0};
 
     if(opennop_msg_header->security == security) { // Security matched.  Next check.
 
-        if(opennop_msg_header->security == security) { // No security required process message.
+        if(opennop_msg_header->security == OPENNOP_MSG_SECURITY_NO) { // No security required process message.
+            sprintf(message, "[IPC] Security passed checks!.\n");
+            logger(LOG_INFO, message);
             return process_message(fd, opennop_msg_header);
         } else {
             /*
@@ -112,6 +118,8 @@ int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPE
             return check_hmac_sha256(fd, opennop_msg_header);
         }
     } else { // Security mismatch!
+        sprintf(message, "[IPC] Security failed checks!.\n");
+        logger(LOG_INFO, message);
         return -1;
     }
 }
