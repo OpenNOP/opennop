@@ -41,89 +41,6 @@ static char UUID[OPENNOP_IPC_UUID_LENGTH]; //Local UUID.
 static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 struct opennop_ipc_header *opennop_msg_header;
 
-/**
- * This will generate the securitydata field of the OpenNOP messages.
- * The messages should already be encrypted at this point.
- * The securitydata field will be 0's before this operation.
- * The next operation should be sending the message.
- * @see http://linux.die.net/man/3/evp_sha256
- * @see http://www.openssl.org/docs/crypto/hmac.html
- * @see http://stackoverflow.com/questions/242665/understanding-engine-initialization-in-openssl
- */
-int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *result) {
-    unsigned int result_len = 32;
-    HMAC_CTX ctx;
-
-    ENGINE_load_builtin_engines();
-    ENGINE_register_all_complete();
-    HMAC_CTX_init(&ctx);
-    HMAC_Init_ex(&ctx, key, 64, EVP_sha256(), NULL);
-    HMAC_Update(&ctx, (unsigned char*)data, data->length);
-    HMAC_Final(&ctx, (unsigned char*)result, &result_len);
-    HMAC_CTX_cleanup(&ctx);
-    return 0;
-}
-
-void sha256_to_string() {}
-
-int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
-    char message[LOGSZ] = {0};
-
-    sprintf(message, "[IPC] Processing message!.\n");
-    logger(LOG_INFO, message);
-
-    return 0;
-}
-
-int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
-    char securitydata[32] = {0};
-    struct opennop_message_data data;
-    char message[LOGSZ] = {0};
-
-    data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
-    memcpy(&securitydata, data.securitydata, 32);
-    memset(data.securitydata, 0, 32);
-    calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
-
-    if(memcmp(securitydata,data.securitydata,32)==0) { // Compare the two HMAC values.
-        /*
-         * TODO:
-         * This needs to execute process_message() next.
-         */
-        sprintf(message, "[IPC] Security passed checks!.\n");
-        logger(LOG_INFO, message);
-        return process_message(fd, opennop_msg_header);
-    } else { // Failed security check!
-        sprintf(message, "[IPC] Security failed checks!.\n");
-        logger(LOG_INFO, message);
-        return -1;
-    }
-
-
-}
-
-int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPENNOP_MSG_SECURITY security) {
-    char message[LOGSZ] = {0};
-
-    if(opennop_msg_header->security == security) { // Security matched.  Next check.
-
-        if(opennop_msg_header->security == OPENNOP_MSG_SECURITY_NO) { // No security required process message.
-            sprintf(message, "[IPC] Security passed checks!.\n");
-            logger(LOG_INFO, message);
-            return process_message(fd, opennop_msg_header);
-        } else {
-            /*
-             * This next function should test the HMAC data stored in the message header.
-             */
-            return check_hmac_sha256(fd, opennop_msg_header);
-        }
-    } else { // Security mismatch!
-        sprintf(message, "[IPC] Security failed checks!.\n");
-        logger(LOG_INFO, message);
-        return -1;
-    }
-}
-
 /*
  * Searches the neighbors list for an IP.
  * Returns NULL if no match is found.
@@ -169,6 +86,96 @@ struct neighbor *find_neighbor_by_socket(int fd) {
 }
 
 /**
+ * This will generate the securitydata field of the OpenNOP messages.
+ * The messages should already be encrypted at this point.
+ * The securitydata field will be 0's before this operation.
+ * The next operation should be sending the message.
+ * @see http://linux.die.net/man/3/evp_sha256
+ * @see http://www.openssl.org/docs/crypto/hmac.html
+ * @see http://stackoverflow.com/questions/242665/understanding-engine-initialization-in-openssl
+ */
+int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *result) {
+    unsigned int result_len = 32;
+    HMAC_CTX ctx;
+
+    ENGINE_load_builtin_engines();
+    ENGINE_register_all_complete();
+    HMAC_CTX_init(&ctx);
+    HMAC_Init_ex(&ctx, key, 64, EVP_sha256(), NULL);
+    HMAC_Update(&ctx, (unsigned char*)data, data->length);
+    HMAC_Final(&ctx, (unsigned char*)result, &result_len);
+    HMAC_CTX_cleanup(&ctx);
+    return 0;
+}
+
+void sha256_to_string() {}
+
+int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
+    char message[LOGSZ] = {0};
+
+    sprintf(message, "[IPC] Processing message!.\n");
+    logger(LOG_INFO, message);
+
+    return 0;
+}
+
+int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
+    struct neighbor *currentneighbor = NULL;
+    char securitydata[32] = {0};
+    struct opennop_message_data data;
+    char message[LOGSZ] = {0};
+
+    currentneighbor = find_neighbor_by_socket(fd);
+
+    if(currentneighbor != NULL) {
+
+        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
+        memcpy(&securitydata, data.securitydata, 32);
+        memset(data.securitydata, 0, 32);
+        calculate_hmac_sha256(opennop_msg_header, (char *)&currentneighbor->key, data.securitydata);
+
+        if(memcmp(securitydata,data.securitydata,32)==0) { // Compare the two HMAC values.
+            /*
+             * TODO:
+             * This needs to execute process_message() next.
+             */
+            sprintf(message, "[IPC] Security passed checks!.\n");
+            logger(LOG_INFO, message);
+            return process_message(fd, opennop_msg_header);
+        } else { // Failed security check!
+            sprintf(message, "[IPC] Security failed checks!.\n");
+            logger(LOG_INFO, message);
+            return -1;
+        }
+    } else {
+        return -1;
+    }
+
+}
+
+int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPENNOP_MSG_SECURITY security) {
+    char message[LOGSZ] = {0};
+
+    if(opennop_msg_header->security == security) { // Security matched.  Next check.
+
+        if(opennop_msg_header->security == OPENNOP_MSG_SECURITY_NO) { // No security required process message.
+            sprintf(message, "[IPC] Security passed checks!.\n");
+            logger(LOG_INFO, message);
+            return process_message(fd, opennop_msg_header);
+        } else {
+            /*
+             * This next function should test the HMAC data stored in the message header.
+             */
+            return check_hmac_sha256(fd, opennop_msg_header);
+        }
+    } else { // Security mismatch!
+        sprintf(message, "[IPC] Security failed checks!.\n");
+        logger(LOG_INFO, message);
+        return -1;
+    }
+}
+
+/**
  * Check if the message has a security component.
  * TODO: 1st Check if security is enabled.
  *       2nd Check message for security.
@@ -178,15 +185,15 @@ int check_security(int fd, struct opennop_ipc_header *opennop_msg_header) {
     struct neighbor *currentneighbor = NULL;
     currentneighbor = find_neighbor_by_socket(fd);
 
-    if(currentneighbor != NULL){
+    if(currentneighbor != NULL) {
 
         if (strcmp(currentneighbor->key, "") == 0) { // No security required.
             return validate_security(fd, opennop_msg_header, OPENNOP_MSG_SECURITY_NO);
         } else { // Security required.
             return validate_security(fd, opennop_msg_header, OPENNOP_MSG_SECURITY_SHA);
         }
-    }else{
-    	return -1;
+    } else {
+        return -1;
     }
 }
 
