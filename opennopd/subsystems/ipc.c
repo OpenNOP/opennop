@@ -66,33 +66,54 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
 
 void sha256_to_string() {}
 
-int check_hmac_sha256(struct opennop_ipc_header *opennop_msg_header) {
+int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
+    char message[LOGSZ] = {0};
+
+    sprintf(message, "[IPC] Security passed checks!.\n");
+    logger(LOG_INFO, message);
+    sprintf(message, "[IPC] Processing message!.\n");
+    logger(LOG_INFO, message);
+
     return 0;
 }
 
-int validate_security(struct opennop_ipc_header *opennop_msg_header, OPENNOP_MSG_SECURITY security) {
+int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
+    char securitydata[32] = {0};
+    struct opennop_message_data data;
+
+    data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
+    memcpy(&securitydata, data.securitydata, 32);
+    memset(data.securitydata, 0, 32);
+    calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
+
+    if(memcmp(securitydata,data.securitydata,32)==0) { // Compare the two HMAC values.
+        /*
+         * TODO:
+         * This needs to execute process_message() next.
+         */
+        return process_message(fd, opennop_msg_header);
+    } else { // Failed security check!
+        return -1;
+    }
+
+
+}
+
+int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPENNOP_MSG_SECURITY security) {
 
     if(opennop_msg_header->security == security) { // Security matched.  Next check.
 
-        if(opennop_msg_header->security == security) { // No security required we are OK.
-            return 1;
+        if(opennop_msg_header->security == security) { // No security required process message.
+            return process_message(fd, opennop_msg_header);
         } else {
             /*
              * This next function should test the HMAC data stored in the message header.
              */
-            if(check_hmac_sha256(opennop_msg_header) == 1) {
-                return 1;
-            }
-            /*
-             * Failed security check!
-             */
-            return 0;
+            return check_hmac_sha256(fd, opennop_msg_header);
         }
+    } else { // Security mismatch!
+        return -1;
     }
-    /*
-     * Security mismatch!
-     */
-    return 0;
 }
 
 /**
@@ -101,18 +122,13 @@ int validate_security(struct opennop_ipc_header *opennop_msg_header, OPENNOP_MSG
  *       2nd Check message for security.
  *
  */
-int check_security(struct opennop_ipc_header *opennop_msg_header) {
+int check_security(int fd, struct opennop_ipc_header *opennop_msg_header) {
 
     if (strcmp(key, "") == 0) { // No security required.
-        return validate_security(opennop_msg_header, OPENNOP_MSG_SECURITY_NO);
+        return validate_security(fd, opennop_msg_header, OPENNOP_MSG_SECURITY_NO);
     } else { // Security required.
-        return validate_security(opennop_msg_header, OPENNOP_MSG_SECURITY_SHA);
+        return validate_security(fd, opennop_msg_header, OPENNOP_MSG_SECURITY_SHA);
     }
-    /*
-     * Dead code.
-     * Failed!
-     */
-    return 0;
 }
 
 /**
@@ -186,13 +202,16 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
 }
 
 /*
- * TODO: Perhaps this should be just part of a security function assigned to the epoll server?
- * If the security part passes then the socket FD would be assigned to the neighbor
- * and the connection would be accepted.
+ * This function is called from epoll_handler() in sockets.c
+ * as defined in ipc_thread() in ipc.c.
+ *
+ * It processes all messages received from neighbors.
+ *
+ * Returns 0 on successful completion.
+ * Return -1 on failure. (should close socket)
  */
 int process_ipc_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
-
-    return 0;
+    return check_security(fd, opennop_msg_header);
 }
 
 /*
