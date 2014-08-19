@@ -124,6 +124,50 @@ int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPE
     }
 }
 
+/*
+ * Searches the neighbors list for an IP.
+ * Returns NULL if no match is found.
+ */
+struct neighbor *find_neighbor_by_addr(struct in_addr *addr) {
+    struct neighbor *currentneighbor = NULL;
+
+    currentneighbor = ipchead.next;
+
+    while (currentneighbor != NULL) {
+
+        if(currentneighbor->NeighborIP == addr->s_addr) {
+            return currentneighbor;
+        }
+        currentneighbor = currentneighbor->next;
+    }
+    return NULL;
+}
+
+struct neighbor *find_neighbor_by_socket(int fd) {
+    int error = 0;
+    socklen_t len;
+    struct sockaddr_storage address;
+    struct sockaddr_in *t = NULL;
+    char ipstr[INET_ADDRSTRLEN];
+    char message[LOGSZ] = {0};
+
+    len = sizeof(address);
+    error = getpeername(fd, (struct sockaddr*)&address, &len);
+
+    if ((address.ss_family == AF_INET) && (error == 0)) {
+        t = (struct sockaddr_in *)&address;
+        inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof ipstr);
+    }
+    sprintf(message, "Peer IP address: %s\n", ipstr);
+    logger(LOG_INFO, message);
+
+    if(t != NULL) {
+        return find_neighbor_by_addr(&t->sin_addr);
+    } else {
+        return NULL;
+    }
+}
+
 /**
  * Check if the message has a security component.
  * TODO: 1st Check if security is enabled.
@@ -131,11 +175,18 @@ int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPE
  *
  */
 int check_security(int fd, struct opennop_ipc_header *opennop_msg_header) {
+    struct neighbor *currentneighbor = NULL;
+    currentneighbor = find_neighbor_by_socket(fd);
 
-    if (strcmp(key, "") == 0) { // No security required.
-        return validate_security(fd, opennop_msg_header, OPENNOP_MSG_SECURITY_NO);
-    } else { // Security required.
-        return validate_security(fd, opennop_msg_header, OPENNOP_MSG_SECURITY_SHA);
+    if(currentneighbor != NULL){
+
+        if (strcmp(currentneighbor->key, "") == 0) { // No security required.
+            return validate_security(fd, opennop_msg_header, OPENNOP_MSG_SECURITY_NO);
+        } else { // Security required.
+            return validate_security(fd, opennop_msg_header, OPENNOP_MSG_SECURITY_SHA);
+        }
+    }else{
+    	return -1;
     }
 }
 
@@ -222,23 +273,12 @@ int process_ipc_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     return check_security(fd, opennop_msg_header);
 }
 
-/*
- * Searches the neighbors list for an IP.
- * Returns NULL if no match is found.
- */
-struct neighbor *find_neighbor(struct in_addr *addr) {
-    struct neighbor *currentneighbor = NULL;
+int update_neighbor_timer(struct neighbor *thisneighbor) {
+    time_t currenttime;
 
-    currentneighbor = ipchead.next;
-
-    while (currentneighbor != NULL) {
-
-        if(currentneighbor->NeighborIP == addr->s_addr) {
-            return currentneighbor;
-        }
-        currentneighbor = currentneighbor->next;
-    }
-    return NULL;
+    time(&currenttime);
+    thisneighbor->timer = currenttime;
+    return 0;
 }
 
 /*
@@ -252,40 +292,19 @@ struct neighbor *find_neighbor(struct in_addr *addr) {
  * Returns 1 if security check passed.
  */
 int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
-    /*
-     * Check to make sure the socket is from a known neighbor.
-     */
     struct neighbor *thisneighbor = NULL;
-    int error = 0;
-    socklen_t len;
-    time_t currenttime;
-    struct sockaddr_storage address;
-    struct sockaddr_in *t = NULL;
-    char ipstr[INET_ADDRSTRLEN];
+
     char message[LOGSZ] = {0};
 
-    time(&currenttime);
 
-    len = sizeof(address);
-    error = getpeername(fd, (struct sockaddr*)&address, &len);
-
-    if ((address.ss_family == AF_INET) && (error == 0)) {
-        t = (struct sockaddr_in *)&address;
-        inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof ipstr);
-    }
-    sprintf(message, "Peer IP address: %s\n", ipstr);
-    logger(LOG_INFO, message);
-
-    if(t != NULL) {
-        thisneighbor = find_neighbor(&t->sin_addr);
-    }
+    thisneighbor = find_neighbor_by_socket(fd);
 
     if(thisneighbor != NULL) {
         sprintf(message, "Found a neighbor!\n");
         logger(LOG_INFO, message);
         thisneighbor->sock = fd;
         thisneighbor->state = ATTEMPT;
-        thisneighbor->timer = currenttime;
+        update_neighbor_timer(thisneighbor);
         return 1;
     }
 
