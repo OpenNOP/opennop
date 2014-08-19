@@ -380,9 +380,11 @@ int ipc_neighbor_hello(int socket) {
     sprintf(message, "IPC: Sending a message\n");
     logger(LOG_INFO, message);
 
+    /*
+     * This just reserves space for the HMAC calculation.
+     */
     if(opennop_msg_header->security == 1) {
         data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
-        calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
         data.messages = data.securitydata + 32;
         opennop_msg_header->length = opennop_msg_header->length + 32;
     } else {
@@ -391,6 +393,13 @@ int ipc_neighbor_hello(int socket) {
     }
 
     add_hello_message(opennop_msg_header);
+
+    /*
+     * Now after all headers are added we calculate the HMAC.
+     */
+    if(opennop_msg_header->security == 1) {
+        calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
+    }
 
     print_opennnop_header(opennop_msg_header);
 
