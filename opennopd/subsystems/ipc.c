@@ -139,11 +139,11 @@ int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
              * TODO:
              * This needs to execute process_message() next.
              */
-            sprintf(message, "[IPC] Security passed checks!.\n");
+            sprintf(message, "[IPC] Security passed HMAC check!.\n");
             logger(LOG_INFO, message);
             return process_message(fd, opennop_msg_header);
         } else { // Failed security check!
-            sprintf(message, "[IPC] Security failed checks!.\n");
+            sprintf(message, "[IPC] Security failed HMAC check!.\n");
             logger(LOG_INFO, message);
             return -1;
         }
@@ -159,7 +159,7 @@ int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPE
     if(opennop_msg_header->security == security) { // Security matched.  Next check.
 
         if(opennop_msg_header->security == OPENNOP_MSG_SECURITY_NO) { // No security required process message.
-            sprintf(message, "[IPC] Security passed checks!.\n");
+            sprintf(message, "[IPC] Security passed MODE check!.\n");
             logger(LOG_INFO, message);
             return process_message(fd, opennop_msg_header);
         } else {
@@ -169,7 +169,7 @@ int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPE
             return check_hmac_sha256(fd, opennop_msg_header);
         }
     } else { // Security mismatch!
-        sprintf(message, "[IPC] Security failed checks!.\n");
+        sprintf(message, "[IPC] Security failed MODE check!.\n");
         logger(LOG_INFO, message);
         return -1;
     }
