@@ -73,7 +73,7 @@ struct neighbor *find_neighbor_by_socket(int fd) {
 
     if ((address.ss_family == AF_INET) && (error == 0)) {
         t = (struct sockaddr_in *)&address;
-        inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof ipstr);
+        inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof(ipstr));
     }
     sprintf(message, "Peer IP address: %s\n", ipstr);
     logger(LOG_INFO, message);

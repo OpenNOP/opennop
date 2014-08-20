@@ -22,6 +22,8 @@
 
 #define MAXEVENTS 64
 
+int DEBUG_SOCKETS = LOGGING_DEBUG;
+
 int new_ip_client(__u32 serverip ,int port) {
     int client_socket = 0;
     int error = 0;
@@ -33,8 +35,7 @@ int new_ip_client(__u32 serverip ,int port) {
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
 
     if (client_socket < 0 ) {
-        sprintf(message, "IPC: Failed to create socket.\n");
-        logger(LOG_INFO, message);
+        logger2(LOGGING_FATAL, DEBUG_SOCKETS , "IPC: Failed to create socket.\n");
         exit(1);
     }
 
@@ -46,7 +47,7 @@ int new_ip_client(__u32 serverip ,int port) {
 
     if (error < 0) {
         sprintf(message, "IPC: Failed to connect to remote host.\n");
-        logger(LOG_INFO, message);
+        logger2(LOGGING_WARN, DEBUG_SOCKETS, message);
         return -1;
     }
 
@@ -90,6 +91,8 @@ int new_ip_server(int port) {
         logger(LOG_INFO, message);
         exit(1);
     }
+
+    logger2(LOGGING_INFO,DEBUG_SOCKETS, "[socket] Created new IP server.\n");
 
     return server_socket;
 }
@@ -410,7 +413,7 @@ int epoll_handler(struct epoll_server *server) {
                     }
 
                     if(server->secure != NULL) {
-                        error = (server->secure(&server, client_socket, NULL));
+                        error = (server->secure(server, client_socket, NULL));
 
                         if(error == 1) { // Error == 1 passed security check.
                             error = register_socket(client_socket, server->epoll_fd, &server->event);
@@ -478,7 +481,7 @@ int epoll_handler(struct epoll_server *server) {
                     }
                 }
 
-                (server->callback(&server, server->events[i].data.fd, &buf));
+                (server->callback(server, server->events[i].data.fd, &buf));
 
                 /*
                  * If the remote end is done sending data let close the connection.
