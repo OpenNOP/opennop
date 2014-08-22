@@ -57,7 +57,8 @@ struct neighbor {
 #define OPENNOP_DEFAULT_HEADER_LENGTH	8
 
 struct opennop_ipc_header {
-    __u16 type;				/** OpenNOP IPC type */
+    __u8 type;				/** OpenNOP IPC type */
+    __u8 header_length;		/** OpenNOP IPC header length */
     __u16 version;			/** Version of the message system */
     __u16 length;			/** Total length of this message */
     __u8 security;			/** Indicates if security is required */

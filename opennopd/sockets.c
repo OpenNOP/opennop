@@ -22,7 +22,7 @@
 
 #define MAXEVENTS 64
 
-int DEBUG_SOCKETS = LOGGING_DEBUG;
+static int DEBUG_SOCKETS = LOGGING_OFF;
 
 int new_ip_client(__u32 serverip ,int port) {
     int client_socket = 0;
