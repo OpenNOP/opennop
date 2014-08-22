@@ -34,7 +34,7 @@ void logger(int LOG_TYPE, char *message)
  */
 int logger2(int level, int debug, char *message) {
 
-	if((level <= LOGGING_LEVEL) || ((debug & level) == level)) {
+	if((level <= LOGGING_LEVEL) || (debug == LOGGING_ALL) || ((debug & level) == level)) {
 		logger(LOG_INFO,message);
 	}
 	return 0;
