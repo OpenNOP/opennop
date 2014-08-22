@@ -11,7 +11,7 @@
  * Logs a message to either the screen or to syslog.
  */
 
-int LOGGING_LEVEL	=	LOGGING_WARN;	// Default log everything up to WARN messages (regardless of individual component setting).
+static int LOGGING_LEVEL	=	LOGGING_WARN;	// Default log everything up to WARN messages (regardless of individual component setting).
 
 void logger(int LOG_TYPE, char *message)
 {

@@ -39,8 +39,9 @@ static pthread_t t_ipc; // thread for cli.
 static struct neighbor_head ipchead;
 static char UUID[OPENNOP_IPC_UUID_LENGTH]; //Local UUID.
 static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
-struct opennop_ipc_header *opennop_msg_header;
 
+
+static int DEBUG_IPC = LOGGING_OFF;
 /*
  * Searches the neighbors list for an IP.
  * Returns NULL if no match is found.
@@ -75,8 +76,8 @@ struct neighbor *find_neighbor_by_socket(int fd) {
         t = (struct sockaddr_in *)&address;
         inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof(ipstr));
     }
-    sprintf(message, "Peer IP address: %s\n", ipstr);
-    logger(LOG_INFO, message);
+    sprintf(message, "[IPC] Peer IP address: %s\n", ipstr);
+    logger2(LOGGING_INFO,DEBUG_IPC,message);
 
     if(t != NULL) {
         return find_neighbor_by_addr(&t->sin_addr);
@@ -111,10 +112,8 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
 void sha256_to_string() {}
 
 int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
-    char message[LOGSZ] = {0};
 
-    sprintf(message, "[IPC] Processing message!.\n");
-    logger(LOG_INFO, message);
+    logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Processing message!.\n");
 
     return 0;
 }
@@ -139,12 +138,10 @@ int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
              * TODO:
              * This needs to execute process_message() next.
              */
-            sprintf(message, "[IPC] Security passed HMAC check!.\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Security passed HMAC check!.\n");
             return process_message(fd, opennop_msg_header);
         } else { // Failed security check!
-            sprintf(message, "[IPC] Security failed HMAC check!.\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Security failed HMAC check!.\n");
             return -1;
         }
     } else {
@@ -159,8 +156,7 @@ int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPE
     if(opennop_msg_header->security == security) { // Security matched.  Next check.
 
         if(opennop_msg_header->security == OPENNOP_MSG_SECURITY_NO) { // No security required process message.
-            sprintf(message, "[IPC] Security passed MODE check!.\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Security passed MODE check!.\n");
             return process_message(fd, opennop_msg_header);
         } else {
             /*
@@ -169,8 +165,7 @@ int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPE
             return check_hmac_sha256(fd, opennop_msg_header);
         }
     } else { // Security mismatch!
-        sprintf(message, "[IPC] Security failed MODE check!.\n");
-        logger(LOG_INFO, message);
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Security failed MODE check!.\n");
         return -1;
     }
 }
@@ -221,12 +216,11 @@ int set_opennop_message_security(struct opennop_ipc_header *opennop_msg_header) 
 
     if (strcmp(key, "") == 0) {
         opennop_msg_header->security = OPENNOP_MSG_SECURITY_NO;
-        sprintf(message, "IPC: NO security.\n");
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] NO security.\n");
     } else {
         opennop_msg_header->security = OPENNOP_MSG_SECURITY_SHA;
-        sprintf(message, "IPC: SHA security.\n");
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] SHA security.\n");
     }
-    logger(LOG_INFO, message);
 
     return 0;
 }
@@ -246,22 +240,22 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
     char securitydata[33] = {0};
 
     sprintf(message, "Type: %u\n", opennop_msg_header->type);
-    logger(LOG_INFO, message);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
     sprintf(message, "Version: %u\n", opennop_msg_header->version);
-    logger(LOG_INFO, message);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
     sprintf(message, "Length: %u\n", opennop_msg_header->length);
-    logger(LOG_INFO, message);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
     sprintf(message, "Security: %u\n", opennop_msg_header->security);
-    logger(LOG_INFO, message);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
     sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
-    logger(LOG_INFO, message);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
 
     if(opennop_msg_header->security == 1) {
         data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
         memset(&securitydata, 0, sizeof(securitydata));
         memcpy(&securitydata, data.securitydata, 32);
         sprintf(message, "Security Data: %s\n", securitydata);
-        logger(LOG_INFO, message);
+        logger2(LOGGING_WARN,DEBUG_IPC,message);
     }
 
     return 0;
@@ -307,8 +301,7 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
     thisneighbor = find_neighbor_by_socket(fd);
 
     if(thisneighbor != NULL) {
-        sprintf(message, "Found a neighbor!\n");
-        logger(LOG_INFO, message);
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Found a neighbor!\n");
         thisneighbor->sock = fd;
         thisneighbor->state = ATTEMPT;
         update_neighbor_timer(thisneighbor);
@@ -333,8 +326,7 @@ int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
      *TODO: The epoll server should have a 2nd callback function that verifies the security of a connection.
      *TODO: So data passed from the epoll server to the handler *should* be considered secure.
      */
-    sprintf(message, "IPC: Received a message\n");
-    logger(LOG_INFO, message);
+    logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Received a message\n");
 
 
     if(buf != NULL) {
@@ -366,8 +358,9 @@ int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
     return 0;
 }
 
-int ipc_neighbor_hello(int socket) {
+int ipc_send_hello(int socket) {
     struct opennop_message_data data;
+    struct opennop_ipc_header *opennop_msg_header;
     char buf[IPC_MAX_MESSAGE_SIZE] = {0};
     int error;
     char message[LOGSZ] = {0};
@@ -377,8 +370,7 @@ int ipc_neighbor_hello(int socket) {
      */
     opennop_msg_header = (struct opennop_ipc_header *)&buf;
     initialize_opennop_ipc_header(opennop_msg_header);
-    sprintf(message, "IPC: Sending a message\n");
-    logger(LOG_INFO, message);
+    logger2(LOGGING_WARN,DEBUG_IPC,"IPC: Sending a message\n");
 
     /*
      * This just reserves space for the HMAC calculation.
@@ -420,8 +412,8 @@ int ipc_neighbor_hello(int socket) {
      *TODO: If not try sending the rest or error.
      */
     if(error != opennop_msg_header->length) {
-        sprintf(message, "[socket]: Only send %u bytes!\n", (unsigned int)error);
-        logger(LOG_INFO, message);
+        sprintf(message, "[socket] Only send %u bytes!\n", (unsigned int)error);
+        logger2(LOGGING_ERROR,DEBUG_IPC,message);
     }
 
     return error;
@@ -436,36 +428,29 @@ int hello_neighbors(struct epoll_server *epoller) {
 
     time(&currenttime);
 
-    sprintf(message, "[IPC] Starting hello_neighbors().\n");
-    logger(LOG_INFO, message);
+    logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Starting hello_neighbors().\n");
 
     for(currentneighbor = ipchead.next; currentneighbor != NULL; currentneighbor = currentneighbor->next) {
-        sprintf(message, "[IPC] Found at least one neighbor.\n");
-        logger(LOG_INFO, message);
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Found at least one neighbor.\n");
 
         switch (currentneighbor->state) {
         case DOWN:
-            sprintf(message, "[IPC] Neighbor is DOWN.\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor is DOWN.\n");
             break;
         case ATTEMPT:
-            sprintf(message, "[IPC] Neighbor is ATTEMPT.\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor is ATTEMPT.\n");
             break;
         default:
-            sprintf(message, "[IPC] Neighbor is in an unknown state.\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor is in an unknown state.\n");
             break;
         }
         if(currentneighbor->sock > 0) {
-            sprintf(message, "[IPC] Neighbor has a valid socket.\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor has a valid socket.\n");
         }
 
         if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->timer) >= 30)) {
             currentneighbor->timer = currenttime;
-            sprintf(message, "state is down & timer > 30\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor state is down & timer > 30\n");
 
             /*
              * If neighbor socket = 0 open a new one.
@@ -492,14 +477,13 @@ int hello_neighbors(struct epoll_server *epoller) {
              */
             if(currentneighbor->sock != 0) {
                 currentneighbor->timer = currenttime;
-                error = ipc_neighbor_hello(currentneighbor->sock);
+                error = ipc_send_hello(currentneighbor->sock);
 
                 /*
                  * Maybe a lot of this should be moved to ipc_neighbor_hello().
                  */
                 if (error < 0) {
-                    sprintf(message, "Failed sending hello.\n");
-                    logger(LOG_INFO, message);
+                    logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Failed sending hello.\n");
                     currentneighbor->state = DOWN;
                     shutdown(currentneighbor->sock, SHUT_RDWR);
                     currentneighbor->sock = 0;
@@ -532,8 +516,7 @@ void *ipc_thread(void *dummyPtr) {
                                      };
     char message[LOGSZ] = {0};
 
-    sprintf(message, "IPC: Is starting.\n");
-    logger(LOG_INFO, message);
+    logger2(LOGGING_INFO,DEBUG_IPC, "IPC: Is starting.\n");
 
     error = new_ip_epoll_server(&ipc_server, ipc_check_neighbor, ipc_handler, OPENNOPD_IPC_PORT, hello_neighbors, OPENNOP_IPC_HELLO);
 
@@ -542,8 +525,7 @@ void *ipc_thread(void *dummyPtr) {
      */
     epoll_handler(&ipc_server);
 
-    sprintf(message, "IPC: Is exiting.\n");
-    logger(LOG_INFO, message);
+    logger2(LOGGING_INFO,DEBUG_IPC, "IPC: Is exiting.\n");
 
     shutdown_epoll_server(&ipc_server);
 
