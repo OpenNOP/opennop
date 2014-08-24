@@ -65,7 +65,7 @@ struct opennop_ipc_header {
     __u8 antireplay;		/** Indicates if anti-replay is enabled */
 };
 
-struct opennop_message_data {
+struct opennop_header_data {
     char *securitydata;		/** SHA256 data of the entire message */
     __u32 *antireplaydata;	/** Anti-replay data */
     char *messages;			/** Beginning of any OpenNOP messages */

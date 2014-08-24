@@ -111,9 +111,49 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
 
 void sha256_to_string() {}
 
-int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
+int get_header_data(struct opennop_ipc_header *opennop_msg_header,  struct opennop_header_data *data) {
+    /*
+     * This just reserves space for the HMAC calculation.
+     */
+    if(opennop_msg_header->security == 1) {
+        data->securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
+        data->messages = data->securitydata + 32;
+        opennop_msg_header->length = opennop_msg_header->length + 32;
+    } else {
+        data->securitydata = NULL;
+        data->messages = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
+    }
+    return 0;
+}
 
-    logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Processing message!.\n");
+int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
+	struct opennop_header_data data;
+	struct opennop_message_header *message_header;
+
+    logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Processing message!\n");
+
+    get_header_data(opennop_msg_header, & data);
+    message_header = (struct opennop_message_header *)data.messages;
+    switch(message_header->type) {
+    case OPENNOP_IPC_HERE_I_AM:
+    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_HERE_I_AM.\n");
+    	break;
+    case OPENNOP_IPC_I_SEE_YOU:
+    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_I_SEE_YOU.\n");
+    	break;
+    case OPENNOP_IPC_AUTH_ERR:
+    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_AUTH_ERR.\n");
+    	break;
+    case OPENNOP_IPC_BAD_UUID:
+    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_BAD_UUID.\n");
+    	break;
+    case OPENNOP_IPC_DEDUP_MAP:
+    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_DEDUP_MAP.\n");
+    	break;
+    default:
+    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: Unknown!\n");
+    }
+
 
     return 0;
 }
@@ -121,7 +161,7 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
 int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
     struct neighbor *currentneighbor = NULL;
     char securitydata[32] = {0};
-    struct opennop_message_data data;
+    struct opennop_header_data data;
     char message[LOGSZ] = {0};
 
     currentneighbor = find_neighbor_by_socket(fd);
@@ -235,7 +275,7 @@ int initialize_opennop_ipc_header(struct opennop_ipc_header *opennop_msg_header)
 }
 
 int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
-    struct opennop_message_data data;
+    struct opennop_header_data data;
     char message[LOGSZ] = {0};
     char securitydata[33] = {0};
 
@@ -259,19 +299,6 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
     }
 
     return 0;
-}
-
-/*
- * This function is called from epoll_handler() in sockets.c
- * as defined in ipc_thread() in ipc.c.
- *
- * It processes all messages received from neighbors.
- *
- * Returns 0 on successful completion.
- * Return -1 on failure. (should close socket)
- */
-int process_ipc_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
-    return check_security(fd, opennop_msg_header);
 }
 
 int update_neighbor_timer(struct neighbor *thisneighbor) {
@@ -317,6 +344,11 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
 /*
  * This function is called from epoll_handler() in sockets.c
  * as defined in ipc_thread() in ipc.c.
+ *
+ * It processes all messages received from neighbors.
+ *
+ * Returns 0 on successful completion.
+ * Return -1 on failure. (should close socket)
  */
 int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
     struct opennop_ipc_header *opennop_msg_header = NULL;
@@ -348,7 +380,7 @@ int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
              * To check the security we will pass the socket this message came from.
              * Also epoller is the instance of epoll used to handle this message.
              */
-            process_ipc_message(fd, opennop_msg_header);
+        	return check_security(fd, opennop_msg_header);
             break;
         default: //non-standard type.
             break;
@@ -359,7 +391,7 @@ int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
 }
 
 int ipc_send_hello(int socket) {
-    struct opennop_message_data data;
+    struct opennop_header_data data;
     struct opennop_ipc_header *opennop_msg_header;
     char buf[IPC_MAX_MESSAGE_SIZE] = {0};
     int error;
@@ -372,17 +404,7 @@ int ipc_send_hello(int socket) {
     initialize_opennop_ipc_header(opennop_msg_header);
     logger2(LOGGING_WARN,DEBUG_IPC,"IPC: Sending a message\n");
 
-    /*
-     * This just reserves space for the HMAC calculation.
-     */
-    if(opennop_msg_header->security == 1) {
-        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
-        data.messages = data.securitydata + 32;
-        opennop_msg_header->length = opennop_msg_header->length + 32;
-    } else {
-        data.securitydata = NULL;
-        data.messages = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
-    }
+    get_header_data(opennop_msg_header, &data);
 
     add_hello_message(opennop_msg_header);
 
