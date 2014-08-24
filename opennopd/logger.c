@@ -13,14 +13,12 @@
 
 static int LOGGING_LEVEL	=	LOGGING_WARN;	// Default log everything up to WARN messages (regardless of individual component setting).
 
-void logger(int LOG_TYPE, char *message)
-{
-	if (isdaemon == true){
-		syslog(LOG_INFO, message);
-	}
-	else{
-		printf(message);
-	}	
+void logger(int LOG_TYPE, char *message) {
+    if (isdaemon == true) {
+        syslog(LOG_INFO, message);
+    } else {
+        printf(message);
+    }
 }
 
 /** @brief Write a log message.
@@ -34,8 +32,8 @@ void logger(int LOG_TYPE, char *message)
  */
 int logger2(int level, int debug, char *message) {
 
-	if((level <= LOGGING_LEVEL) || (debug == LOGGING_ALL) || ((debug & level) == level)) {
-		logger(LOG_INFO,message);
-	}
-	return 0;
+    if((level <= LOGGING_LEVEL) || (debug == LOGGING_ALL) || ((debug & level) == level)) {
+        logger(LOG_INFO,message);
+    }
+    return 0;
 }
