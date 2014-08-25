@@ -109,13 +109,13 @@ enum {
     OPENNOP_MSG_ANTI_REPLAY_YES
 };
 
-enum {
+typedef enum {
     OPENNOP_IPC_HERE_I_AM = 1,
     OPENNOP_IPC_I_SEE_YOU,
     OPENNOP_IPC_AUTH_ERR,
     OPENNOP_IPC_BAD_UUID,
     OPENNOP_IPC_DEDUP_MAP
-};
+} OPENNOP_IPC_MSG_TYPE;
 
 void start_ipc();
 void rejoin_ipc();
