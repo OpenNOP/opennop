@@ -126,6 +126,36 @@ int get_header_data(struct opennop_ipc_header *opennop_msg_header,  struct openn
     return 0;
 }
 
+int ipc_send_message(int socket, struct opennop_ipc_header *opennop_msg_header){
+    int error;
+    char message[LOGSZ] = {0};
+
+    logger2(LOGGING_WARN,DEBUG_IPC,"IPC: Sending a message\n");
+    print_opennnop_header(opennop_msg_header);
+
+    /**
+     *TODO: When sending the buffer "opennop_msg_header->length" does not work correctly to transmit all the data.
+     *TODO: I'm not sure if its caused by receiving side or the sending.
+     *TODO: The length is reporting as 40 that is correct.  Sending 41 bytes seems to work correctly.
+     *
+     * Must ignore the signal typically caused when the remote stops responding by adding the MSG_NOSIGNAL flag.
+     * http://stackoverflow.com/questions/1330397/tcp-send-does-not-return-cause-crashing-process
+     */
+    error = send(socket, opennop_msg_header, opennop_msg_header->length, MSG_NOSIGNAL);
+
+    /**
+     *TODO: It might be nice to make a separate function in sockets.c to handle sending data.
+     *TODO: That function should check the results of send() to make sure all the data was send.
+     *TODO: If not try sending the rest or error.
+     */
+    if(error != opennop_msg_header->length) {
+        sprintf(message, "[socket] Only send %u bytes!\n", (unsigned int)error);
+        logger2(LOGGING_ERROR,DEBUG_IPC,message);
+    }
+
+    return error;
+}
+
 int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
 	struct opennop_header_data data;
 	struct opennop_message_header *message_header;
@@ -402,7 +432,6 @@ int ipc_send_hello(int socket) {
      */
     opennop_msg_header = (struct opennop_ipc_header *)&buf;
     initialize_opennop_ipc_header(opennop_msg_header);
-    logger2(LOGGING_WARN,DEBUG_IPC,"IPC: Sending a message\n");
 
     get_header_data(opennop_msg_header, &data);
 
@@ -415,30 +444,8 @@ int ipc_send_hello(int socket) {
         calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
     }
 
-    print_opennnop_header(opennop_msg_header);
+    return ipc_send_message(socket,opennop_msg_header);
 
-
-    /**
-     *TODO: When sending the buffer "opennop_msg_header->length" does not work correctly to transmit all the data.
-     *TODO: I'm not sure if its caused by receiving side or the sending.
-     *TODO: The length is reporting as 40 that is correct.  Sending 41 bytes seems to work correctly.
-     *
-     * Must ignore the signal typically caused when the remote stops responding by adding the MSG_NOSIGNAL flag.
-     * http://stackoverflow.com/questions/1330397/tcp-send-does-not-return-cause-crashing-process
-     */
-    error = send(socket, buf, opennop_msg_header->length, MSG_NOSIGNAL);
-
-    /**
-     *TODO: It might be nice to make a separate function in sockets.c to handle sending data.
-     *TODO: That function should check the results of send() to make sure all the data was send.
-     *TODO: If not try sending the rest or error.
-     */
-    if(error != opennop_msg_header->length) {
-        sprintf(message, "[socket] Only send %u bytes!\n", (unsigned int)error);
-        logger2(LOGGING_ERROR,DEBUG_IPC,message);
-    }
-
-    return error;
 }
 
 int hello_neighbors(struct epoll_server *epoller) {
