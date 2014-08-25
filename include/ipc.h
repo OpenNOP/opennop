@@ -84,6 +84,13 @@ struct opennop_hello_message{
 	char uuid[OPENNOP_IPC_UUID_LENGTH];
 };
 
+struct ipc_message_i_see_you{
+	struct opennop_message_header header;
+	/*
+	 * Additional data would go here.
+	 */
+};
+
 typedef enum {
     OPENNOP_MSG_TYPE_IPC = 1,
     OPENNOP_MSG_TYPE_CLI,
