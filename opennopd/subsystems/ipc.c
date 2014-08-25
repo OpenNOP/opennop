@@ -188,7 +188,6 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: Unknown!\n");
     }
 
-
     return 0;
 }
 
@@ -274,10 +273,11 @@ int ipc_add_i_see_you_message(struct opennop_ipc_header *opennop_msg_header) {
 
     message = (char*)opennop_msg_header + opennop_msg_header->length;
     message->header.type = OPENNOP_IPC_I_SEE_YOU;
-    message->header.length = sizeof(struct opennop_hello_message);
+    message->header.length = sizeof(struct ipc_message_i_see_you);
     /**
      * There is no additional data right now.
      */
+    opennop_msg_header->length += message->header.length;
 
     return 0;
 }
@@ -296,7 +296,7 @@ int add_hello_message(struct opennop_ipc_header *opennop_msg_header) {
      *TODO: After its generated we should just copy it from the UUID variable.
      */
     uuid_generate_time((unsigned char*)message->uuid);
-    opennop_msg_header->length += sizeof(struct opennop_hello_message);
+    opennop_msg_header->length += message->header.length;
 
     return 0;
 }
@@ -409,7 +409,6 @@ int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
      *TODO: So data passed from the epoll server to the handler *should* be considered secure.
      */
     logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Received a message\n");
-
 
     if(buf != NULL) {
 
