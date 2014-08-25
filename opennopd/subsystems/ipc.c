@@ -42,7 +42,10 @@ static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 
 
 static int DEBUG_IPC = LOGGING_OFF;
-/*
+
+int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype);
+
+/**
  * Searches the neighbors list for an IP.
  * Returns NULL if no match is found.
  */
@@ -126,7 +129,7 @@ int get_header_data(struct opennop_ipc_header *opennop_msg_header,  struct openn
     return 0;
 }
 
-int ipc_send_message(int socket, struct opennop_ipc_header *opennop_msg_header){
+int ipc_tx_message(int socket, struct opennop_ipc_header *opennop_msg_header) {
     int error;
     char message[LOGSZ] = {0};
 
@@ -157,8 +160,8 @@ int ipc_send_message(int socket, struct opennop_ipc_header *opennop_msg_header){
 }
 
 int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
-	struct opennop_header_data data;
-	struct opennop_message_header *message_header;
+    struct opennop_header_data data;
+    struct opennop_message_header *message_header;
 
     logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Processing message!\n");
 
@@ -166,22 +169,23 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     message_header = (struct opennop_message_header *)data.messages;
     switch(message_header->type) {
     case OPENNOP_IPC_HERE_I_AM:
-    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_HERE_I_AM.\n");
-    	break;
+        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_HERE_I_AM.\n");
+        ipc_send_message(fd, OPENNOP_IPC_I_SEE_YOU);
+        break;
     case OPENNOP_IPC_I_SEE_YOU:
-    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_I_SEE_YOU.\n");
-    	break;
+        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_I_SEE_YOU.\n");
+        break;
     case OPENNOP_IPC_AUTH_ERR:
-    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_AUTH_ERR.\n");
-    	break;
+        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_AUTH_ERR.\n");
+        break;
     case OPENNOP_IPC_BAD_UUID:
-    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_BAD_UUID.\n");
-    	break;
+        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_BAD_UUID.\n");
+        break;
     case OPENNOP_IPC_DEDUP_MAP:
-    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_DEDUP_MAP.\n");
-    	break;
+        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_DEDUP_MAP.\n");
+        break;
     default:
-    	logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: Unknown!\n");
+        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: Unknown!\n");
     }
 
 
@@ -260,6 +264,22 @@ int check_security(int fd, struct opennop_ipc_header *opennop_msg_header) {
     } else {
         return -1;
     }
+}
+
+/**
+ * @see http://linux.die.net/man/3/uuid_generate
+ */
+int ipc_add_i_see_you_message(struct opennop_ipc_header *opennop_msg_header) {
+    struct ipc_message_i_see_you *message;
+
+    message = (char*)opennop_msg_header + opennop_msg_header->length;
+    message->header.type = OPENNOP_IPC_I_SEE_YOU;
+    message->header.length = sizeof(struct opennop_hello_message);
+    /**
+     * There is no additional data right now.
+     */
+
+    return 0;
 }
 
 /**
@@ -410,7 +430,7 @@ int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
              * To check the security we will pass the socket this message came from.
              * Also epoller is the instance of epoll used to handle this message.
              */
-        	return check_security(fd, opennop_msg_header);
+            return check_security(fd, opennop_msg_header);
             break;
         default: //non-standard type.
             break;
@@ -420,7 +440,7 @@ int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
     return 0;
 }
 
-int ipc_send_hello(int socket) {
+int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype) {
     struct opennop_header_data data;
     struct opennop_ipc_header *opennop_msg_header;
     char buf[IPC_MAX_MESSAGE_SIZE] = {0};
@@ -435,7 +455,16 @@ int ipc_send_hello(int socket) {
 
     get_header_data(opennop_msg_header, &data);
 
-    add_hello_message(opennop_msg_header);
+    switch(messagetype) {
+    case OPENNOP_IPC_HERE_I_AM:
+        add_hello_message(opennop_msg_header);
+        break;
+    case OPENNOP_IPC_I_SEE_YOU:
+    	ipc_add_i_see_you_message(opennop_msg_header);
+        break;
+    default:
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Cannot send unknown type!\n");
+    }
 
     /*
      * Now after all headers are added we calculate the HMAC.
@@ -444,7 +473,7 @@ int ipc_send_hello(int socket) {
         calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
     }
 
-    return ipc_send_message(socket,opennop_msg_header);
+    return ipc_tx_message(socket,opennop_msg_header);
 
 }
 
@@ -506,7 +535,7 @@ int hello_neighbors(struct epoll_server *epoller) {
              */
             if(currentneighbor->sock != 0) {
                 currentneighbor->timer = currenttime;
-                error = ipc_send_hello(currentneighbor->sock);
+                error = ipc_send_message(currentneighbor->sock,OPENNOP_IPC_HERE_I_AM);
 
                 /*
                  * Maybe a lot of this should be moved to ipc_neighbor_hello().
