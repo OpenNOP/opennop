@@ -301,6 +301,17 @@ struct commandresult execute_commands(struct command_head *mode, void *data, int
  * UPDATE: I am trying to use strtok_r().  It seems to be working.
  */
 
+/** @brief Register a new command to the CLI.
+ *
+ * This function will register a new CLI command with the CLI module.
+ *
+ * @param mode [in] This command will enter a sub-mode with its own set of commands.  Should be NULL in most cases.
+ * @param command_name [in] The string that will represent the command.  Should be unique "do something|show something".
+ * @param handler_function [in] Function that will execute when the command is entered.
+ * @param hasparams [in] If the parameter has parameters.  These must be checked by the handler_function.
+ * @param hidden [in] Sets if the command shows in the default help context.
+ * @return int
+ */
 int register_command(struct command_head *mode, const char *command_name, t_commandfunction handler_function, bool hasparams, bool hidden) {
     char *token, *cp, *saved_token;
     struct command_head *currentnode = NULL;
