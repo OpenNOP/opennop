@@ -44,6 +44,7 @@ static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 static int DEBUG_IPC = LOGGING_OFF;
 
 int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype);
+int update_neighbor_timer(struct neighbor *thisneighbor);
 
 /**
  * Searches the neighbors list for an IP.
@@ -59,6 +60,23 @@ struct neighbor *find_neighbor_by_addr(struct in_addr *addr) {
         if(currentneighbor->NeighborIP == addr->s_addr) {
             return currentneighbor;
         }
+        currentneighbor = currentneighbor->next;
+    }
+    return NULL;
+}
+
+struct neighbor *find_neighbor_by_u32(__u32 neighborIP) {
+    struct neighbor *currentneighbor = NULL;
+
+    currentneighbor = ipchead.next;
+
+    while (currentneighbor != NULL) {
+
+        if (currentneighbor->NeighborIP == neighborIP) {
+
+            return currentneighbor;
+        }
+
         currentneighbor = currentneighbor->next;
     }
     return NULL;
@@ -114,6 +132,17 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
 
 void sha256_to_string() {}
 
+int ipc_neighbor_up(int fd) {
+    struct neighbor *thisneighbor = NULL;
+    thisneighbor = find_neighbor_by_socket(fd);
+
+    if(thisneighbor != NULL) {
+        thisneighbor->state = UP;
+        update_neighbor_timer(thisneighbor);
+    }
+    return 0;
+}
+
 int get_header_data(struct opennop_ipc_header *opennop_msg_header,  struct opennop_header_data *data) {
     /*
      * This just reserves space for the HMAC calculation.
@@ -137,19 +166,13 @@ int ipc_tx_message(int socket, struct opennop_ipc_header *opennop_msg_header) {
     print_opennnop_header(opennop_msg_header);
 
     /**
-     *TODO: When sending the buffer "opennop_msg_header->length" does not work correctly to transmit all the data.
-     *TODO: I'm not sure if its caused by receiving side or the sending.
-     *TODO: The length is reporting as 40 that is correct.  Sending 41 bytes seems to work correctly.
-     *
-     * Must ignore the signal typically caused when the remote stops responding by adding the MSG_NOSIGNAL flag.
-     * http://stackoverflow.com/questions/1330397/tcp-send-does-not-return-cause-crashing-process
+     * @note Must ignore the signal typically caused when the remote stops responding by adding the MSG_NOSIGNAL flag.
+     * @see http://stackoverflow.com/questions/1330397/tcp-send-does-not-return-cause-crashing-process
      */
     error = send(socket, opennop_msg_header, opennop_msg_header->length, MSG_NOSIGNAL);
 
     /**
-     *TODO: It might be nice to make a separate function in sockets.c to handle sending data.
-     *TODO: That function should check the results of send() to make sure all the data was send.
-     *TODO: If not try sending the rest or error.
+     *@todo Verify data is sent.
      */
     if(error != opennop_msg_header->length) {
         sprintf(message, "[socket] Only send %u bytes!\n", (unsigned int)error);
@@ -174,6 +197,10 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
         break;
     case OPENNOP_IPC_I_SEE_YOU:
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_I_SEE_YOU.\n");
+        /**
+         * @todo change the neighbor state to UP.
+         */
+        ipc_neighbor_up(fd);
         break;
     case OPENNOP_IPC_AUTH_ERR:
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_AUTH_ERR.\n");
@@ -459,7 +486,7 @@ int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype) {
         add_hello_message(opennop_msg_header);
         break;
     case OPENNOP_IPC_I_SEE_YOU:
-    	ipc_add_i_see_you_message(opennop_msg_header);
+        ipc_add_i_see_you_message(opennop_msg_header);
         break;
     default:
         logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Cannot send unknown type!\n");
@@ -527,17 +554,13 @@ int hello_neighbors(struct epoll_server *epoller) {
             }
 
         } else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 10)) {
-            /*
-             * TODO:
-             * If we were successful in opening a connection we should sent a hello message.
-             * Write the hello message function.
-             */
+
             if(currentneighbor->sock != 0) {
                 currentneighbor->timer = currenttime;
                 error = ipc_send_message(currentneighbor->sock,OPENNOP_IPC_HERE_I_AM);
 
-                /*
-                 * Maybe a lot of this should be moved to ipc_neighbor_hello().
+                /**
+                 * @todo Maybe this should be moved to ipc_send_message()?
                  */
                 if (error < 0) {
                     logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Failed sending hello.\n");
@@ -651,6 +674,103 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
     result.mode = NULL;
     result.data = NULL;
 
+    return result;
+}
+
+int cli_show_neighbor_help(int client_fd) {
+    char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
+
+    sprintf(msg,"Usage: show neighbor <ip address> \n");
+    cli_send_feedback(client_fd, msg);
+
+    return 0;
+}
+
+/** @brief Display a particular neighbors details.
+ *
+ * Print the details of a particular neighbor to a particular CLI session.
+ *
+ * @param client_fd [in] The CLI session that executed the command.
+ * @param currentneighbor [in] The neighbor whos details to display.
+ * @return int
+ */
+int cli_display_neighbor_details(int client_fd, struct neighbor *currentneighbor) {
+
+    char strip[20];
+    char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
+
+    /**
+     * @todo What data should be displayed from this neighbor?
+     * STATE?
+     * UUID?
+     * KEY?
+     */
+    inet_ntop(AF_INET, &currentneighbor->NeighborIP, strip,INET_ADDRSTRLEN);
+    sprintf(msg,"Neighbor: %s.\n",strip);
+    cli_send_feedback(client_fd, msg);
+
+    switch(currentneighbor->state) {
+    case DOWN:
+    	sprintf(msg,"state = down\n");
+        break;
+    case ATTEMPT:
+    	sprintf(msg,"state = attempt\n");
+        break;
+    case ESTABLISHED:
+    	sprintf(msg,"state = established\n");
+        break;
+    case UP:
+    	sprintf(msg,"state = up\n");
+        break;
+    default:
+    	sprintf(msg,"state = unknown?\n");
+    }
+    cli_send_feedback(client_fd, msg);
+
+    return 0;
+}
+
+/** @brief CLI function to show a particular neighbor status.
+ *
+ * Finds a neighbor by IP and displays relevant info.
+ *
+ * @param client_fd [in] The CLI session that executed the command.
+ * @param parameters[0] [in] The IP address in "0.0.0.0" format. (Verified by function)
+ * @param numparameters [in] Should only be 1. (Verified by function)
+ * @param data [in] Should be NULL.
+ */
+struct commandresult cli_show_neighbor(int client_fd, char **parameters, int numparameters, void *data) {
+    int ERROR = 0;
+    struct neighbor *currentneighbor = NULL;
+    __u32 neighborIP = 0;
+    struct commandresult result  = {
+                                       0
+                                   };
+
+    /**
+     * @note We always have to validate user input.
+     * This command only accepts 1 parameter.
+     * It should be an IP address and inet_pton should return 1 to validate it.
+     */
+    if(numparameters == 1) {
+        ERROR = inet_pton(AF_INET, parameters[0], &neighborIP); // Should return 1.
+    } else {
+        cli_show_neighbor_help(client_fd);
+    }
+
+    if(ERROR != 1) {
+        cli_show_neighbor_help(client_fd);
+    } else {
+        currentneighbor = find_neighbor_by_u32(neighborIP);
+    }
+
+    if(currentneighbor != NULL) {
+        cli_display_neighbor_details(client_fd,currentneighbor);
+    }
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
     return result;
 }
 
@@ -878,9 +998,10 @@ struct commandresult cli_neighbor(int client_fd, char **parameters, int numparam
         ERROR = validate_neighbor_input(client_fd, parameters[0], parameters[1], &add_update_neighbor);
     }
 
-    /*
+    /**
      * The IPC does not respond to UNIX sockets anymore.
      */
+
     /*socket = new_unix_client(OPENNOPD_IPC_SOCK);
 
     if (socket < 0) {
@@ -996,6 +1117,7 @@ void start_ipc() {
     register_command(NULL, "show neighbors", cli_show_neighbors, false, false);
     register_command(NULL, "key", cli_set_key, true, true);
     register_command(NULL, "show key", cli_show_key, false, true);
+    register_command(NULL, "show neighbor", cli_show_neighbor, true, true);
 
     ipchead.next = NULL;
     ipchead.prev = NULL;
