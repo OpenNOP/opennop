@@ -24,9 +24,10 @@
 #define OPENNOP_IPC_HELLO		10000				/** Timeout for epoll */
 
 typedef enum {
-    DOWN, // Remote system not functioning or authorized.
-    ATTEMPT, // Establishing communication channel.
-    ESTABLISHED // Connection established and verified.
+    DOWN,			// Remote system not functioning or authorized.
+    ATTEMPT,		// Establishing communication channel.
+    ESTABLISHED,	// Connection established and verified.
+    UP				// Neighbor is fully operational.
 } neighborstate;
 
 struct neighbor_head {
