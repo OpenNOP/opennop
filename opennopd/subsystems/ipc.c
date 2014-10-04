@@ -132,12 +132,12 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
 
 void sha256_to_string() {}
 
-int ipc_neighbor_up(int fd) {
+int ipc_set_neighbor_state(int fd, neighborstate state) {
     struct neighbor *thisneighbor = NULL;
     thisneighbor = find_neighbor_by_socket(fd);
 
     if(thisneighbor != NULL) {
-        thisneighbor->state = UP;
+        thisneighbor->state = state;
         update_neighbor_timer(thisneighbor);
     }
     return 0;
@@ -200,7 +200,7 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
         /**
          * @todo change the neighbor state to UP.
          */
-        ipc_neighbor_up(fd);
+        ipc_set_neighbor_state(fd, UP);
         break;
     case OPENNOP_IPC_AUTH_ERR:
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_AUTH_ERR.\n");
@@ -558,6 +558,10 @@ int hello_neighbors(struct epoll_server *epoller) {
             if(currentneighbor->sock != 0) {
                 currentneighbor->timer = currenttime;
                 error = ipc_send_message(currentneighbor->sock,OPENNOP_IPC_HERE_I_AM);
+
+                if(difftime(currenttime, currentneighbor->timer) > 30){
+                	ipc_set_neighbor_state(currentneighbor->sock, DOWN);
+                }
 
                 /**
                  * @todo Maybe this should be moved to ipc_send_message()?
