@@ -395,6 +395,9 @@ int update_neighbor_timer(struct neighbor *thisneighbor) {
  *
  * Returns 0 if security check failed.
  * Returns 1 if security check passed.
+ *
+ * TODO:
+ * This could overwrite a valid connection if someone were to spoof a new connection from the same IP address.
  */
 int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
     struct neighbor *thisneighbor = NULL;
@@ -520,6 +523,7 @@ int hello_neighbors(struct epoll_server *epoller) {
         switch (currentneighbor->state) {
         case DOWN:
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor is DOWN.\n");
+
             break;
         case ATTEMPT:
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor is ATTEMPT.\n");
@@ -556,12 +560,17 @@ int hello_neighbors(struct epoll_server *epoller) {
         } else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 10)) {
 
             if(currentneighbor->sock != 0) {
-                currentneighbor->timer = currenttime;
+
+            	if(currentneighbor->state == UP){
+
+            		if(difftime(currenttime, currentneighbor->timer) > 30){
+            			ipc_set_neighbor_state(currentneighbor->sock, DOWN);
+            		}
+            	}else{
+            		currentneighbor->timer = currenttime;
+            	}
                 error = ipc_send_message(currentneighbor->sock,OPENNOP_IPC_HERE_I_AM);
 
-                if(difftime(currenttime, currentneighbor->timer) > 30){
-                	ipc_set_neighbor_state(currentneighbor->sock, DOWN);
-                }
 
                 /**
                  * @todo Maybe this should be moved to ipc_send_message()?
