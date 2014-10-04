@@ -555,6 +555,8 @@ int hello_neighbors(struct epoll_server *epoller) {
                     register_socket(newsocket, epoller->epoll_fd, &epoller->event);
 
                 }
+            }else{ // If we already have a socket lets move to the next state.
+            	currentneighbor->state = ATTEMPT;
             }
 
         } else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 10)) {
