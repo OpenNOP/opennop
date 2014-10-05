@@ -27,6 +27,7 @@ typedef enum {
     DOWN,			// Remote system not functioning or authorized.
     ATTEMPT,		// Establishing communication channel.
     ESTABLISHED,	// Connection established and verified.
+    SHUTTINGDOWN,	// Neighbor is shutting down.
     UP				// Neighbor is fully operational.
 } neighborstate;
 
@@ -52,6 +53,7 @@ struct neighbor {
     char UUID[OPENNOP_IPC_UUID_LENGTH]; // Detected ID of this neighbor.
     int sock; // Socket FD used to communicate to this neighbor.
     char key[OPENNOP_IPC_KEY_LENGTH]; // Encryption key used by this neighbor.
+    time_t hellotimer; // Last hello message send or attempted.
     time_t timer; // Remote timer.
 };
 

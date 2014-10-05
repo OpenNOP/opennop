@@ -198,7 +198,8 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     case OPENNOP_IPC_I_SEE_YOU:
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_I_SEE_YOU.\n");
         /**
-         * @todo change the neighbor state to UP.
+         * @todo
+         * If we get an I_SEE_YOU but our state is not >= ESTABLISHED send HERE_I_AM.
          */
         ipc_set_neighbor_state(fd, UP);
         break;
@@ -536,8 +537,8 @@ int hello_neighbors(struct epoll_server *epoller) {
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor has a valid socket.\n");
         }
 
-        if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->timer) >= 30)) {
-            currentneighbor->timer = currenttime;
+        if((currentneighbor->state == DOWN) && (difftime(currenttime, currentneighbor->hellotimer) >= 30)) {
+            currentneighbor->hellotimer = currenttime;
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor state is down & timer > 30\n");
 
             /*
@@ -559,17 +560,23 @@ int hello_neighbors(struct epoll_server *epoller) {
             	currentneighbor->state = ATTEMPT;
             }
 
-        } else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->timer) >= 10)) {
+        } else if((currentneighbor->state >= ATTEMPT) && (difftime(currenttime, currentneighbor->hellotimer) >= 10)) {
 
             if(currentneighbor->sock != 0) {
+            	currentneighbor->hellotimer = currenttime;
 
             	if(currentneighbor->state == UP){
 
             		if(difftime(currenttime, currentneighbor->timer) > 30){
+            			/**
+            			 * @todo Bug: The neighbor might need a dedicated hello timer.
+            			 * It would only be used on when to send hello messages
+            			 * There still needs to be a timer to track state messages.
+            			 * @see http://www.freesoft.org/CIE/RFC/1583/104.htm
+            			 * @see http://www.freesoft.org/CIE/RFC/1583/23.htm
+            			 */
             			ipc_set_neighbor_state(currentneighbor->sock, DOWN);
             		}
-            	}else{
-            		currentneighbor->timer = currenttime;
             	}
                 error = ipc_send_message(currentneighbor->sock,OPENNOP_IPC_HERE_I_AM);
 
@@ -813,6 +820,7 @@ struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
     newneighbor->sock = 0;
     newneighbor->key[0] = '\0';
     time(&newneighbor->timer);
+    time(&newneighbor->hellotimer);
 
     if (neighborIP != 0) {
         newneighbor->NeighborIP = neighborIP;
