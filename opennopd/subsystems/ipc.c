@@ -1119,7 +1119,7 @@ int verify_neighbor_in_domain(__u32 neighborIP) {
 
     while (currentneighbor != NULL) {
 
-        if (currentneighbor->NeighborIP == neighborIP) {
+        if (currentneighbor->NeighborIP == neighborIP && currentneighbor->state == UP) {
 
             return 1;
         }
