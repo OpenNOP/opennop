@@ -115,6 +115,7 @@ struct neighbor *find_neighbor_by_socket(int fd) {
  * @see http://linux.die.net/man/3/evp_sha256
  * @see http://www.openssl.org/docs/crypto/hmac.html
  * @see http://stackoverflow.com/questions/242665/understanding-engine-initialization-in-openssl
+ * @todo The HMAC key should be a SHA hash of the real encryption key.
  */
 int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *result) {
     unsigned int result_len = 32;
@@ -496,9 +497,12 @@ int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype) {
         logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Cannot send unknown type!\n");
     }
 
-    /*
-     * Now after all headers are added we calculate the HMAC.
+    /**
+     * @todo After data is added we need to encrypt before the HMAC is calculated.
+     * @see http://tools.ietf.org/html/draft-gutmann-tls-encrypt-then-mac-00
+     * @see https://codeinsecurity.wordpress.com/2013/04/05/quick-crypto-lesson-why-mac-then-encrypt-is-bad
      */
+
     if(opennop_msg_header->security == 1) {
         calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
     }
