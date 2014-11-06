@@ -139,10 +139,15 @@ void sha256_to_string(char *data) {
 
 	datalength = strlen(data);
 
+    sprintf(message, "print: %u\n", datalength);
+    logger2(LOGGING_ERROR,DEBUG_IPC,message);
+
+    /*
 	for(i=0; i < datalength && i < strlen(message); i++){
 		buf_ptr += sprintf(buf_ptr, "%02X",data[i]);
 	}
 	logger2(LOGGING_WARN,DEBUG_IPC,message);
+	*/
 }
 
 int ipc_set_neighbor_state(int fd, neighborstate state) {
@@ -386,8 +391,8 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
         memset(&securitydata, 0, sizeof(securitydata));
         memcpy(&securitydata, data.securitydata, 32);
         sprintf(message, "Security Data: %s\n", securitydata);
-        sha256_to_string(securitydata);
         logger2(LOGGING_WARN,DEBUG_IPC,message);
+        sha256_to_string(securitydata);
     }
 
     return 0;
