@@ -131,7 +131,19 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
     return 0;
 }
 
-void sha256_to_string() {}
+void sha256_to_string(char *data) {
+	int datalength = 0;
+	char message[LOGSZ] = {0};
+	char* buf_ptr = (char*)&message;
+	int i = 0;
+
+	datalength = strlen(data);
+
+	for(i=0; i < datalength && i < strlen(message); i++){
+		buf_ptr += sprintf(buf_ptr, "%02X",data[i]);
+	}
+	logger2(LOGGING_WARN,DEBUG_IPC,message);
+}
 
 int ipc_set_neighbor_state(int fd, neighborstate state) {
     struct neighbor *thisneighbor = NULL;
@@ -374,6 +386,7 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
         memset(&securitydata, 0, sizeof(securitydata));
         memcpy(&securitydata, data.securitydata, 32);
         sprintf(message, "Security Data: %s\n", securitydata);
+        sha256_to_string(securitydata);
         logger2(LOGGING_WARN,DEBUG_IPC,message);
     }
 
