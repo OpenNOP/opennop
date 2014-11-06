@@ -59,6 +59,7 @@ int new_ip_client(__u32 serverip ,int port) {
 int new_ip_server(int port) {
     int server_socket = 0;
     int error = 0;
+    int reusesocket = 1;
     struct sockaddr_in server = {
                                     0
                                 };
@@ -75,6 +76,14 @@ int new_ip_server(int port) {
     server.sin_family = AF_INET;
     server.sin_port = htons(port);
     server.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    error = setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &reusesocket,sizeof(reusesocket));
+
+    if (error < 0) {
+        sprintf(message, "IPC: Failed to set socket reuse option.\n");
+        logger(LOG_INFO, message);
+        exit(1);
+    }
 
     error = bind(server_socket, (struct sockaddr *)&server, sizeof(server));
 
