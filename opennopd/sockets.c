@@ -48,6 +48,7 @@ int new_ip_client(__u32 serverip ,int port) {
     if (error < 0) {
         sprintf(message, "IPC: Failed to connect to remote host.\n");
         logger2(LOGGING_WARN, DEBUG_SOCKETS, message);
+        close(client_socket);
         return -1;
     }
 
@@ -391,7 +392,7 @@ int epoll_handler(struct epoll_server *server) {
                 sprintf(message, "[epoll]: error.\n");
                 logger(LOG_INFO, message);
 
-                close (server->events[i].data.fd);
+                close(server->events[i].data.fd);
 
                 continue;
 
