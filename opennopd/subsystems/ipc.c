@@ -144,16 +144,17 @@ void binary_dump(char *data, unsigned int bytes) {
 	 * @todo: Please check if double casting is OK?
 	 * (unsigned int)(intptr_t)data
 	 */
-    sprintf(message, "%.8X | ", (unsigned int)(intptr_t)data);
+	sprintf(message,"Binary Dump:\n");
+    sprintf(temp, "\n%.8X | ", (unsigned int)(intptr_t)data);
+    strcat(message,temp);
     while (i < bytes){
     	line[i%16] = *(data+i);
 
     	if((line[i%16] < 32) || (line[i%16] > 126)){
     		line[i%16] = '.';
     	}
-    	sprintf(temp,"%.2X",*(data+i));
+    	sprintf(temp,"%.2X",(unsigned char)*(data+i));
     	strcat(message,temp);
-
     	i++;
 
     	if(i%4 == 0){
