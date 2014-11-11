@@ -134,7 +134,7 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
 /**
  * @see http://moritzmolch.com/1136
  */
-void binary_dump(char *data, unsigned int bytes) {
+void binary_dump(const char *header, char *data, unsigned int bytes) {
 	unsigned int i = 0;
 	char line[17] = {0};
 	char temp[33] = {0};
@@ -144,7 +144,7 @@ void binary_dump(char *data, unsigned int bytes) {
 	 * @todo: Please check if double casting is OK?
 	 * (unsigned int)(intptr_t)data
 	 */
-	sprintf(message,"Binary Dump:\n");
+	sprintf(message,"%s Binary Dump:\n", header);
     sprintf(temp, "%.8X | ", (unsigned int)(intptr_t)data);
     strcat(message,temp);
     while (i < bytes){
@@ -436,9 +436,9 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
         //memset(&securitydata, 0, sizeof(securitydata));
         //memcpy(&securitydata, data.securitydata, 32);
         //sprintf(message, "Security Data: %s\n", securitydata);
-        sprintf(message, "Security HMAC ");
+        //sprintf(message, "Security HMAC");
         logger2(LOGGING_WARN,DEBUG_IPC,message);
-        binary_dump(data.securitydata, 32);
+        binary_dump("Security Data HMAC", data.securitydata, 32);
     }
 
     return 0;
