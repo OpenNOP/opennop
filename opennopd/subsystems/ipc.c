@@ -145,7 +145,7 @@ void binary_dump(char *data, unsigned int bytes) {
 	 * (unsigned int)(intptr_t)data
 	 */
 	sprintf(message,"Binary Dump:\n");
-    sprintf(temp, "\n%.8X | ", (unsigned int)(intptr_t)data);
+    sprintf(temp, "%.8X | ", (unsigned int)(intptr_t)data);
     strcat(message,temp);
     while (i < bytes){
     	line[i%16] = *(data+i);
@@ -436,7 +436,7 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
         //memset(&securitydata, 0, sizeof(securitydata));
         //memcpy(&securitydata, data.securitydata, 32);
         //sprintf(message, "Security Data: %s\n", securitydata);
-        sprintf(message, "Security Data:\n");
+        sprintf(message, "Security HMAC ");
         logger2(LOGGING_WARN,DEBUG_IPC,message);
         binary_dump(data.securitydata, 32);
     }
