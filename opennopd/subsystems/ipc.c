@@ -137,6 +137,7 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
 void binary_dump(char *data, unsigned int bytes) {
 	unsigned int i = 0;
 	char line[17] = {0};
+	char temp[33] = {0};
 	char message[LOGSZ] = {0};
 
 	/**
@@ -150,7 +151,9 @@ void binary_dump(char *data, unsigned int bytes) {
     	if((line[i%16] < 32) || (line[i%16] > 126)){
     		line[i%16] = '.';
     	}
-    	sprintf(message,"%.2X",*(data+i));
+    	sprintf(temp,"%.2X",*(data+i));
+    	strcat(message,temp);
+
     	i++;
 
     	if(i%4 == 0){
@@ -158,23 +161,29 @@ void binary_dump(char *data, unsigned int bytes) {
     		if (i%16 == 0){
 
     			if(i < bytes-1){
-    				sprintf(message," | %s\n%.8X | ", line, (unsigned int)(intptr_t)data+i);
+    				sprintf(temp," | %s\n%.8X | ", line, (unsigned int)(intptr_t)data+i);
+    				strcat(message,temp);
     			}
     		}else{
-    			sprintf(message, " ");
+    			sprintf(temp, " ");
+    			strcat(message,temp);
     		}
     	}
     }
     while(i%16 > 0){
 
     	if(i%4 == 0){
-    		sprintf(message,"   ");
+    		sprintf(temp,"   ");
+    		strcat(message,temp);
     	}else{
-    		sprintf(message,"  ");
+    		sprintf(temp,"  ");
+    		strcat(message,temp);
+
     	}
     	i++;
     }
-    sprintf(message," | %s\n", line);
+    sprintf(temp," | %s\n", line);
+    strcat(message,temp);
     logger2(LOGGING_ERROR,DEBUG_IPC,message);
 
     /*
