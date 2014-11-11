@@ -131,15 +131,50 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
     return 0;
 }
 
-void sha256_to_string(char *data) {
-	int datalength = 0;
+/**
+ * @see http://moritzmolch.com/1136
+ */
+void binary_dump(char *data, unsigned int bytes) {
+	unsigned int i = 0;
+	char line[17] = {0};
 	char message[LOGSZ] = {0};
-	char* buf_ptr = (char*)&message;
-	int i = 0;
 
-	datalength = strlen(data);
+	/**
+	 * @todo: Please check if double casting is OK?
+	 * (unsigned int)(intptr_t)data
+	 */
+    sprintf(message, "%.8X | ", (unsigned int)(intptr_t)data);
+    while (i < bytes){
+    	line[i%16] = *(data+i);
 
-    sprintf(message, "print: %u\n", datalength);
+    	if((line[i%16] < 32) || (line[i%16] > 126)){
+    		line[i%16] = '.';
+    	}
+    	sprintf(message,"%.2X",*(data+i));
+    	i++;
+
+    	if(i%4 == 0){
+
+    		if (i%16 == 0){
+
+    			if(i < bytes-1){
+    				sprintf(message," | %s\n%.8X | ", line, (unsigned int)(intptr_t)data+i);
+    			}
+    		}else{
+    			sprintf(message, " ");
+    		}
+    	}
+    }
+    while(i%16 > 0){
+
+    	if(i%4 == 0){
+    		sprintf(message,"   ");
+    	}else{
+    		sprintf(message,"  ");
+    	}
+    	i++;
+    }
+    sprintf(message," | %s\n", line);
     logger2(LOGGING_ERROR,DEBUG_IPC,message);
 
     /*
@@ -373,7 +408,7 @@ int initialize_opennop_ipc_header(struct opennop_ipc_header *opennop_msg_header)
 int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
     struct opennop_header_data data;
     char message[LOGSZ] = {0};
-    char securitydata[33] = {0};
+    //char securitydata[33] = {0};
 
     sprintf(message, "Type: %u\n", opennop_msg_header->type);
     logger2(LOGGING_WARN,DEBUG_IPC,message);
@@ -388,11 +423,12 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
 
     if(opennop_msg_header->security == 1) {
         data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
-        memset(&securitydata, 0, sizeof(securitydata));
-        memcpy(&securitydata, data.securitydata, 32);
-        sprintf(message, "Security Data: %s\n", securitydata);
+        //memset(&securitydata, 0, sizeof(securitydata));
+        //memcpy(&securitydata, data.securitydata, 32);
+        //sprintf(message, "Security Data: %s\n", securitydata);
+        sprintf(message, "Security Data:\n");
         logger2(LOGGING_WARN,DEBUG_IPC,message);
-        sha256_to_string(securitydata);
+        binary_dump(data.securitydata, 32);
     }
 
     return 0;
