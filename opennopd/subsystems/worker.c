@@ -100,11 +100,6 @@ void *worker_thread(void *dummyPtr) {
                              * Traffic is sent through the optimize functions.
                              */
 
-                            /*
-                             * TODO:
-                             * Lets make this a function.
-                             * It will shorten the worker_thread() that is far to long already.
-                             */
                             saveacceleratorid(largerIP, localID, iph, thissession);
 
                             __set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
@@ -144,11 +139,6 @@ void *worker_thread(void *dummyPtr) {
                              * Traffic is sent through the de-optimize functions.
                              */
 
-                            /*
-                             * TODO:
-                             * Lets make this next section a function.
-                             * It will shorten the worker_thread() that is far to long already.
-                             */
                             saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                             if (__get_tcp_option((__u8 *)iph,31) != 0) { // Packet is flagged as compressed.
