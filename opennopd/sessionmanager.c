@@ -387,8 +387,8 @@ struct commandresult cli_show_sessionss(int client_fd, char **parameters, int nu
 			 */
 			while (currentsession != NULL) {
 
-				/*
-				 * TODO:
+				/**
+				 * @todo:
 				 * This will only show the session if we know what IPs are client & server.
 				 * Its possible we wont know that if a session opening is not witnessed
 				 * by OpenNOP.  OpenNOP has a "recover" mechanism that allows the session

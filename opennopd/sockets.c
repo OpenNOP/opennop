@@ -366,8 +366,8 @@ int epoll_handler(struct epoll_server *server) {
         sprintf(message, "[epoll]: processing events.\n");
         logger(LOG_INFO, message);
 
-        /*
-         * TODO:
+        /**
+         * @todo:
          * Moved to top because it was not being executed due to "break;" in this function.
          * This could be artificially increasing traffic by making both systems send & receive
          * hello messages.  There could be a better way to do this by just handling events.
@@ -402,11 +402,11 @@ int epoll_handler(struct epoll_server *server) {
                  * which means one or more incoming connections.
                  */
                 while (1) {
-                    /*
-                     *TODO: Here we need to detect if the "server" was UNIX or IP.
-                     *TODO: We might use the family type and add it to "struct epoll_server"
-                     *TODO: and set it when we create the new epoll server.
-                     *TODO: It would probably be better to check the server->socket.
+                    /**
+                     *@todo: Here we need to detect if the "server" was UNIX or IP.
+                     *@todo: We might use the family type and add it to "struct epoll_server"
+                     *@todo: and set it when we create the new epoll server.
+                     *@todo: It would probably be better to check the server->socket.
                      */
                     client_socket = accept_ip_client(server->socket);
 
@@ -452,8 +452,8 @@ int epoll_handler(struct epoll_server *server) {
                 done = 0;  //Need to reset this for each message.
                 while(1) {
 
-                    /*
-                     * TODO:
+                    /**
+                     * @todo:
                      * I am unsure if this is the best way to handle reading the data.
                      * It might be better to just have the callback function accept the socket FD
                      * as a param and recv() the data itself but having all data validation
@@ -463,7 +463,7 @@ int epoll_handler(struct epoll_server *server) {
 
                     if(count > 0) {
                         /**
-                         *TODO: Need to dynamically allocate a buffer for each epoll server.
+                         *@todo: Need to dynamically allocate a buffer for each epoll server.
                          *
                          * We should not overwrite the last char as NUL.  This is not a char string.
                          */
@@ -510,8 +510,8 @@ int epoll_handler(struct epoll_server *server) {
             }
         }
 
-        /*
-         * TODO:
+        /**
+         * @todo:
          * If the epoll instance has a timeout and a timeout callback function it is executed.
          * This also is executed each time the epoll instance returns.
          */
@@ -523,8 +523,8 @@ int epoll_handler(struct epoll_server *server) {
     return 0;
 }
 
-/*
- * TODO:
+/**
+ * @toto:
  * A new epoll server should include a max length for the messages it is expected to receive.
  * If it receives a message larger than this is should shutdown that socket right away.
  */

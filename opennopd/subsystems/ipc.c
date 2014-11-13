@@ -131,8 +131,46 @@ int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *resu
     return 0;
 }
 
-/**
+/** @brief Encrypts a string of data.
+ *
+ * This will encrypt a string of data.
+ *
+ * @param data [in] The data that will be encrypted.
+ * @param key  [in] The key used to encrypt the data.
+ * @return int 1 = success 0 = failed
+ *
+ * @see http://wiki.openssl.org/index.php/EVP_Symmetric_Encryption_and_Decryption
+ * @see http://wiki.openssl.org/index.php/EVP_Authenticated_Encryption_and_Decryption
+ * @see http://www.stackoverflow.com/questions/1540491
+ *
+ * @note
+ * The IV (Initialization Vector) should be some random data.
+ * This can be sent in clear text to the receiving side for decryption.
+ * Unsure if it is necessary to send a new IV for each message or
+ * if the same IV can be used if the ctx is not destroyed after
+ * it has been initialized.
+ * This means we might have another message to send to initialize the encryption.
+ * Should the keys be negotiated with RSA?
+ */
+int encrypt_data(char *data, char *key){
+	//EVP_CIPHNER_CTX ctx;
+	//EVP_CIPHER_CTX_init(&ctx);
+	//EVP_EncryptInit_ex(&ctx, EVP_aes_256_cbc(), NULL, key, iv);
+	return 0;
+}
+
+/** @brief Dumps section of memory to screen.
+ *
+ * Dumps a particular number of bytes to the log/screen.
+ *
+ * @param header [in] Text string that will be written before the data.
+ * @param data [in] First byte of memory that will be dumped.
+ * @param bytes [in] Number of bytes that will be dumped.
+ *
  * @see http://moritzmolch.com/1136
+ * @todo: Please check if double casting is OK?
+ * 		(unsigned int)(intptr_t)data
+ * @bug: bytes [in] should be pretty small so not to overrun the message[LOGSZ].
  */
 void binary_dump(const char *header, char *data, unsigned int bytes) {
 	unsigned int i = 0;
@@ -140,10 +178,6 @@ void binary_dump(const char *header, char *data, unsigned int bytes) {
 	char temp[33] = {0};
 	char message[LOGSZ] = {0};
 
-	/**
-	 * @todo: Please check if double casting is OK?
-	 * (unsigned int)(intptr_t)data
-	 */
 	sprintf(message,"%s Binary Dump:\n", header);
     sprintf(temp, "%.8X | ", (unsigned int)(intptr_t)data);
     strcat(message,temp);
@@ -298,10 +332,6 @@ int check_hmac_sha256(int fd, struct opennop_ipc_header *opennop_msg_header) {
         calculate_hmac_sha256(opennop_msg_header, (char *)&currentneighbor->key, data.securitydata);
 
         if(memcmp(securitydata,data.securitydata,32)==0) { // Compare the two HMAC values.
-            /*
-             * TODO:
-             * This needs to execute process_message() next.
-             */
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Security passed HMAC check!.\n");
             return process_message(fd, opennop_msg_header);
         } else { // Failed security check!
@@ -336,7 +366,7 @@ int validate_security(int fd, struct opennop_ipc_header *opennop_msg_header, OPE
 
 /**
  * Check if the message has a security component.
- * TODO: 1st Check if security is enabled.
+ * @todo: 1st Check if security is enabled.
  *       2nd Check message for security.
  *
  */
@@ -383,8 +413,8 @@ int add_hello_message(struct opennop_ipc_header *opennop_msg_header) {
     message->header.type = OPENNOP_IPC_HERE_I_AM;
     message->header.length = sizeof(struct opennop_hello_message);
     /**
-     *TODO: Generating the UUID should be done when the IPC module starts.
-     *TODO: After its generated we should just copy it from the UUID variable.
+     *@todo: Generating the UUID should be done when the IPC module starts.
+     *@todo: After its generated we should just copy it from the UUID variable.
      */
     uuid_generate_time((unsigned char*)message->uuid);
     opennop_msg_header->length += message->header.length;
@@ -452,7 +482,7 @@ int update_neighbor_timer(struct neighbor *thisneighbor) {
     return 0;
 }
 
-/*
+/**
  * This function is called from epoll_handler() in sockets.c
  * as defined in ipc_thread() in ipc.c.
  *
@@ -462,7 +492,7 @@ int update_neighbor_timer(struct neighbor *thisneighbor) {
  * Returns 0 if security check failed.
  * Returns 1 if security check passed.
  *
- * TODO:
+ * @todo:
  * This could overwrite a valid connection if someone were to spoof a new connection from the same IP address.
  */
 int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
@@ -499,10 +529,10 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
 int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
     struct opennop_ipc_header *opennop_msg_header = NULL;
     char message[LOGSZ] = {0};
-    /*
-     *TODO: Here we need to check the message type and process it.
-     *TODO: The epoll server should have a 2nd callback function that verifies the security of a connection.
-     *TODO: So data passed from the epoll server to the handler *should* be considered secure.
+    /**
+     *@todo: Here we need to check the message type and process it.
+     *@todo: The epoll server should have a 2nd callback function that verifies the security of a connection.
+     *@todo: So data passed from the epoll server to the handler *should* be considered secure.
      */
     logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Received a message\n");
 
@@ -592,7 +622,6 @@ int hello_neighbors(struct epoll_server *epoller) {
         switch (currentneighbor->state) {
         case DOWN:
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor is DOWN.\n");
-
             break;
         case ATTEMPT:
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor is ATTEMPT.\n");
@@ -601,6 +630,7 @@ int hello_neighbors(struct epoll_server *epoller) {
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor is in an unknown state.\n");
             break;
         }
+
         if(currentneighbor->sock > 0) {
             logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Neighbor has a valid socket.\n");
         }
@@ -622,7 +652,6 @@ int hello_neighbors(struct epoll_server *epoller) {
                      * This socket has to be registered with the epoll server.
                      */
                     register_socket(newsocket, epoller->epoll_fd, &epoller->event);
-
                 }
             }else{ // If we already have a socket lets move to the next state.
             	currentneighbor->state = ATTEMPT;
@@ -1116,8 +1145,8 @@ struct commandresult cli_neighbor(int client_fd, char **parameters, int numparam
     ERROR = shutdown(socket, SHUT_WR);
     */
 
-    /*
-     * TODO: Here we should read from the socket for x seconds.
+    /**
+     * @todo: Here we should read from the socket for x seconds.
      * If we receive the proper shutdown from the server we can close the socket.
      */
 
@@ -1178,7 +1207,7 @@ struct commandresult cli_show_key(int client_fd, char **parameters, int numparam
 
 /*
  * We need to verify that the remote accelerator is a member of this domain.
- * TODO: Later the UUID will need to be used instead of the IP address.
+ * @todo: Later the UUID will need to be used instead of the IP address.
  */
 int verify_neighbor_in_domain(__u32 neighborIP) {
     struct neighbor *currentneighbor = NULL;
