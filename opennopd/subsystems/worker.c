@@ -103,6 +103,8 @@ void *worker_thread(void *dummyPtr) {
                             saveacceleratorid(largerIP, localID, iph, thissession);
 
                             __set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
+                            set_nod_header((__u8 *)iph, ONOP);
+                            get_nod_header((__u8 *)iph, ONOP);
 
                             if ((((iph->saddr == largerIP) &&
                                     (thissession->largerIPAccelerator == localID) &&
