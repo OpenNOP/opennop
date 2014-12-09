@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- This template is for creating an Internet Draft using xml2rfc,
+    which is available here: http://xml.resource.org. -->
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+<!-- One method to get references from the online citation libraries.
+    There has to be one entity for each item to be referenced. 
+    An alternate method (rfc include) is described in the references. -->
+
+<!ENTITY RFC2119 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml">
+<!ENTITY RFC2629 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.2629.xml">
+<!ENTITY RFC3552 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.3552.xml">
+<!ENTITY RFC5226 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5226.xml">
+]>
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<!-- used by XSLT processors -->
+<!-- For a complete list and description of processing instructions (PIs), 
+    please see http://xml.resource.org/authoring/README.html. -->
+<!-- Below are generally applicable Processing Instructions (PIs) that most I-Ds might want to use.
+    (Here they are set differently than their defaults in xml2rfc v1.32) -->
+<?rfc strict="yes" ?>
+<!-- give errors regarding ID-nits and DTD validation -->
+<!-- control the table of contents (ToC) -->
+<?rfc toc="yes"?>
+<!-- generate a ToC -->
+<?rfc tocdepth="4"?>
+<!-- the number of levels of subsections in ToC. default: 3 -->
+<!-- control references -->
+<?rfc symrefs="yes"?>
+<!-- use symbolic references tags, i.e, [RFC2119] instead of [1] -->
+<?rfc sortrefs="yes" ?>
+<!-- sort the reference entries alphabetically -->
+<!-- control vertical white space 
+    (using these PIs as follows is recommended by the RFC Editor) -->
+<?rfc compact="yes" ?>
+<!-- do not start each main section on a new page -->
+<?rfc subcompact="no" ?>
+<!-- keep one blank line between list items -->
+<!-- end of list of popular I-D processing instructions -->
+<rfc category="exp" docName="draft-ietf-ip-nod-opt" ipr="trust200902">
+ <!-- category values: std, bcp, info, exp, and historic
+    ipr values: trust200902, noModificationTrust200902, noDerivativesTrust200902,
+       or pre5378Trust200902
+    you can add the attributes updates="NNNN" and obsoletes="NNNN" 
+    they will automatically be output with "(if approved)" -->
+
+ <!-- ***** FRONT MATTER ***** -->
+
+ <front>
+   <!-- The abbreviated title is used in the page header - it is only necessary if the 
+        full title is longer than 39 characters -->
+
+   <title abbrev="Abbreviated Title">Network Optimizer Detection</title>
+
+   <!-- add 'role="editor"' below for the editors if appropriate -->
+
+   <!-- Another author who claims to be an editor -->
+
+   <author fullname="Justin Yaple" initials="J.Y." role="editor"
+           surname="Yaple">
+     <organization>OpenNOP.org</organization>
+
+     <address>
+       <postal>
+         <street></street>
+
+         <!-- Reorder these if your country does things differently -->
+
+         <city>Palm Coast</city>
+
+         <region>Florida</region>
+
+         <code></code>
+
+         <country>US</country>
+       </postal>
+
+       <phone>+1(707)385-9891</phone>
+
+       <email>justin.yaple@opennop.org</email>
+
+       <!-- uri and facsimile elements may also be added -->
+     </address>
+   </author>
+
+   <date year="2014" />
+
+   <!-- If the month and year are both specified and are the current ones, xml2rfc will fill 
+        in the current day for you. If only the current year is specified, xml2rfc will fill 
+	 in the current day and month for you. If the year is not the current one, it is 
+	 necessary to specify at least a month (xml2rfc assumes day="1" if not specified for the 
+	 purpose of calculating the expiry date).  With drafts it is normally sufficient to 
+	 specify just the year. -->
+
+   <!-- Meta-data Declarations -->
+
+   <area>General</area>
+
+   <workgroup>Internet Engineering Task Force</workgroup>
+
+   <!-- WG name at the upperleft corner of the doc,
+        IETF is fine for individual submissions.  
+	 If this element is not present, the default is "Network Working Group",
+        which is used by the RFC Editor as a nod to the history of the IETF. -->
+
+   <keyword>template</keyword>
+
+   <!-- Keywords will be incorporated into HTML output
+        files in a meta tag but they have no effect on text or nroff
+        output. If you submit your draft to the RFC Editor, the
+        keywords will be used for the search engine. -->
+
+   <abstract>
+     <t>Multiple software vendors have developed products to address limitations of TCP over different network technologies.  These products attempt to address issues with delayed ACKs, limited bandwidth and poor protocol design.  They typically use IP or TCP Options for the detection of their products in the flow of IP packets without proper IANA assignment and authorization.</t>
+     <t>Network Optimizer Detection (NOD) facilitates an open, standardized method for these vendors to detect their product using a single IANA assigned IP or TCP Option while maintaining the vendors ability to append proprietary extensions to the NOD Option for their product functionality.</t>
+   </abstract>
+ </front>
+
+ <middle>
+   <section title="Introduction">
+     <t>Network Optimization Appliances also know as Performance Enhancing Proxies typically contain some method of auto-detection to determine if a flow of IP packets is eligible for optimization.  To accomplish this multiple vendors have chosen to append non-standardized Options to IP packets or TCP segments that are routed through their product.  The Option number used varies from vendor to vendor.  Eventually when the Option number being used without authorization is assigned by IANA the vendor will have to update their code to prevent conflict with the official IANA assigned use.</t>
+	 <t>Network Optimizer Detection (NOD) allows multiple vendors to use a single IANA assigned IP Option or TCP Option number to uniquely identify and detect their appliances without using unauthorized IP Option or TCP Option numbers.</t>
+
+     <section title="Requirements Language">
+       <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+       "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+       document are to be interpreted as described in <xref
+       target="RFC2119">RFC 2119</xref>.</t>
+     </section>
+   </section>
+
+   <section anchor="format" title="Network Optimization Detection IP and TCP Option Format">
+     <t>This variable length option can be present in SYN and non-SYN packets. The vendors optimization logic determines if the option is only in SYN packet or is also in non-SYN packet.  The NOD Option functions as a transport mechanism for the vendor specific data structures.</t>
+
+     <figure align="center" anchor="nod_format">
+       <preamble>Network Optimization Detection IP and TCP Option:</preamble>
+
+       <artwork align="left"><![CDATA[
++----------+----------+-------------+-----------+-------------+
+| Kind=TBD | Length=N | ID Length=1 | ID Data=N | Vendor Data |
++----------+----------+-------------+-----------+-------------+
+           ]]></artwork>
+     </figure>
+     
+	 <t>The Network Optimization Detection option is used to convey information about the presence of a network optimizer to another optimizer at the far end of a network connection.</t>
+     <t>The first required field in the NOD option is the total length of the option.  This is variable as it will be adjusted when vedors add their proprietary fields.</t>
+	 <t>The second required field in the NOD option is the length in bytes used for vendor identification.  Some vendors may desire using 1-4 bytes to identify their product.</t>
+     <t>The third required field in the NOD option is ID Data.  This contains the actually identifying data for the vendor.</t> 
+	 
+   </section>
+
+   <section title="Embedding proprietary data">
+     <t>Because the NOD option length is variable a vendor can embed additional data within the NOD option.  This eliminates the need to use additional unauthorized Options for sending vendor specific data.  The structure and data types appended to the NOD option is irrelevant to the specification here only that the total length field be appended appropriately to support the additional data in the NOD option.  The NOD option acts as a transport mechanism for the optimization software.</t>
+   </section>
+
+   <!-- This PI places the pagebreak correctly (before the section title) in the text output. -->
+
+   <?rfc needLines="8" ?>
+
+   <!-- Possibly a 'Contributors' section ... -->
+
+   <section anchor="IANA" title="IANA Considerations">
+     <t>This document defines a new IP Option and TCP Option entitled "NOD" assigning a value of TDB from the IP Option space and TCP Option space to be removed upon publication: </t>
+     <figure align="center" anchor="new_ip_option">
+       <artwork align="left"><![CDATA[
+    			 Data
+Tag 	Name	Length	Meaning
+----	----	------	-------
+TBD 	NOD 	N     	Network Optimization Detection IP Option
+           ]]></artwork>
+     </figure>
+     
+     <figure align="center" anchor="new_tcp_option">
+       <artwork align="left"><![CDATA[
+    			 Data
+Tag 	Name	Length	Meaning
+----	----	------	-------
+TBD 	NOD 	N     	Network Optimization Detection TCP Option
+           ]]></artwork>
+     </figure>
+     
+     <t>Vendors should register their unique ID for using NOD with IANA. </t>
+          <figure align="center" anchor="new_nod_id_registration">
+       <artwork align="left"><![CDATA[
+        Data     
+#   	Length	Data    Meaning
+----	----	------	-------
+TBD     4       ONOP    Open Network Optimization Platform
+           ]]></artwork>
+     </figure>
+   </section>
+
+   <section anchor="Security" title="Security Considerations">
+     <t>Vendors using NOD to detect their optimization appliances should use some form of security to verify the appliances can authenticate each other before starting optimization.  The implementation is dependant on the vendor.</t>
+   </section>
+ </middle>
+
+ <!--  *****BACK MATTER ***** -->
+
+ <back>
+   <!-- References split into informative and normative -->
+
+   <!-- There are 2 ways to insert reference entries from the citation libraries:
+    1. define an ENTITY at the top, and use "ampersand character"RFC2629; here (as shown)
+    2. simply use a PI "less than character"?rfc include="reference.RFC.2119.xml"?> here
+       (for I-Ds: include="reference.I-D.narten-iana-considerations-rfc2434bis.xml")
+
+    Both are cited textually in the same manner: by using xref elements.
+    If you use the PI option, xml2rfc will, by default, try to find included files in the same
+    directory as the including file. You can also define the XML_LIBRARY environment variable
+    with a value containing a set of directories to search.  These can be either in the local
+    filing system or remote ones accessed by http (http://domain/dir/... ).-->
+
+   <references title="Normative References">
+     <!--?rfc include="http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml"?-->
+     &RFC2119;
+   </references>
+
+   <references title="Informative References">
+     <!-- Here we use entities that we defined at the beginning. -->
+
+     &RFC2629;
+
+     &RFC3552;
+
+     &RFC5226;
+
+   </references>
+
+ </back>
+</rfc>
