@@ -7,11 +7,18 @@
 #define ONOP "ONOP"
 
 struct nodhdr {
-	__u8  length;
-	__u8  idlen:2,
-	      len:6;
-	__u8  iddata;
+	__u8  tot_len;		// combine length of header + data
+	__u8  idlen:3,		// length of id in bytes (should be 1-4)
+	      hdr_len:5;	// length  of the header (additional data can be appended inside the header as header data)
+	__u8  id;
+	__u8  *hdrdata;		// optional
 	__u8  *data;
+};
+
+struct tcp_opt_nod{
+	__u8  option_num;
+	__u8  option_len;
+	struct nodhdr nodh;
 };
 
 __u8 optlen(const __u8 *opt, __u8 offset);

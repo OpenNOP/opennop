@@ -223,7 +223,7 @@ __u8 *set_tcpopt(__u8 *ippacket, __u8 tcpoptionnum, __u8 tcpoptionlen){
 int check_nod_header(struct nodhdr *nodh, const char *id){
 	__u8 *iddata, i;
 
-	iddata = (__u8*)&nodh->iddata;
+	iddata = (__u8*)&nodh->id;
 
 	for(i=0; i < strlen(id); i++){
 
@@ -235,6 +235,24 @@ int check_nod_header(struct nodhdr *nodh, const char *id){
 	return 1;
 }
 
+struct nodhdr *get_nod_next_header(struct tcp_opt_nod *nod, struct nodhdr *nodh){
+	char message[LOGSZ] = {0};
+
+	sprintf(message, "Entering get_nod_next_header():\n");
+	logger(LOG_INFO, message);
+
+	sprintf(message, "[NOD] NOD Length: %u.\n",nod->option_len);
+	logger(LOG_INFO, message);
+
+	//* If (&nod + nodlength = &nodh + nodh->length) we reached the end.
+	if((__u8*)&nod + nod->option_len < (__u8*)&nodh + nodh->tot_len){
+		return (__u8*)&nodh + nodh->tot_len;
+	}
+	sprintf(message, "[NOD] This was the last NOD header.\n");
+	logger(LOG_INFO, message);
+	return NULL;
+}
+
 /**
  * @brief Finds a NOD header by its ID.
  *
@@ -242,31 +260,52 @@ int check_nod_header(struct nodhdr *nodh, const char *id){
  * @param id [in] Char array of the string used as ID for the NOD.
  */
 struct nodhdr *get_nod_header(__u8 *ippacket, const char *id){
-	__u8 *nod, *iddata;
+	__u8 *nod;
 	struct nodhdr *nodh;
 	char message[LOGSZ] = {0};
+
+	sprintf(message, "Entering get_nod_header():\n");
+	logger(LOG_INFO, message);
 
 	nod = get_tcpopt(ippacket, NOD);
 
 	if(nod != NULL){
+
 		if(nod[1] > 2){
 			sprintf(message, "[TCPOPT] Found NOD headers.\n");
 			logger(LOG_INFO, message);
 			nodh = (struct nodhdr*)&nod[2];
 
-			if(check_nod_header(nodh, id) == 1){
-				sprintf(message, "[TCPOPT] Header is a match.\n");
-				logger(LOG_INFO, message);
+			while(nodh != NULL){
 
-				return nodh;
+				if(nodh->idlen == strlen(id)){ //If the ID length does not match our id length then skip it.
+
+					if(check_nod_header(nodh, id) == 1){
+						sprintf(message, "[NOD] Header is a match.\n");
+						logger(LOG_INFO, message);
+
+						return nodh;
+					}
+				}else{
+					sprintf(message, "[NOD] Header length mismatch: %u.\n",nodh->idlen);
+					logger(LOG_INFO, message);
+				}
+
+				nodh = get_nod_next_header((struct tcp_opt_nod*)nod,nodh);
 			}
-
-		}else{
-			return NULL;
 		}
 	}
-
+	sprintf(message, "[NOD] No match.\n");
+	logger(LOG_INFO, message);
 	return NULL;
+}
+
+void set_nod_header_id(__u8 *idloc, const char *id){
+	__u8 i;
+
+	for(i=0; i < strlen(id); i++){
+		idloc[i] = (__u8)id[i];
+	}
 }
 
 /**
@@ -281,7 +320,7 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 	struct tcphdr *tcph;
 	struct iphdr *iph;
 	struct nodhdr *nodh;
-	__u8 *nod, *opt, *iddata, *optstart, *optend, addoff, headerlen, i, bytestotcpoptend;
+	__u8 *nod, *opt, *optstart, *optend, addoff, headerlen, bytestotcpoptend;
 	char message[LOGSZ] = {0};
 
 	iph = (struct iphdr *)ippacket;
@@ -310,9 +349,11 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 		logger(LOG_INFO, message);
 
 		headerlen = 2 + strlen(id);
+		//sprintf(message, "[NOD] HEADER Len: %u.\n",headerlen);
+		//logger(LOG_INFO, message);
 		addoff = get_tcpopt_addoff_needed(ippacket,headerlen);
-		sprintf(message, "[NOD] ADDOFF: %u.\n",addoff);
-		logger(LOG_INFO, message);
+		//sprintf(message, "[NOD] ADDOFF: %u.\n",addoff);
+		//logger(LOG_INFO, message);
 		add_tcpopt_addoff(ippacket,addoff);
 
 		//* There are 0 headers so we need to move any TCP Options back to make space for the new NOD header.
@@ -321,19 +362,16 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 		bytestotcpoptend = (optend - &nod[2]);
 
 		if(bytestotcpoptend == 0){ // Already at the end of the TCP Option space so we can simply append data here.
-			nod[1] = nod[1] += headerlen;
+			nod[1] = nod[1] + headerlen;
 			nodh = (struct nodhdr*)&nod[2];
-			nodh->len = headerlen;
-			nodh->idlen = strlen(id);
-			nodh->length = headerlen;
-			iddata = &nodh->iddata;
+			nodh->tot_len = headerlen;
+			nodh->idlen = (__u8)strlen(id);
+			nodh->hdr_len = headerlen;
 
 			/*
 			 * Write the NOD Header ID data.
 			 */
-			for(i=0; i < strlen(id); i++){
-				iddata[i] = (__u8)id[i];
-			}
+			set_nod_header_id(&nodh->id, id);
 
 			return nodh;
 
