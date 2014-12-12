@@ -430,6 +430,22 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 	return nodh;
 }
 
+__u8 *get_nod_header_data(__u8 *ippacket, const char *id){
+	struct nodhdr *nodh;
+	__u8 *nod, i, *headerdata;
+
+	nodh = get_nod_header(ippacket, id);
+
+	if(nodh != NULL){
+
+		if(nodh->hdr_len > nodh->idlen + 2){
+			nodh->hdrdata = (__u8*)nodh + nodh->idlen + 2;
+			return nodh->hdrdata;
+		}
+	}
+	return NULL;
+}
+
 void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8 header_data_length){
 	struct tcphdr *tcph;
 	struct iphdr *iph;
@@ -448,6 +464,7 @@ void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8
 			//logger(LOG_INFO, message);
 			shift_tcpopt_space(ippacket, (__u8*)nodh + nodh->tot_len, header_data_length);
 			nodh->tot_len += header_data_length;
+			nodh->hdr_len = header_data_length;
 			nod[1] += header_data_length;
 			headerdata = (__u8*)nodh + nodh->idlen + 2;
 			for(i=0; i<header_data_length; i++){
@@ -455,11 +472,7 @@ void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8
 				//headerdata[i] = 82;
 			}
 		}
-
 	}
-
-
-
 }
 
 void set_nod_data(__u8 *ippacket, const char *id, __u8 data_header, __u8 *data, int data_length){
