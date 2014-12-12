@@ -123,5 +123,6 @@ typedef enum {
 void start_ipc();
 void rejoin_ipc();
 int verify_neighbor_in_domain(__u32 neighborIP);
+__u8 *get_opennop_uuid();
 
 #endif

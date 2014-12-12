@@ -416,7 +416,8 @@ int add_hello_message(struct opennop_ipc_header *opennop_msg_header) {
      *@todo: Generating the UUID should be done when the IPC module starts.
      *@todo: After its generated we should just copy it from the UUID variable.
      */
-    uuid_generate_time((unsigned char*)message->uuid);
+    //uuid_generate_time((unsigned char*)message->uuid);
+    memcpy((void*)&message->uuid, (void*)&UUID, (size_t)OPENNOP_IPC_UUID_LENGTH);
     opennop_msg_header->length += message->header.length;
 
     return 0;
@@ -1227,6 +1228,10 @@ int verify_neighbor_in_domain(__u32 neighborIP) {
     return 0;
 }
 
+__u8 *get_opennop_uuid(){
+	return (__u8*)&UUID;
+}
+
 void start_ipc() {
     /*
      * This will setup and start the IPC threads.
@@ -1238,6 +1243,11 @@ void start_ipc() {
     register_command(NULL, "key", cli_set_key, true, true);
     register_command(NULL, "show key", cli_show_key, false, true);
     register_command(NULL, "show neighbor", cli_show_neighbor, true, true);
+
+    /**
+     *
+     */
+    uuid_generate_time((unsigned char*)&UUID);
 
     ipchead.next = NULL;
     ipchead.prev = NULL;
