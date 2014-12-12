@@ -8,6 +8,7 @@
 
 #include "tcpoptions.h"
 #include "logger.h"
+#include "ipc.h"
 
 #define	NOD	33 //* TCP Option # used by Network Optimization Detection.
 #define NOD_MIN_LENGTH 2
@@ -140,6 +141,33 @@ __u8 get_tcpopt_addoff_needed(__u8 *ippacket, __u8 bytestoadd){
 	return addoff;
 }
 
+__u8 shift_tcpopt_space(__u8 *ippacket, __u8 *location, __u8 bytes){
+	struct iphdr *iph;
+	struct tcphdr *tcph;
+	__u8 *opt, *optstart, *optend, bytestotcpoptend;
+	char message [LOGSZ];
+
+	iph = (struct iphdr *)ippacket;
+	tcph = (struct tcphdr *) (((u_int32_t *)ippacket) + iph->ihl);
+
+	optstart = (__u8 *)tcph + sizeof(struct tcphdr);
+	optend = get_tcpopt(ippacket,TCPOPT_EOL);
+
+	if(optend != NULL){
+		sprintf(message, "[NOD] TCP Option space used: %li.\n",(optend - optstart));
+		logger(LOG_INFO, message);
+
+		bytestotcpoptend = (optend - location);
+		//sprintf(message, "[NOD] NOD Length: %u.\n",nod[1]);
+		//logger(LOG_INFO, message);
+
+		memmove((void*)location + bytes, (void*)location, bytestotcpoptend);
+
+		return bytes;
+	}
+	return 0;
+}
+
 /**
  * @brief This increases the TCP Option space by # of WORDS and moves the TCP data back accordingly.
  *
@@ -189,6 +217,17 @@ void add_tcpopt_addoff(__u8 *ippacket, __u8 addoff){
 		 * Should we allow the packet through or drop it?
 		 */
 	}
+}
+
+void add_tcpopt_bytes(__u8 *ippacket, __u8 bytes){
+	__u8 addoff;
+	char message [LOGSZ];
+
+	addoff = get_tcpopt_addoff_needed(ippacket, bytes);
+	//sprintf(message, "[NOD] Additional TCPOPT Offset: %u.\n",addoff);
+	//logger(LOG_INFO, message);
+
+	add_tcpopt_addoff(ippacket, addoff);
 }
 
 __u8 *set_tcpopt(__u8 *ippacket, __u8 tcpoptionnum, __u8 tcpoptionlen){
@@ -317,11 +356,14 @@ void set_nod_header_id(__u8 *idloc, const char *id){
  * @param length [in] Length of the data being added.
  */
 struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
-	struct tcphdr *tcph;
 	struct iphdr *iph;
+	struct tcphdr *tcph;
 	struct nodhdr *nodh;
-	__u8 *nod, *opt, *optstart, *optend, addoff, headerlen, bytestotcpoptend;
+	__u8 *nod, *opt, *optstart, *optend, headerlen, bytestotcpoptend;
 	char message[LOGSZ] = {0};
+
+	sprintf(message, "Entering set_nod_header():\n");
+	logger(LOG_INFO, message);
 
 	iph = (struct iphdr *)ippacket;
 	tcph = (struct tcphdr *) (((u_int32_t *)ippacket) + iph->ihl);
@@ -339,53 +381,85 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 	//add_tcpopt_addoff(ippacket,2);
 
 	nod = set_tcpopt(ippacket, NOD, 2);
+	sprintf(message, "Returning to set_nod_header():\n");
+	logger(LOG_INFO, message);
 
-	if(nod[1] == 2){ //* If the NOD Option length is 2 there are no headers and we must add a new one.
-		//sprintf(message, "[NOD] Length is 2 no headers.\n");
-		//logger(LOG_INFO, message);
-		optstart = (__u8 *)tcph + sizeof(struct tcphdr);
-		optend = get_tcpopt(ippacket,TCPOPT_EOL);
-		sprintf(message, "[NOD] Optlen is: %li.\n",(optend - optstart));
+	nodh = get_nod_header(ippacket, id);
+
+	if(nodh == NULL){
+		headerlen = 2 + strlen(id);
+		sprintf(message, "[NOD] New header length: %u.\n",headerlen);
 		logger(LOG_INFO, message);
 
-		headerlen = 2 + strlen(id);
-		//sprintf(message, "[NOD] HEADER Len: %u.\n",headerlen);
-		//logger(LOG_INFO, message);
-		addoff = get_tcpopt_addoff_needed(ippacket,headerlen);
-		//sprintf(message, "[NOD] ADDOFF: %u.\n",addoff);
-		//logger(LOG_INFO, message);
-		add_tcpopt_addoff(ippacket,addoff);
+		add_tcpopt_bytes(ippacket, headerlen);
+
+		optstart = (__u8 *)tcph + sizeof(struct tcphdr);
+		optend = get_tcpopt(ippacket,TCPOPT_EOL);
+		sprintf(message, "[NOD] TCP Option space used: %li.\n",(optend - optstart));
+		logger(LOG_INFO, message);
 
 		//* There are 0 headers so we need to move any TCP Options back to make space for the new NOD header.
 		//sprintf(message, "[NOD] Bytes to TCPOPT_EOL is: %li.\n",optend - &nod[2]);
 		//logger(LOG_INFO, message);
-		bytestotcpoptend = (optend - &nod[2]);
+		bytestotcpoptend = (optend - (nod + nod[1]));
+		sprintf(message, "[NOD] NOD Length: %u.\n",nod[1]);
+		logger(LOG_INFO, message);
 
 		if(bytestotcpoptend == 0){ // Already at the end of the TCP Option space so we can simply append data here.
-			nod[1] = nod[1] + headerlen;
-			nodh = (struct nodhdr*)&nod[2];
-			nodh->tot_len = headerlen;
-			nodh->idlen = (__u8)strlen(id);
-			nodh->hdr_len = headerlen;
-
-			/*
-			 * Write the NOD Header ID data.
-			 */
-			set_nod_header_id(&nodh->id, id);
-
-			return nodh;
-
+			sprintf(message, "[NOD] At end of TCP Options.\n");
+			logger(LOG_INFO, message);
+			nodh = (struct nodhdr*)(nod + nod[1]);
 		}else{ // There are additional TCP Options after the NOD options so we must push that data back first.
-
+			sprintf(message, "[NOD] Moving TCP Options.\n");
+			logger(LOG_INFO, message);
+			memmove((void*)nod + nod[1] + headerlen,(void*)nod + nod[1] , bytestotcpoptend);
+			nodh = (struct nodhdr*)nod + nod[1];
 		}
+		nod[1] += headerlen;
+		sprintf(message, "[NOD] New NOD Length: %u.\n",nod[1]);
+		logger(LOG_INFO, message);
+		nodh->tot_len = headerlen;
+		nodh->idlen = (__u8)strlen(id);
+		nodh->hdr_len = headerlen;
 
+		/*
+		 * Write the NOD Header ID data.
+		 */
+		set_nod_header_id(&nodh->id, id);
+	}
+	return nodh;
+}
+
+void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8 header_data_length){
+	struct tcphdr *tcph;
+	struct iphdr *iph;
+	struct nodhdr *nodh;
+	__u8 *nod, i, *headerdata;
+	char message[LOGSZ] = {0};
+
+	nodh = set_nod_header(ippacket, id);
+	nod = get_tcpopt(ippacket, NOD);
+
+	if(nodh != NULL){
+		add_tcpopt_bytes(ippacket, header_data_length);
+
+		if(get_tcpopt_freespace(ippacket) >= header_data_length){
+			//sprintf(message, "[NOD] There is enough free space.\n");
+			//logger(LOG_INFO, message);
+			shift_tcpopt_space(ippacket, (__u8*)nodh + nodh->tot_len, header_data_length);
+			nodh->tot_len += header_data_length;
+			nod[1] += header_data_length;
+			headerdata = (__u8*)nodh + nodh->idlen + 2;
+			for(i=0; i<header_data_length; i++){
+				headerdata[i] = header_data[i];
+				//headerdata[i] = 82;
+			}
+		}
 
 	}
 
-	return NULL;
-}
 
-void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, int header_data_length){
+
 }
 
 void set_nod_data(__u8 *ippacket, const char *id, __u8 data_header, __u8 *data, int data_length){
