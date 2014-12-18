@@ -4,7 +4,7 @@
 
 #include <syslog.h>
 
-#define LOGSZ     1024
+#define LOGSZ     4096
 
 #define LOGGING_OFF		0	// Logging Level 0 00000000
 #define LOGGING_FATAL	1	// Logging Level 1 00000001

@@ -102,14 +102,16 @@ void *worker_thread(void *dummyPtr) {
 
                             saveacceleratorid(largerIP, localID, iph, thissession);
 
-                            __set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
+                            //binary_dump("worker.c IP Packet: ", (char*)iph, ntohs(iph->tot_len));
+                            //__set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
                             set_nod_header((__u8 *)iph, ONOP);
-                            set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), OPENNOP_IPC_UUID_LENGTH);
+                            //set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), OPENNOP_IPC_UUID_LENGTH);
+                            set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), 16);
                             //get_nod_header((__u8 *)iph, ONOP);
                             //get_nod_header((__u8 *)iph, "UMG");
                             //set_nod_header((__u8 *)iph, "UMG");
-                            //binary_dump("NOD_Data:", (char*)get_nod_header_data((__u8 *)iph, ONOP),OPENNOP_IPC_UUID_LENGTH);
-
+                            //get_nod_header_data((__u8 *)iph, ONOP);
+                            //binary_dump("worker.c IP Packet: ", (char*)iph, ntohs(iph->tot_len));
 
                             if ((((iph->saddr == largerIP) &&
                                     (thissession->largerIPAccelerator == localID) &&

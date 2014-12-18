@@ -93,7 +93,7 @@ __u8 get_tcpopt_freespace(__u8 *ippacket){
 			if (opt[i] == TCPOPT_EOL){
 
 				optspace = ((tcph->doff*4) - sizeof(struct tcphdr)) -i;
-				break;
+				return optspace;
 			}
 		}
 	}
@@ -154,14 +154,18 @@ __u8 shift_tcpopt_space(__u8 *ippacket, __u8 *location, __u8 bytes){
 	optend = get_tcpopt(ippacket,TCPOPT_EOL);
 
 	if(optend != NULL){
-		sprintf(message, "[NOD] TCP Option space used: %li.\n",(optend - optstart));
+		sprintf(message, "[NOD] TCP Option space used: %u/%u.\n",(__u8)(optend - optstart), (__u8)(tcph->doff*4 - sizeof(struct tcphdr)));
 		logger(LOG_INFO, message);
 
 		bytestotcpoptend = (optend - location);
-		//sprintf(message, "[NOD] NOD Length: %u.\n",nod[1]);
-		//logger(LOG_INFO, message);
+		sprintf(message, "[NOD] TCP Bytes to end of TCP Options: %u.\n",bytestotcpoptend);
+		logger(LOG_INFO, message);
 
-		memmove((void*)location + bytes, (void*)location, bytestotcpoptend);
+		//binary_dump("[TCP] Shift bytes:\n", (char*)location, bytes);
+		memmove((void*)((__u8*)location + bytes), (void*)location, bytestotcpoptend);
+		memset((void*)location, 0, bytes);
+		location[0] = 65;
+		location[bytes -1] = 90;
 
 		return bytes;
 	}
@@ -174,7 +178,7 @@ __u8 shift_tcpopt_space(__u8 *ippacket, __u8 *location, __u8 bytes){
  * @param ippacket [in] Pointer to the IP packet being modified.
  * @param addoff   [in] Number of DWORDS TCP Option area is being increased by.
  */
-void add_tcpopt_addoff(__u8 *ippacket, __u8 addoff){
+int add_tcpopt_addoff(__u8 *ippacket, __u8 addoff){
 	struct iphdr *iph;
 	struct tcphdr *tcph;
 	__u16 tcplen;
@@ -188,7 +192,7 @@ void add_tcpopt_addoff(__u8 *ippacket, __u8 addoff){
 	opt = (__u8 *)tcph + sizeof(struct tcphdr);
 
 	if(addoff == 0){
-		return;
+		return -1;
 	}
 
 	//* If the original doff + this additional offset is > 15 we need to ERROR!/
@@ -210,16 +214,26 @@ void add_tcpopt_addoff(__u8 *ippacket, __u8 addoff){
 		tcph->doff += addoff;
 		iph->tot_len = htons(ntohs(iph->tot_len) + addoff*4);
 
+		return 0;
+
 	}else{
 		/*
 		 * @todo:
 		 * Need to return an error here because the required data cannot be added to the packet.
 		 * Should we allow the packet through or drop it?
 		 */
+		return -1;
 	}
 }
 
-void add_tcpopt_bytes(__u8 *ippacket, __u8 bytes){
+/**
+ * @brief Tries to make room in the TCP Options section for more bytes of data.
+ *
+ * @param ippacket [in] the IP packet being modified.
+ * @param bytes	   [in] the number of bytes being added to TCP Options.
+ * @returns			0 on success, -1 on failure.
+ */
+int add_tcpopt_bytes(__u8 *ippacket, __u8 bytes){
 	__u8 addoff;
 	char message [LOGSZ];
 
@@ -227,7 +241,7 @@ void add_tcpopt_bytes(__u8 *ippacket, __u8 bytes){
 	//sprintf(message, "[NOD] Additional TCPOPT Offset: %u.\n",addoff);
 	//logger(LOG_INFO, message);
 
-	add_tcpopt_addoff(ippacket, addoff);
+	return add_tcpopt_addoff(ippacket, addoff);
 }
 
 __u8 *set_tcpopt(__u8 *ippacket, __u8 tcpoptionnum, __u8 tcpoptionlen){
@@ -261,12 +275,16 @@ __u8 *set_tcpopt(__u8 *ippacket, __u8 tcpoptionnum, __u8 tcpoptionlen){
 
 int check_nod_header(struct nodhdr *nodh, const char *id){
 	__u8 *iddata, i;
+	char message[LOGSZ] = {0};
+
+	sprintf(message, "Entering check_nod_header():\n");
+	logger(LOG_INFO, message);
 
 	iddata = (__u8*)&nodh->id;
 
 	for(i=0; i < strlen(id); i++){
 
-		if((__u8)id[i] != iddata[i]){
+		if((__u8)id[i] != (__u8)iddata[i]){
 			return 0;
 		}
 	}
@@ -285,9 +303,9 @@ struct nodhdr *get_nod_next_header(struct tcp_opt_nod *nod, struct nodhdr *nodh)
 
 	//* If (&nod + nodlength = &nodh + nodh->length) we reached the end.
 	if((__u8*)&nod + nod->option_len < (__u8*)&nodh + nodh->tot_len){
-		return (__u8*)&nodh + nodh->tot_len;
+		return (struct nodhdr*)(__u8*)nodh + nodh->tot_len;
 	}
-	sprintf(message, "[NOD] This was the last NOD header.\n");
+	sprintf(message, "[NOD] No matching header.\n");
 	logger(LOG_INFO, message);
 	return NULL;
 }
@@ -303,10 +321,12 @@ struct nodhdr *get_nod_header(__u8 *ippacket, const char *id){
 	struct nodhdr *nodh;
 	char message[LOGSZ] = {0};
 
-	sprintf(message, "Entering get_nod_header():\n");
+	sprintf(message, "Entering get_nod_header().\n");
 	logger(LOG_INFO, message);
 
 	nod = get_tcpopt(ippacket, NOD);
+	sprintf(message, "Returning from:get_tcpopt() to:get_nod_header().\n");
+	logger(LOG_INFO, message);
 
 	if(nod != NULL){
 
@@ -330,7 +350,7 @@ struct nodhdr *get_nod_header(__u8 *ippacket, const char *id){
 					logger(LOG_INFO, message);
 				}
 
-				nodh = get_nod_next_header((struct tcp_opt_nod*)nod,nodh);
+				nodh = get_nod_next_header((struct tcp_opt_nod*)nod, nodh);
 			}
 		}
 	}
@@ -362,7 +382,7 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 	__u8 *nod, *opt, *optstart, *optend, headerlen, bytestotcpoptend;
 	char message[LOGSZ] = {0};
 
-	sprintf(message, "Entering set_nod_header():\n");
+	sprintf(message, "Entering set_nod_header().\n");
 	logger(LOG_INFO, message);
 
 	iph = (struct iphdr *)ippacket;
@@ -381,7 +401,7 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 	//add_tcpopt_addoff(ippacket,2);
 
 	nod = set_tcpopt(ippacket, NOD, 2);
-	sprintf(message, "Returning to set_nod_header():\n");
+	sprintf(message, "Returning from:set_tcpopt() to:set_nod_header().\n");
 	logger(LOG_INFO, message);
 
 	nodh = get_nod_header(ippacket, id);
@@ -393,28 +413,32 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 
 		add_tcpopt_bytes(ippacket, headerlen);
 
-		optstart = (__u8 *)tcph + sizeof(struct tcphdr);
-		optend = get_tcpopt(ippacket,TCPOPT_EOL);
-		sprintf(message, "[NOD] TCP Option space used: %li.\n",(optend - optstart));
-		logger(LOG_INFO, message);
+		shift_tcpopt_space(ippacket, (__u8*)nod + nod[1], headerlen);
+
+		//optstart = (__u8 *)tcph + sizeof(struct tcphdr);
+		//optend = get_tcpopt(ippacket,TCPOPT_EOL);
+		//sprintf(message, "[NOD] TCP Option space used: %li.\n",(optend - optstart));
+		//logger(LOG_INFO, message);
 
 		//* There are 0 headers so we need to move any TCP Options back to make space for the new NOD header.
 		//sprintf(message, "[NOD] Bytes to TCPOPT_EOL is: %li.\n",optend - &nod[2]);
 		//logger(LOG_INFO, message);
-		bytestotcpoptend = (optend - (nod + nod[1]));
-		sprintf(message, "[NOD] NOD Length: %u.\n",nod[1]);
-		logger(LOG_INFO, message);
+		//bytestotcpoptend = (optend - (nod + nod[1]));
+		//sprintf(message, "[NOD] NOD Length: %u.\n",nod[1]);
+		//logger(LOG_INFO, message);
 
-		if(bytestotcpoptend == 0){ // Already at the end of the TCP Option space so we can simply append data here.
-			sprintf(message, "[NOD] At end of TCP Options.\n");
-			logger(LOG_INFO, message);
-			nodh = (struct nodhdr*)(nod + nod[1]);
-		}else{ // There are additional TCP Options after the NOD options so we must push that data back first.
-			sprintf(message, "[NOD] Moving TCP Options.\n");
-			logger(LOG_INFO, message);
-			memmove((void*)nod + nod[1] + headerlen,(void*)nod + nod[1] , bytestotcpoptend);
-			nodh = (struct nodhdr*)nod + nod[1];
-		}
+		//if(bytestotcpoptend == 0){ // Already at the end of the TCP Option space so we can simply append data here.
+		//	sprintf(message, "[NOD] At end of TCP Options.\n");
+		//	logger(LOG_INFO, message);
+		//	nodh = (struct nodhdr*)(nod + nod[1]);
+		//}else{ // There are additional TCP Options after the NOD options so we must push that data back first.
+		//	sprintf(message, "[NOD] Moving TCP Options.\n");
+		//	logger(LOG_INFO, message);
+		//	memmove((void*)nod + nod[1] + headerlen,(void*)nod + nod[1] , bytestotcpoptend);
+		//	nodh = (struct nodhdr*)((__u8*)nod + nod[1]);
+		//}
+
+		nodh = (struct nodhdr*)((__u8*)nod + nod[1]);
 		nod[1] += headerlen;
 		sprintf(message, "[NOD] New NOD Length: %u.\n",nod[1]);
 		logger(LOG_INFO, message);
@@ -427,50 +451,121 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 		 */
 		set_nod_header_id(&nodh->id, id);
 	}
+
+	if(get_nod_header(ippacket, id) == NULL){
+		sprintf(message, "[NOD] get_nod_header() failed!\n");
+		logger(LOG_INFO, message);
+	}
+
+
 	return nodh;
 }
 
 __u8 *get_nod_header_data(__u8 *ippacket, const char *id){
 	struct nodhdr *nodh;
 	__u8 *nod, i, *headerdata;
+	char message[LOGSZ] = {0};
+
+	sprintf(message, "Entering get_nod_header_data():\n");
+	logger(LOG_INFO, message);
 
 	nodh = get_nod_header(ippacket, id);
 
+	sprintf(message, "Returning from get_nod_header():\n");
+	logger(LOG_INFO, message);
+
 	if(nodh != NULL){
 
-		if(nodh->hdr_len > nodh->idlen + 2){
-			nodh->hdrdata = (__u8*)nodh + nodh->idlen + 2;
-			return nodh->hdrdata;
+		sprintf(message, "[NOD] hdr_len:%u, idlen:%u.\n",nodh->hdr_len,nodh->idlen);
+		logger(LOG_INFO, message);
+
+		if(nodh->hdr_len > (nodh->idlen + 2)){
+			headerdata = (__u8*)nodh + nodh->idlen + 2;
+			binary_dump("NOD Header (r): ",(char*)nodh, nodh->tot_len);
+			binary_dump("NOD Header Data (r): ",(char*)headerdata, nodh->hdr_len - (nodh->idlen + 2));
+			return headerdata;
 		}
 	}
 	return NULL;
 }
 
 void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8 header_data_length){
-	struct tcphdr *tcph;
 	struct iphdr *iph;
+	struct tcphdr *tcph;
 	struct nodhdr *nodh;
 	__u8 *nod, i, *headerdata;
 	char message[LOGSZ] = {0};
 
+	sprintf(message, "Entering set_nod_header_data().\n");
+	logger(LOG_INFO, message);
+
+	iph = (struct iphdr *)ippacket;
+	tcph = (struct tcphdr *) (((u_int32_t *)ippacket) + iph->ihl);
+
+	sprintf(message, "TCP Sequence #:%u\n",ntohl(tcph->seq));
+		logger(LOG_INFO, message);
+
 	nodh = set_nod_header(ippacket, id);
+	sprintf(message, "Returning from:set_nod_header() to:set_nod_header_data().\n");
+	logger(LOG_INFO, message);
+
 	nod = get_tcpopt(ippacket, NOD);
+	sprintf(message, "Returning from:get_tcpopt() to:set_nod_header_data().\n");
+	logger(LOG_INFO, message);
 
-	if(nodh != NULL){
-		add_tcpopt_bytes(ippacket, header_data_length);
+	if((nodh != NULL) && (nod != NULL)){
 
-		if(get_tcpopt_freespace(ippacket) >= header_data_length){
-			//sprintf(message, "[NOD] There is enough free space.\n");
-			//logger(LOG_INFO, message);
-			shift_tcpopt_space(ippacket, (__u8*)nodh + nodh->tot_len, header_data_length);
-			nodh->tot_len += header_data_length;
-			nodh->hdr_len = header_data_length;
-			nod[1] += header_data_length;
-			headerdata = (__u8*)nodh + nodh->idlen + 2;
-			for(i=0; i<header_data_length; i++){
-				headerdata[i] = header_data[i];
-				//headerdata[i] = 82;
+		if(nodh->hdr_len == nodh->idlen + 2){
+
+			sprintf(message, "[NOD] Header data is not set.\n");
+			logger(LOG_INFO, message);
+
+			//add_tcpopt_bytes(ippacket, header_data_length);
+			if(add_tcpopt_bytes(ippacket, header_data_length) == 0){
+
+				if(get_tcpopt_freespace(ippacket) >= header_data_length){
+					sprintf(message, "[NOD] There is enough free space.\n");
+					logger(LOG_INFO, message);
+					//binary_dump("[NOD] Header (wr): ", (char*)(__u8*)nodh, nodh->tot_len);
+
+					shift_tcpopt_space(ippacket, (__u8*)nodh + nodh->hdr_len, header_data_length);
+					sprintf(message, "Returning from:shift_tcpopt_space() to:set_nod_header_data().\n");
+					logger(LOG_INFO, message);
+
+					nod[1] += header_data_length;
+					nodh->tot_len += header_data_length;
+					nodh->hdr_len += header_data_length;
+					binary_dump("[NOD] Header (wr): ", (char*)(__u8*)nodh, nodh->tot_len);
+
+					headerdata = (__u8*)((__u8*)nodh) + nodh->idlen + 2;
+
+					//sprintf(message, "[NOD] hdr_len:%u, idlen:%u.\n", nodh->hdr_len, nodh->idlen);
+					//logger(LOG_INFO, message);
+
+					binary_dump("[NOD] Header Data (wr): ", (char*)headerdata, header_data_length);
+
+					for(i=0; i<header_data_length; i++){
+						//headerdata[i] = header_data[i];
+						//headerdata[i] = 0;
+					}
+					//headerdata0] = 65;
+					//headerdata[header_data_length-1] = 90;
+
+					//memset((void*)headerdata, 0, header_data_length);
+					//headerdata[0] = 65;
+					//headerdata[header_data_length -1] = 90;
+
+
+					binary_dump("[NOD] Header (wr): ", (char*)(__u8*)nodh, nodh->tot_len);
+					binary_dump("[NOD] Header Data (wr): ", (char*)headerdata, header_data_length);
+				}else{
+					sprintf(message, "[NOD] Could not write header data.\n");
+					logger(LOG_INFO, message);
+				}
 			}
+		}else{
+			sprintf(message, "[NOD] Header data already allocated.\n");
+			logger(LOG_INFO, message);
 		}
 	}
 }
