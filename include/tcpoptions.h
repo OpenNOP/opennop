@@ -11,8 +11,6 @@ struct nodhdr {
 	__u8  idlen:3,		// length of id in bytes (should be 1-4)
 	      hdr_len:5;	// length  of the header (additional data can be appended inside the header as header data)
 	__u8  id;
-	__u8  *hdrdata;		// optional
-	__u8  *data;
 };
 
 struct tcp_opt_nod{

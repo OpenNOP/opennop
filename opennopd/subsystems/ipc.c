@@ -178,7 +178,8 @@ void binary_dump(const char *header, char *data, unsigned int bytes) {
 	char temp[33] = {0};
 	char message[LOGSZ] = {0};
 
-	sprintf(message,"%s Binary Dump:\n", header);
+	logger2(LOGGING_ERROR, DEBUG_IPC, header);
+	sprintf(message,"Binary Dump:\n");
     sprintf(temp, "%.8X | ", (unsigned int)(intptr_t)data);
     strcat(message,temp);
     while (i < bytes){
