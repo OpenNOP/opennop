@@ -47,6 +47,51 @@ static int DEBUG_IPC = LOGGING_OFF;
 int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype);
 int update_neighbor_timer(struct neighbor *thisneighbor);
 
+int compare_opennopid(char *first_opennopid, char *second_opennopid){
+	__u8 i;
+
+	if((first_opennopid == NULL)||(second_opennopid == NULL)){
+		return 0;
+	}
+
+	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
+
+		if(first_opennopid[i] != second_opennopid[i]){
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int check_opennopid(char *opennopid){
+	__u8 i;
+
+	if(opennopid == NULL){
+		return 0;
+	}
+
+	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
+
+		if(opennopid[i] != 0){
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int save_opennopid(char *source, char *destination){
+	__u8 i;
+
+	if((source == NULL)||(destination == NULL)){
+		return -1;
+	}
+
+	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
+		source[i] = destination[i];
+	}
+	return 0;
+}
+
 /**
  * Searches the neighbors list for an IP.
  * Returns NULL if no match is found.
@@ -284,15 +329,26 @@ int ipc_tx_message(int socket, struct opennop_ipc_header *opennop_msg_header) {
 int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     struct opennop_header_data data;
     struct opennop_message_header *message_header;
+    struct opennop_hello_message *hello_message;
+    struct neighbor *this_neighbor;
+
 
     logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Processing message!\n");
 
-    get_header_data(opennop_msg_header, & data);
+    get_header_data(opennop_msg_header, &data);
     message_header = (struct opennop_message_header *)data.messages;
     switch(message_header->type) {
     case OPENNOP_IPC_HERE_I_AM:
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_HERE_I_AM.\n");
         ipc_send_message(fd, OPENNOP_IPC_I_SEE_YOU);
+        hello_message = (struct opennop_hello_message*)message_header;
+
+        this_neighbor = find_neighbor_by_socket(fd);
+
+        if(this_neighbor != NULL){
+        	save_opennopid(hello_message->id, this_neighbor->id);
+        }
+
         break;
     case OPENNOP_IPC_I_SEE_YOU:
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_I_SEE_YOU.\n");
@@ -419,7 +475,7 @@ int add_hello_message(struct opennop_ipc_header *opennop_msg_header) {
      *@todo: After its generated we should just copy it from the ID variable.
      */
     //uuid_generate_time((unsigned char*)message->uuid);
-    memcpy((void*)&message->uuid, (void*)&opennop_localid, (size_t)OPENNOP_IPC_ID_LENGTH);
+    memcpy((void*)&message->id, (void*)&opennop_localid, (size_t)OPENNOP_IPC_ID_LENGTH);
     opennop_msg_header->length += message->header.length;
 
     return 0;
@@ -776,7 +832,7 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
                   INET_ADDRSTRLEN);
         sprintf(col1, "| %-16s", temp);
         strcat(msg, col1);
-        sprintf(col2, "| %-17s", currentneighbor->ID);
+        sprintf(col2, "| %-17s", currentneighbor->id);
         strcat(msg, col2);
         sprintf(col3, "| %-65s", currentneighbor->key);
         strcat(msg, col3);
@@ -916,7 +972,7 @@ struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
     newneighbor->prev = NULL;
     newneighbor->NeighborIP = 0;
     newneighbor->state = DOWN;
-    newneighbor->ID[0] = '\0';
+    newneighbor->id[0] = '\0';
     newneighbor->sock = 0;
     newneighbor->key[0] = '\0';
     time(&newneighbor->timer);
@@ -1220,7 +1276,7 @@ int verify_neighbor_in_domain(char *neighborid) {
 
     while (currentneighbor != NULL) {
 
-        if ((compare_opennopid(currentneighbor->ID, neighborid) == 1) && currentneighbor->state == UP) {
+        if ((compare_opennopid(currentneighbor->id, neighborid) == 1) && currentneighbor->state == UP) {
 
             return 1;
         }

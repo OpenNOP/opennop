@@ -50,7 +50,7 @@ struct neighbor {
     char name[OPENNOP_IPC_NAME_LENGTH]; // Unique name for this neighbor.
     __u32 NeighborIP; // IP address of this neighbor.
     neighborstate state; // Detected state of this neighbor.
-    char ID[OPENNOP_IPC_ID_LENGTH]; // Detected ID of this neighbor.
+    char id[OPENNOP_IPC_ID_LENGTH]; // Detected ID of this neighbor.
     int sock; // Socket FD used to communicate to this neighbor.
     char key[OPENNOP_IPC_KEY_LENGTH]; // Encryption key used by this neighbor.
     time_t hellotimer; // Last hello message send or attempted.
@@ -84,7 +84,7 @@ struct opennop_message_header {
  */
 struct opennop_hello_message{
 	struct opennop_message_header header;
-	char uuid[OPENNOP_IPC_ID_LENGTH];
+	char id[OPENNOP_IPC_ID_LENGTH];
 };
 
 struct ipc_message_i_see_you{
@@ -126,5 +126,7 @@ void rejoin_ipc();
 int verify_neighbor_in_domain(char *neighborid);
 __u8 *get_opennop_id();
 void binary_dump(const char *header, char *data, unsigned int bytes);
+int compare_opennopid(char *first_opennopid, char *second_opennopid);
+int check_opennopid(char *opennopid);
 
 #endif

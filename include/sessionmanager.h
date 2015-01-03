@@ -30,7 +30,6 @@ int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 int sourceisclient(__u32 largerIP, struct iphdr *iph, struct session *thisession);
 //int saveacceleratorid(__u32 largerIP, __u32 acceleratorID, struct iphdr *iph, struct session *thissession);
 int saveacceleratorid(__u32 largerIP, char *acceleratorID, struct iphdr *iph, struct session *thissession);
-int compare_opennopid(char *first_opennopid, char *second_opennopid);
-int check_opennopid(char *opennopid);
+
 
 #endif /*SESSIONMANAGER_H_*/
