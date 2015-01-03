@@ -37,10 +37,10 @@ struct neighbor_head {
     pthread_mutex_t lock; // Lock for this neighbor.
 };
 /**
- * UUID is only 16 bytes.
+ * ID is only 4 bytes.
  * @see http://linux.die.net/man/3/uuid_generate
  */
-#define OPENNOP_IPC_UUID_LENGTH		16
+#define OPENNOP_IPC_ID_LENGTH		4
 #define OPENNOP_IPC_KEY_LENGTH		65
 #define OPENNOP_IPC_NAME_LENGTH		64
 
@@ -50,7 +50,7 @@ struct neighbor {
     char name[OPENNOP_IPC_NAME_LENGTH]; // Unique name for this neighbor.
     __u32 NeighborIP; // IP address of this neighbor.
     neighborstate state; // Detected state of this neighbor.
-    char UUID[OPENNOP_IPC_UUID_LENGTH]; // Detected ID of this neighbor.
+    char ID[OPENNOP_IPC_ID_LENGTH]; // Detected ID of this neighbor.
     int sock; // Socket FD used to communicate to this neighbor.
     char key[OPENNOP_IPC_KEY_LENGTH]; // Encryption key used by this neighbor.
     time_t hellotimer; // Last hello message send or attempted.
@@ -84,7 +84,7 @@ struct opennop_message_header {
  */
 struct opennop_hello_message{
 	struct opennop_message_header header;
-	char uuid[OPENNOP_IPC_UUID_LENGTH];
+	char uuid[OPENNOP_IPC_ID_LENGTH];
 };
 
 struct ipc_message_i_see_you{
@@ -116,14 +116,15 @@ typedef enum {
     OPENNOP_IPC_HERE_I_AM = 1,
     OPENNOP_IPC_I_SEE_YOU,
     OPENNOP_IPC_AUTH_ERR,
-    OPENNOP_IPC_BAD_UUID,
+    OPENNOP_IPC_BAD_ID,
     OPENNOP_IPC_DEDUP_MAP
 } OPENNOP_IPC_MSG_TYPE;
 
 void start_ipc();
 void rejoin_ipc();
-int verify_neighbor_in_domain(__u32 neighborIP);
-__u8 *get_opennop_uuid();
+//int verify_neighbor_in_domain(__u32 neighborIP);
+int verify_neighbor_in_domain(char *neighborid);
+__u8 *get_opennop_id();
 void binary_dump(const char *header, char *data, unsigned int bytes);
 
 #endif

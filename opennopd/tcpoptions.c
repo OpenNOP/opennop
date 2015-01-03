@@ -461,10 +461,14 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 	return nodh;
 }
 
-__u8 *get_nod_header_data(__u8 *ippacket, const char *id){
+struct hdrdata get_nod_header_data(__u8 *ippacket, const char *id){
 	struct nodhdr *nodh;
 	__u8 *nod, i, *headerdata;
 	char message[LOGSZ] = {0};
+	struct hdrdata hdrdta;
+
+	hdrdta.data_len = 0;
+	hdrdta.data = NULL;
 
 	sprintf(message, "Entering get_nod_header_data():\n");
 	logger(LOG_INFO, message);
@@ -483,10 +487,14 @@ __u8 *get_nod_header_data(__u8 *ippacket, const char *id){
 			headerdata = (__u8*)nodh + nodh->idlen + 2;
 			binary_dump("NOD Header (r): ",(char*)nodh, nodh->tot_len);
 			binary_dump("NOD Header Data (r): ",(char*)headerdata, nodh->hdr_len - (nodh->idlen + 2));
-			return headerdata;
+
+			hdrdta.data_len = nodh->hdr_len - (nodh->idlen + 2);
+			hdrdta.data = (__u8*)nodh + nodh->idlen + 2;
+
+			return hdrdta;
 		}
 	}
-	return NULL;
+	return hdrdta;
 }
 
 void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8 header_data_length){
@@ -545,7 +553,7 @@ void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8
 					binary_dump("[NOD] Header Data (wr): ", (char*)headerdata, header_data_length);
 
 					for(i=0; i<header_data_length; i++){
-						//headerdata[i] = header_data[i];
+						headerdata[i] = header_data[i];
 						//headerdata[i] = 0;
 					}
 					//headerdata0] = 65;

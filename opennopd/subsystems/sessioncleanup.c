@@ -74,7 +74,8 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	tcph->ack = 1; // ACK flag.
 	tcph->urg = 0; // URG flag.
 	
-	__set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
+	//__set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
+	set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
 	
 	tcplen = ntohs(iph->tot_len) - iph->ihl*4;
 	tcph->check = 0;

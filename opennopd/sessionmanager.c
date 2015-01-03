@@ -14,6 +14,7 @@
 #include "worker.h"
 #include "session.h"
 #include "clicommands.h"
+#include "ipc.h"
 
 struct session_head sessiontable[SESSIONBUCKETS]; // Setup the session hashtable.
 
@@ -34,6 +35,69 @@ __u16 sessionhash(__u32 largerIP, __u16 largerIPPort, __u32 smallerIP,
 	hash4 = largerIPPort ^ smallerIPPort;
 	hash = hash3 ^ hash4;
 	return hash;
+}
+
+int compare_opennopid(char *first_opennopid, char *second_opennopid){
+	__u8 i;
+
+	if((first_opennopid == NULL)||(second_opennopid == NULL)){
+		return 0;
+	}
+
+	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
+
+		if(first_opennopid[i] != second_opennopid[i]){
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int check_opennopid(char *opennopid){
+	__u8 i;
+
+	if(opennopid == NULL){
+		return 0;
+	}
+
+	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
+
+		if(opennopid[i] != 0){
+			return 0;
+		}
+	}
+	return 1;
+}
+
+int save_opennopid(char *source, char *destination){
+	__u8 i;
+
+	if((source == NULL)||(destination == NULL)){
+		return -1;
+	}
+
+	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
+		source[i] = destination[i];
+	}
+	return 0;
+}
+
+int session_accelerated(struct session *currentsession){
+
+	//if ((((currentsession->largerIPAccelerator == localID)
+	if (((( compare_opennopid(currentsession->largerIPAccelerator, (char*)get_opennop_id()) == 1)
+			//|| (currentsession->smallerIPAccelerator == localID))
+			|| (compare_opennopid(currentsession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))
+			//&& ((currentsession->largerIPAccelerator != 0)
+			&& ((check_opennopid(currentsession->largerIPAccelerator) != 0)
+			//&& (currentsession->smallerIPAccelerator != 0))
+			&& (check_opennopid(currentsession->smallerIPAccelerator) != 0))
+			//&& (currentsession->largerIPAccelerator  != currentsession->smallerIPAccelerator))) {
+			&& (compare_opennopid(currentsession->largerIPAccelerator, currentsession->smallerIPAccelerator) == 0))) {
+		return 1;
+	}
+
+	return 0;
 }
 
 /* 
@@ -119,12 +183,12 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 		newsession->queue = queuenum;
 		newsession->largerIP = largerIP; // Assign values and initialize this session.
 		newsession->largerIPPort = largerIPPort;
-		newsession->largerIPAccelerator = 0;
+		//newsession->largerIPAccelerator = 0;
 		newsession->largerIPseq = 0;
 		newsession->smallerIP = smallerIP;
 		newsession->smallerIPPort = smallerIPPort;
 		newsession->smallerIPseq = 0;
-		newsession->smallerIPAccelerator = 0;
+		//newsession->smallerIPAccelerator = 0;
 		newsession->deadcounter = 0;
 		newsession->state = 0;
 
@@ -415,6 +479,7 @@ struct commandresult cli_show_sessionss(int client_fd, char **parameters, int nu
 							currentsession->smallerIPPort));
 					strcat(msg, col5);
 
+					/*
 					if ((((currentsession->largerIPAccelerator == localID)
 							|| (currentsession->smallerIPAccelerator == localID))
 							&& ((currentsession->largerIPAccelerator != 0)
@@ -422,6 +487,8 @@ struct commandresult cli_show_sessionss(int client_fd, char **parameters, int nu
 											!= 0))
 							&& (currentsession->largerIPAccelerator
 									!= currentsession->smallerIPAccelerator))) {
+					*/
+					if(session_accelerated(currentsession)== 1){
 						sprintf(col6, "|     Yes    ");
 					} else {
 						sprintf(col6, "|     No     ");
@@ -483,6 +550,7 @@ int sourceisclient(__u32 largerIP, struct iphdr *iph, struct session *thissessio
 	return -1;// Had a problem.
 }
 
+/*
 int saveacceleratorid(__u32 largerIP, __u32 acceleratorID, struct iphdr *iph, struct session *thissession) {
 
 	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)){
@@ -494,6 +562,24 @@ int saveacceleratorid(__u32 largerIP, __u32 acceleratorID, struct iphdr *iph, st
 		else
 		{
 			thissession->smallerIPAccelerator = acceleratorID;
+		}
+		return 0;// Everything  OK.
+	}
+	return -1;// Had a problem.
+}
+*/
+
+int saveacceleratorid(__u32 largerIP, char *acceleratorID, struct iphdr *iph, struct session *thissession) {
+
+	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)){
+
+		if (iph->saddr == largerIP)
+		{ // Set the Accelerator for this source.
+			save_opennopid(acceleratorID, thissession->largerIPAccelerator);
+		}
+		else
+		{
+			save_opennopid(acceleratorID, thissession->smallerIPAccelerator);
 		}
 		return 0;// Everything  OK.
 	}

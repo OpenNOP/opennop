@@ -34,8 +34,9 @@ void *worker_thread(void *dummyPtr) {
     struct session *thissession = NULL;
     struct iphdr *iph = NULL;
     struct tcphdr *tcph = NULL;
-    __u32 largerIP, smallerIP, remoteID;
+    __u32 largerIP, smallerIP;
     __u16 largerIPPort, smallerIPPort;
+    char *remoteID = NULL;
     char message[LOGSZ];
     qlz_state_compress *state_compress = (qlz_state_compress *) malloc(
                                              sizeof(qlz_state_compress));
@@ -72,7 +73,10 @@ void *worker_thread(void *dummyPtr) {
                     logger(LOG_INFO, message);
                 }
                 me->metrics.bytesin += ntohs(iph->tot_len);
-                remoteID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
+
+                //remoteID = (__u32) __get_tcp_option((__u8 *)iph,30);/* Check what IP address is larger. */
+                remoteID = get_nod_header_data((__u8 *)iph, ONOP).data;
+
                 sort_sockets(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort,
                              iph->saddr,tcph->source,iph->daddr,tcph->dest);
 
@@ -92,7 +96,7 @@ void *worker_thread(void *dummyPtr) {
 
                     if ((tcph->syn == 0) && (tcph->ack == 1) && (tcph->fin == 0)) {
 
-                        if ((remoteID == 0) || verify_neighbor_in_domain(remoteID) == false) {
+                        if ((remoteID == NULL) || verify_neighbor_in_domain(remoteID) == false) {
                             /*
                              * An accelerator ID was NOT found.
                              * This is the first accelerator in the traffic path.
@@ -100,27 +104,28 @@ void *worker_thread(void *dummyPtr) {
                              * Traffic is sent through the optimize functions.
                              */
 
-                            saveacceleratorid(largerIP, localID, iph, thissession);
+                            saveacceleratorid(largerIP, (char*)get_opennop_id(), iph, thissession);
 
                             //binary_dump("worker.c IP Packet: ", (char*)iph, ntohs(iph->tot_len));
                             //__set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
-                            set_nod_header((__u8 *)iph, ONOP);
-                            //set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), OPENNOP_IPC_UUID_LENGTH);
-                            set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), 16);
-                            //get_nod_header((__u8 *)iph, ONOP);
-                            //get_nod_header((__u8 *)iph, "UMG");
-                            //set_nod_header((__u8 *)iph, "UMG");
-                            //get_nod_header_data((__u8 *)iph, ONOP);
+                            set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
                             //binary_dump("worker.c IP Packet: ", (char*)iph, ntohs(iph->tot_len));
 
                             if ((((iph->saddr == largerIP) &&
-                                    (thissession->largerIPAccelerator == localID) &&
-                                    (thissession->smallerIPAccelerator != 0) &&
-                                    (thissession->smallerIPAccelerator != localID)) ||
+                                    //(thissession->largerIPAccelerator == localID) &&
+                            		(compare_opennopid(thissession->largerIPAccelerator, (char*)get_opennop_id()) == 1) &&
+                                    //(thissession->smallerIPAccelerator != 0) &&
+                            		(check_opennopid(thissession->smallerIPAccelerator) == 1) &&
+                                    //(thissession->smallerIPAccelerator != localID)) ||
+                            		(compare_opennopid(thissession->largerIPAccelerator, (char*)get_opennop_id()) != 1))
+                            		||
                                     ((iph->saddr == smallerIP) &&
-                                     (thissession->smallerIPAccelerator == localID) &&
-                                     (thissession->largerIPAccelerator != 0) &&
-                                     (thissession->largerIPAccelerator != localID))) &&
+                                     //(thissession->smallerIPAccelerator == localID) &&
+                                    (compare_opennopid(thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1) &&
+                                     //(thissession->largerIPAccelerator != 0) &&
+                                    (check_opennopid(thissession->largerIPAccelerator) == 1) &&
+                                     //(thissession->largerIPAccelerator != localID))) &&
+                                    (compare_opennopid(thissession->largerIPAccelerator, (char*)get_opennop_id()) != 1))) &&
                                     (thissession->state == TCP_ESTABLISHED)) {
 
                                 /*
@@ -158,9 +163,11 @@ void *worker_thread(void *dummyPtr) {
                                 }
 
                                 if (((iph->saddr == largerIP) &&
-                                        (thissession->smallerIPAccelerator == localID)) ||
+                                        //(thissession->smallerIPAccelerator == localID)) ||
+                                		(compare_opennopid(thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))||
                                         ((iph->saddr == smallerIP) &&
-                                         (thissession->largerIPAccelerator == localID))) {
+                                         //(thissession->largerIPAccelerator == localID))) {
+                                        (compare_opennopid(thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))) {
 
                                     /*
                                      * Decompress this packet!

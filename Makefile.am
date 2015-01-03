@@ -25,4 +25,4 @@ opennopd_opennopd_SOURCES = \
 	opennopd/subsystems/ipc.c
 	
 opennopd_opennopd_LDADD = \
-	-lcrypt -lcrypto -ldl -lpthread -luuid ${libnetfilter_queue_LIBS}
+	-lcrypt -lcrypto -ldl -lpthread -luuid -lrt ${libnetfilter_queue_LIBS}
