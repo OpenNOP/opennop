@@ -1299,9 +1299,12 @@ void generate_opennopid(){
 	srandom(ts.tv_nsec ^ ts.tv_sec);
 	r = random();
 
-	for(i = 0; i<sizeof(__u32);i++){
+	for(i = 0; i<OPENNOP_IPC_ID_LENGTH;i++){
 		opennop_localid[i] = ((__u8*)&r)[i];
+
 	}
+
+	//binary_dump("ipc.c OpenNOP ID: ", (char*)&opennop_localid, OPENNOP_IPC_ID_LENGTH);
 }
 
 void start_ipc() {

@@ -551,11 +551,13 @@ void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8
 					//logger(LOG_INFO, message);
 
 					binary_dump("[NOD] Header Data (wr): ", (char*)headerdata, header_data_length);
+					binary_dump("[NOD] Header Data Source (wr): ", (char*)header_data, header_data_length);
 
-					for(i=0; i<header_data_length; i++){
-						headerdata[i] = header_data[i];
+					memcpy((void*)headerdata, (void*)header_data, header_data_length);
+					//for(i=0; i<header_data_length; i++){
+						//headerdata[i] = header_data[i];
 						//headerdata[i] = 0;
-					}
+					//}
 					//headerdata0] = 65;
 					//headerdata[header_data_length-1] = 90;
 
