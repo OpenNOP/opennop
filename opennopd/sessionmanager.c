@@ -37,51 +37,6 @@ __u16 sessionhash(__u32 largerIP, __u16 largerIPPort, __u32 smallerIP,
 	return hash;
 }
 
-int compare_opennopid(char *first_opennopid, char *second_opennopid){
-	__u8 i;
-
-	if((first_opennopid == NULL)||(second_opennopid == NULL)){
-		return 0;
-	}
-
-	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
-
-		if(first_opennopid[i] != second_opennopid[i]){
-			return 0;
-		}
-	}
-	return 1;
-}
-
-int check_opennopid(char *opennopid){
-	__u8 i;
-
-	if(opennopid == NULL){
-		return 0;
-	}
-
-	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
-
-		if(opennopid[i] != 0){
-			return 0;
-		}
-	}
-	return 1;
-}
-
-int save_opennopid(char *source, char *destination){
-	__u8 i;
-
-	if((source == NULL)||(destination == NULL)){
-		return -1;
-	}
-
-	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
-		source[i] = destination[i];
-	}
-	return 0;
-}
-
 int session_accelerated(struct session *currentsession){
 
 	//if ((((currentsession->largerIPAccelerator == localID)
