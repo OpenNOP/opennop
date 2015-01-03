@@ -35,7 +35,7 @@
 #define LOOPBACKIP 16777343UL // Loopback IP address 127.0.0.1.
 /* Global Variables. */
 int servicestate = RUNNING; // Current state of the service.
-__u32 localID = 0; // Variable to store eth0 IP address used as the device ID.
+static __u32 localID = 0; // Variable to store eth0 IP address used as the device ID.
 int isdaemon = true; // Determines how to log the messages and errors.
 
 int main(int argc, char *argv[]) {

@@ -44,10 +44,11 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
     struct packet *thispacket = NULL;
     struct nfqnl_msg_packet_hdr *ph;
     struct timeval tv;
-    __u32 largerIP, smallerIP, remoteID;
+    __u32 largerIP, smallerIP;
     __u16 largerIPPort, smallerIPPort, mms;
     int ret;
     unsigned char *originalpacket = NULL;
+    char *remoteID = NULL;
     char message[LOGSZ];
     char strIP[20];
     //struct packet *newpacket = NULL;
@@ -75,10 +76,11 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
             /* Check what IP address is larger. */
             sort_sockets(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort, iph->saddr, tcph->source, iph->daddr, tcph->dest);
 
-            remoteID = (__u32) __get_tcp_option((__u8 *)originalpacket,30);
+            //remoteID = (__u32) __get_tcp_option((__u8 *)originalpacket,30);
+            remoteID = get_nod_header_data((__u8 *)iph, ONOP).data;
 
             if (DEBUG_FETCHER == true) {
-                inet_ntop(AF_INET, &remoteID, strIP, INET_ADDRSTRLEN);
+                inet_ntop(AF_INET, remoteID, strIP, INET_ADDRSTRLEN);
                 sprintf(message, "Fetcher: The accelerator ID is:%s.\n", strIP);
                 logger(LOG_INFO, message);
             }
@@ -108,20 +110,19 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     sourceisclient(largerIP, iph, thissession);
                     updateseq(largerIP, iph, tcph, thissession);
 
-                    if ((remoteID == 0) || verify_neighbor_in_domain(remoteID) == false) {// Accelerator ID was not found.
+                    if ((remoteID == NULL) || verify_neighbor_in_domain(remoteID) == false) {// Accelerator ID was not found.
                         mms = __get_tcp_option((__u8 *)originalpacket,2);
 
                         if (mms > 60) {
                             __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
                             //__set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
-                            //set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), OPENNOP_IPC_UUID_LENGTH);
-                            //set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), 8);
+                            set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
                             /*
                              * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
                              */
                             //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
-                            saveacceleratorid(largerIP, localID, iph, thissession);
+                            saveacceleratorid(largerIP, (char*)get_opennop_id(), iph, thissession);
 
                             /*
                              * Changing anything requires the IP and TCP
@@ -164,14 +165,13 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             if (mms > 60) {
                                 __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
                                 //__set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
-                                //set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), OPENNOP_IPC_UUID_LENGTH);
-                                //set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), 8);
+                                set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
                                 /*
                                  * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
                                  */
                                 //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
-                                saveacceleratorid(largerIP, localID, iph, thissession);
+                                saveacceleratorid(largerIP, (char*)get_opennop_id(), iph, thissession);
 
                             }
 
@@ -246,9 +246,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                                 } else {
                                     //__set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
-                                	//set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), OPENNOP_IPC_UUID_LENGTH);
-                                	//set_nod_header_data((__u8 *)iph, ONOP, get_opennop_uuid(), 8);
-                                    saveacceleratorid(largerIP, localID, iph, thissession);
+                                	set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
+                                    saveacceleratorid(largerIP, (char*)get_opennop_id(), iph, thissession);
                                 }
 
                                 thispacket = get_freepacket_buffer();

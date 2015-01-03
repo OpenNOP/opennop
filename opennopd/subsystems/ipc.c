@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <pthread.h> // for multi-threading
 #include <netdb.h>
+#include <time.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/unistd.h>
@@ -37,7 +38,7 @@ typedef int (*t_neighbor_command)(int, __u32, char *);
  */
 static pthread_t t_ipc; // thread for cli.
 static struct neighbor_head ipchead;
-static char UUID[OPENNOP_IPC_UUID_LENGTH]; //Local UUID.
+static char opennop_localid[OPENNOP_IPC_ID_LENGTH]; //Local UUID.
 static char key[OPENNOP_IPC_KEY_LENGTH]; //Local key.
 
 
@@ -304,8 +305,8 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     case OPENNOP_IPC_AUTH_ERR:
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_AUTH_ERR.\n");
         break;
-    case OPENNOP_IPC_BAD_UUID:
-        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_BAD_UUID.\n");
+    case OPENNOP_IPC_BAD_ID:
+        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_BAD_ID.\n");
         break;
     case OPENNOP_IPC_DEDUP_MAP:
         logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_DEDUP_MAP.\n");
@@ -414,11 +415,11 @@ int add_hello_message(struct opennop_ipc_header *opennop_msg_header) {
     message->header.type = OPENNOP_IPC_HERE_I_AM;
     message->header.length = sizeof(struct opennop_hello_message);
     /**
-     *@todo: Generating the UUID should be done when the IPC module starts.
-     *@todo: After its generated we should just copy it from the UUID variable.
+     *@todo: Generating the ID should be done when the IPC module starts.
+     *@todo: After its generated we should just copy it from the ID variable.
      */
     //uuid_generate_time((unsigned char*)message->uuid);
-    memcpy((void*)&message->uuid, (void*)&UUID, (size_t)OPENNOP_IPC_UUID_LENGTH);
+    memcpy((void*)&message->uuid, (void*)&opennop_localid, (size_t)OPENNOP_IPC_ID_LENGTH);
     opennop_msg_header->length += message->header.length;
 
     return 0;
@@ -762,7 +763,7 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
     cli_send_feedback(client_fd, msg);
     sprintf(
         msg,
-        "|   Neighbor IP   |       GUID       |                               Key                                |\n");
+        "|   Neighbor IP   |        ID        |                               Key                                |\n");
     cli_send_feedback(client_fd, msg);
     sprintf(
         msg,
@@ -775,7 +776,7 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
                   INET_ADDRSTRLEN);
         sprintf(col1, "| %-16s", temp);
         strcat(msg, col1);
-        sprintf(col2, "| %-17s", currentneighbor->UUID);
+        sprintf(col2, "| %-17s", currentneighbor->ID);
         strcat(msg, col2);
         sprintf(col3, "| %-65s", currentneighbor->key);
         strcat(msg, col3);
@@ -823,7 +824,7 @@ int cli_display_neighbor_details(int client_fd, struct neighbor *currentneighbor
     /**
      * @todo What data should be displayed from this neighbor?
      * STATE?
-     * UUID?
+     * ID?
      * KEY?
      */
     inet_ntop(AF_INET, &currentneighbor->NeighborIP, strip,INET_ADDRSTRLEN);
@@ -915,7 +916,7 @@ struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
     newneighbor->prev = NULL;
     newneighbor->NeighborIP = 0;
     newneighbor->state = DOWN;
-    newneighbor->UUID[0] = '\0';
+    newneighbor->ID[0] = '\0';
     newneighbor->sock = 0;
     newneighbor->key[0] = '\0';
     time(&newneighbor->timer);
@@ -1209,16 +1210,17 @@ struct commandresult cli_show_key(int client_fd, char **parameters, int numparam
 
 /*
  * We need to verify that the remote accelerator is a member of this domain.
- * @todo: Later the UUID will need to be used instead of the IP address.
+ * @todo: Later the ID will need to be used instead of the IP address.
  */
-int verify_neighbor_in_domain(__u32 neighborIP) {
+//int verify_neighbor_in_domain(__u32 neighborIP) {
+int verify_neighbor_in_domain(char *neighborid) {
     struct neighbor *currentneighbor = NULL;
 
     currentneighbor = ipchead.next;
 
     while (currentneighbor != NULL) {
 
-        if (currentneighbor->NeighborIP == neighborIP && currentneighbor->state == UP) {
+        if ((compare_opennopid(currentneighbor->ID, neighborid) == 1) && currentneighbor->state == UP) {
 
             return 1;
         }
@@ -1229,8 +1231,21 @@ int verify_neighbor_in_domain(__u32 neighborIP) {
     return 0;
 }
 
-__u8 *get_opennop_uuid(){
-	return (__u8*)&UUID;
+__u8 *get_opennop_id(){
+	return (__u8*)&opennop_localid;
+}
+
+void generate_opennopid(){
+	struct timespec ts;
+	int r, i;
+
+	clock_gettime(CLOCK_REALTIME, &ts);
+	srandom(ts.tv_nsec ^ ts.tv_sec);
+	r = random();
+
+	for(i = 0; i<sizeof(__u32);i++){
+		opennop_localid[i] = ((__u8*)&r)[i];
+	}
 }
 
 void start_ipc() {
@@ -1248,7 +1263,8 @@ void start_ipc() {
     /**
      *
      */
-    uuid_generate_time((unsigned char*)&UUID);
+    //uuid_generate_time((unsigned char*)&opennop_localid);
+    generate_opennopid();
 
     ipchead.next = NULL;
     ipchead.prev = NULL;

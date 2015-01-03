@@ -13,6 +13,11 @@ struct nodhdr {
 	__u8  id;
 };
 
+struct hdrdata {
+	__u8 data_len;
+	__u8* data;
+};
+
 struct tcp_opt_nod{
 	__u8  option_num;
 	__u8  option_len;
@@ -26,5 +31,5 @@ unsigned int tcpoptlen, u_int64_t tcpoptdata);
 struct nodhdr *get_nod_header(__u8 *ippacket, const char *id);
 struct nodhdr *set_nod_header(__u8 *ippacket, const char *id);
 void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8 header_data_length);
-__u8 *get_nod_header_data(__u8 *ippacket, const char *id);
+struct hdrdata get_nod_header_data(__u8 *ippacket, const char *id);
 #endif /*TCPOPTIONS_H_*/

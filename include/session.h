@@ -2,8 +2,8 @@
 #define SESSION_H_
 
 #include <sys/types.h>
-
 #include <linux/types.h>
+#include "ipc.h"
 
 /* Structure used for the head of a session list. */
 struct session_head {
@@ -24,12 +24,12 @@ struct session {
 	__u16 largerIPPort; // Stores the larger IP port #.
 	__u32 largerIPStartSEQ; // Stores the starting SEQ number.
 	__u32 largerIPseq; // Stores the TCP SEQ from the largerIP.
-	__u32 largerIPAccelerator; // Stores the AcceleratorIP of the largerIP.
+	char largerIPAccelerator[OPENNOP_IPC_ID_LENGTH]; // Stores the AcceleratorIP of the largerIP.
 	__u32 smallerIP; // Stores the smaller IP address.
 	__u16 smallerIPPort; // Stores the smaller IP port #.
 	__u32 smallerIPStartSEQ; // Stores the starting SEQ number.
 	__u32 smallerIPseq; // Stores the TCP SEQ from the smallerIP.
-	__u32 smallerIPAccelerator; // Stores the AcceleratorIP of the smallerIP.
+	char smallerIPAccelerator[OPENNOP_IPC_ID_LENGTH]; // Stores the AcceleratorIP of the smallerIP.
 	__u64 lastactive; // Stores the time this session was last active.
 	__u8 deadcounter; // Stores how many counts the session has been idle.
 	__u8 state; // Stores the TCP session state.
