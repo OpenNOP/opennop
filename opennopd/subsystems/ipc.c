@@ -1303,7 +1303,7 @@ int verify_neighbor_in_domain(char *neighborid) {
 
     while (currentneighbor != NULL) {
 
-        if ((compare_opennopid(currentneighbor->id, neighborid) == 1) && currentneighbor->state == UP) {
+        if ((compare_opennopid((char*)&currentneighbor->id, neighborid) == 1) && currentneighbor->state == UP) {
 
             return 1;
         }
