@@ -873,9 +873,12 @@ int cli_show_neighbor_help(int client_fd) {
  * @return int
  */
 int cli_display_neighbor_details(int client_fd, struct neighbor *currentneighbor) {
-
+	int i = 0;
     char strip[20];
     char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
+    char line[17] = {0};
+    char temp[33] = {0};
+    char hex[33] = {0};
 
     /**
      * @todo What data should be displayed from this neighbor?
@@ -884,7 +887,20 @@ int cli_display_neighbor_details(int client_fd, struct neighbor *currentneighbor
      * KEY?
      */
     inet_ntop(AF_INET, &currentneighbor->NeighborIP, strip,INET_ADDRSTRLEN);
-    sprintf(msg,"Neighbor: %s.\n",strip);
+    sprintf(msg,"Neighbor: %s\n",strip);
+    cli_send_feedback(client_fd, msg);
+
+    for(i = 0;i < OPENNOP_IPC_ID_LENGTH; i++){
+    	line[i%16] = *((char*)(&currentneighbor->id)+i);
+
+        if((line[i%16] < 32) || (line[i%16] > 126)){
+        	line[i%16] = '.';
+        }
+    	sprintf(temp,"%.2X",(unsigned char)*((char*)(&currentneighbor->id)+i));
+    	strcat(hex,temp);
+
+    }
+    sprintf(msg,"ID: %s | %s\n", hex, line);
     cli_send_feedback(client_fd, msg);
 
     switch(currentneighbor->state) {
