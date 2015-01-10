@@ -453,6 +453,9 @@ struct commandresult cli_show_sessionss(int client_fd, char **parameters, int nu
 					strcat(msg, end);
 					cli_send_feedback(client_fd, msg);
 
+					binary_dump("sessionmanager.c Larger ID: ", (char*)&currentsession->largerIPAccelerator, OPENNOP_IPC_ID_LENGTH);
+					binary_dump("sessionmanager.c Smaller ID: ", (char*)&currentsession->smallerIPAccelerator, OPENNOP_IPC_ID_LENGTH);
+
 					currentsession = currentsession->next;
 				}
 			}
