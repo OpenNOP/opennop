@@ -87,7 +87,7 @@ int save_opennopid(char *source, char *destination){
 	}
 
 	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
-		source[i] = destination[i];
+		destination[i] = source[i];
 	}
 	return 0;
 }

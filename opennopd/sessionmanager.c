@@ -530,11 +530,11 @@ int saveacceleratorid(__u32 largerIP, char *acceleratorID, struct iphdr *iph, st
 
 		if (iph->saddr == largerIP)
 		{ // Set the Accelerator for this source.
-			save_opennopid(thissession->largerIPAccelerator, acceleratorID);
+			save_opennopid(acceleratorID, thissession->largerIPAccelerator);
 		}
 		else
 		{
-			save_opennopid(thissession->smallerIPAccelerator, acceleratorID);
+			save_opennopid(acceleratorID, thissession->largerIPAccelerator);
 		}
 		return 0;// Everything  OK.
 	}
