@@ -266,7 +266,7 @@ void binary_dump(const char *header, char *data, unsigned int bytes) {
     }
     sprintf(temp," | %s\n", line);
     strcat(message,temp);
-    logger2(LOGGING_ERROR,DEBUG_IPC,message);
+    logger2(LOGGING_ERROR, DEBUG_IPC, message);
 
     /*
 	for(i=0; i < datalength && i < strlen(message); i++){
@@ -299,6 +299,35 @@ int get_header_data(struct opennop_ipc_header *opennop_msg_header,  struct openn
         data->securitydata = NULL;
         data->messages = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
     }
+    return 0;
+}
+
+int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
+    struct opennop_header_data data;
+    char message[LOGSZ] = {0};
+    //char securitydata[33] = {0};
+
+    sprintf(message, "Type: %u\n", opennop_msg_header->type);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    sprintf(message, "Version: %u\n", opennop_msg_header->version);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    sprintf(message, "Length: %u\n", opennop_msg_header->length);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    sprintf(message, "Security: %u\n", opennop_msg_header->security);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
+    logger2(LOGGING_WARN,DEBUG_IPC,message);
+
+    if(opennop_msg_header->security == 1) {
+        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
+        //memset(&securitydata, 0, sizeof(securitydata));
+        //memcpy(&securitydata, data.securitydata, 32);
+        //sprintf(message, "Security Data: %s\n", securitydata);
+        //sprintf(message, "Security HMAC");
+        logger2(LOGGING_WARN,DEBUG_IPC,message);
+        binary_dump("Security Data HMAC", data.securitydata, 32);
+    }
+
     return 0;
 }
 
@@ -347,7 +376,7 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
 
         if(this_neighbor != NULL){
         	binary_dump("ipc.c Saving neighbor ID: ", (char*)&hello_message->id, OPENNOP_IPC_ID_LENGTH);
-        	save_opennopid(&hello_message->id, &this_neighbor->id);
+        	save_opennopid((char*)&hello_message->id, (char*)&this_neighbor->id);
         }
 
         break;
@@ -502,35 +531,6 @@ int initialize_opennop_ipc_header(struct opennop_ipc_header *opennop_msg_header)
     opennop_msg_header->length = OPENNOP_DEFAULT_HEADER_LENGTH; // Header is at least 8 bytes.
     set_opennop_message_security(opennop_msg_header);
     opennop_msg_header->antireplay = OPENNOP_MSG_ANTI_REPLAY_NO;
-    return 0;
-}
-
-int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
-    struct opennop_header_data data;
-    char message[LOGSZ] = {0};
-    //char securitydata[33] = {0};
-
-    sprintf(message, "Type: %u\n", opennop_msg_header->type);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
-    sprintf(message, "Version: %u\n", opennop_msg_header->version);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
-    sprintf(message, "Length: %u\n", opennop_msg_header->length);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
-    sprintf(message, "Security: %u\n", opennop_msg_header->security);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
-    sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
-
-    if(opennop_msg_header->security == 1) {
-        data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
-        //memset(&securitydata, 0, sizeof(securitydata));
-        //memcpy(&securitydata, data.securitydata, 32);
-        //sprintf(message, "Security Data: %s\n", securitydata);
-        //sprintf(message, "Security HMAC");
-        logger2(LOGGING_WARN,DEBUG_IPC,message);
-        binary_dump("Security Data HMAC", data.securitydata, 32);
-    }
-
     return 0;
 }
 
