@@ -73,10 +73,10 @@ int check_opennopid(char *opennopid){
 	for(i=0; i < OPENNOP_IPC_ID_LENGTH; i++){
 
 		if(opennopid[i] != 0){
-			return 0;
+			return 1;
 		}
 	}
-	return 1;
+	return 0;
 }
 
 int save_opennopid(char *source, char *destination){
