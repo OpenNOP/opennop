@@ -167,7 +167,7 @@ void *worker_thread(void *dummyPtr) {
                                 		(compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))||
                                         ((iph->saddr == smallerIP) &&
                                          //(thissession->largerIPAccelerator == localID))) {
-                                        (compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))) {
+                                        (compare_opennopid((char*)&thissession->largerIPIPAccelerator, (char*)get_opennop_id()) == 1))) {
 
                                     /*
                                      * Decompress this packet!
