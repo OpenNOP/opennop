@@ -346,7 +346,8 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
         this_neighbor = find_neighbor_by_socket(fd);
 
         if(this_neighbor != NULL){
-        	save_opennopid(hello_message->id, this_neighbor->id);
+        	binary_dump("ipc.c Saving neighbor ID: ", (char*)&hello_message->id, OPENNOP_IPC_ID_LENGTH);
+        	save_opennopid(&hello_message->id, &this_neighbor->id);
         }
 
         break;
