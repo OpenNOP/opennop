@@ -1298,6 +1298,7 @@ struct commandresult cli_show_key(int client_fd, char **parameters, int numparam
 //int verify_neighbor_in_domain(__u32 neighborIP) {
 int verify_neighbor_in_domain(char *neighborid) {
     struct neighbor *currentneighbor = NULL;
+    char message[LOGSZ] = {0};
 
     currentneighbor = ipchead.next;
 
@@ -1310,7 +1311,8 @@ int verify_neighbor_in_domain(char *neighborid) {
 
         currentneighbor = currentneighbor->next;
     }
-
+    sprintf(message, "ipc.c verify_neighobr_in_domain(): Neighbor not in domain.\n");
+    logger2(LOGGING_ALL, DEBUG_IPC, message); //* @todo Was LOGGING_DEBUG
     return 0;
 }
 
