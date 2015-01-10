@@ -159,7 +159,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if ((tcph->syn == 1) && (tcph->ack == 1)) {
                         updateseq(largerIP, iph, tcph, thissession);
 
-                        if ((remoteID == 0) || verify_neighbor_in_domain(remoteID) == false) { // Accelerator ID was not found.
+                        if ((remoteID == NULL) || verify_neighbor_in_domain(remoteID) == false) { // Accelerator ID was not found.
                             mms = __get_tcp_option((__u8 *)originalpacket,2);
 
                             if (mms > 60) {
@@ -209,7 +209,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if (thispacket != NULL) {
                         save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
 
-                        if ((remoteID == 0) || verify_neighbor_in_domain(remoteID) == false) {
+                        if ((remoteID == NULL) || verify_neighbor_in_domain(remoteID) == false) {
                             optimize_packet(thissession->queue, thispacket);
 
                         } else if(verify_neighbor_in_domain(remoteID) == true) {
