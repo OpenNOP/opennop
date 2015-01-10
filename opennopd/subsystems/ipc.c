@@ -359,6 +359,7 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     struct opennop_header_data data;
     struct opennop_message_header *message_header;
     struct opennop_hello_message *hello_message;
+    struct ipc_message_i_see_you *i_see_you_message;
     struct neighbor *this_neighbor;
 
 
@@ -386,6 +387,14 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
          * @todo
          * If we get an I_SEE_YOU but our state is not >= ESTABLISHED send HERE_I_AM.
          */
+        i_see_you_message = (struct opennop_hello_message*)message_header;
+        this_neighbor = find_neighbor_by_socket(fd);
+
+        if(this_neighbor != NULL){
+        	binary_dump("ipc.c Saving neighbor ID: ", (char*)&i_see_you_message->id, OPENNOP_IPC_ID_LENGTH);
+        	save_opennopid((char*)&i_see_you_message->id, (char*)&this_neighbor->id);
+        }
+
         ipc_set_neighbor_state(fd, UP);
         break;
     case OPENNOP_IPC_AUTH_ERR:
@@ -486,6 +495,7 @@ int ipc_add_i_see_you_message(struct opennop_ipc_header *opennop_msg_header) {
     /**
      * There is no additional data right now.
      */
+    memcpy((void*)&message->id, (void*)&opennop_localid, (size_t)OPENNOP_IPC_ID_LENGTH);
     opennop_msg_header->length += message->header.length;
 
     return 0;

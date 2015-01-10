@@ -89,6 +89,7 @@ struct opennop_hello_message{
 
 struct ipc_message_i_see_you{
 	struct opennop_message_header header;
+	char id[OPENNOP_IPC_ID_LENGTH];
 	/*
 	 * Additional data would go here.
 	 */
