@@ -42,13 +42,13 @@ int session_accelerated(struct session *currentsession){
 	//if ((((currentsession->largerIPAccelerator == localID)
 	if (((( compare_opennopid((char*)&currentsession->largerIPAccelerator, (char*)get_opennop_id()) == 1)
 			//|| (currentsession->smallerIPAccelerator == localID))
-			|| (compare_opennopid((char*)currentsession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))
+			|| (compare_opennopid((char*)&currentsession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))
 			//&& ((currentsession->largerIPAccelerator != 0)
-			&& ((check_opennopid((char*)currentsession->largerIPAccelerator) != 0)
+			&& ((check_opennopid((char*)&currentsession->largerIPAccelerator) != 0)
 			//&& (currentsession->smallerIPAccelerator != 0))
-			&& (check_opennopid((char*)currentsession->smallerIPAccelerator) != 0))
+			&& (check_opennopid((char*)&currentsession->smallerIPAccelerator) != 0))
 			//&& (currentsession->largerIPAccelerator  != currentsession->smallerIPAccelerator))) {
-			&& (compare_opennopid((char*)currentsession->largerIPAccelerator, (char*)currentsession->smallerIPAccelerator) == 0))) {
+			&& (compare_opennopid((char*)&currentsession->largerIPAccelerator, (char*)&currentsession->smallerIPAccelerator) == 0))) {
 		return 1;
 	}
 
