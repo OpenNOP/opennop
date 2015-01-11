@@ -144,7 +144,7 @@ struct neighbor *find_neighbor_by_socket(int fd) {
         inet_ntop(AF_INET, &t->sin_addr, ipstr, sizeof(ipstr));
     }
     sprintf(message, "[IPC] Peer IP address: %s\n", ipstr);
-    logger2(LOGGING_INFO,DEBUG_IPC,message);
+    logger2(LOGGING_DEBUG,DEBUG_IPC,message);
 
     if(t != NULL) {
         return find_neighbor_by_addr(&t->sin_addr);
@@ -224,7 +224,7 @@ void binary_dump(const char *header, char *data, unsigned int bytes) {
 	char temp[33] = {0};
 	char message[LOGSZ] = {0};
 
-	logger2(LOGGING_ERROR, DEBUG_IPC, header);
+	logger2(LOGGING_ALL, LOGGING_ALL, header);
 	sprintf(message,"Binary Dump:\n");
     sprintf(temp, "%.8X | ", (unsigned int)(intptr_t)data);
     strcat(message,temp);
@@ -266,7 +266,7 @@ void binary_dump(const char *header, char *data, unsigned int bytes) {
     }
     sprintf(temp," | %s\n", line);
     strcat(message,temp);
-    logger2(LOGGING_ERROR, DEBUG_IPC, message);
+    logger2(LOGGING_ALL, LOGGING_ALL, message);
 
     /*
 	for(i=0; i < datalength && i < strlen(message); i++){
@@ -308,15 +308,15 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
     //char securitydata[33] = {0};
 
     sprintf(message, "Type: %u\n", opennop_msg_header->type);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    logger2(LOGGING_DEBUG,DEBUG_IPC,message);
     sprintf(message, "Version: %u\n", opennop_msg_header->version);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    logger2(LOGGING_DEBUG,DEBUG_IPC,message);
     sprintf(message, "Length: %u\n", opennop_msg_header->length);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    logger2(LOGGING_DEBUG,DEBUG_IPC,message);
     sprintf(message, "Security: %u\n", opennop_msg_header->security);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    logger2(LOGGING_DEBUG,DEBUG_IPC,message);
     sprintf(message, "Anti-Replay: %u\n", opennop_msg_header->antireplay);
-    logger2(LOGGING_WARN,DEBUG_IPC,message);
+    logger2(LOGGING_DEBUG,DEBUG_IPC,message);
 
     if(opennop_msg_header->security == 1) {
         data.securitydata = (char *)opennop_msg_header + sizeof(struct opennop_ipc_header);
@@ -324,8 +324,11 @@ int print_opennnop_header(struct opennop_ipc_header *opennop_msg_header) {
         //memcpy(&securitydata, data.securitydata, 32);
         //sprintf(message, "Security Data: %s\n", securitydata);
         //sprintf(message, "Security HMAC");
-        logger2(LOGGING_WARN,DEBUG_IPC,message);
-        binary_dump("Security Data HMAC", data.securitydata, 32);
+        //logger2(LOGGING_DEBUG,DEBUG_IPC,message);
+
+        if(should_i_log(LOGGING_DEBUG, DEBUG_IPC) == 1){
+        	binary_dump("Security Data HMAC", data.securitydata, 32);
+        }
     }
 
     return 0;
@@ -335,7 +338,7 @@ int ipc_tx_message(int socket, struct opennop_ipc_header *opennop_msg_header) {
     int error;
     char message[LOGSZ] = {0};
 
-    logger2(LOGGING_WARN,DEBUG_IPC,"IPC: Sending a message\n");
+    logger2(LOGGING_DEBUG,DEBUG_IPC,"IPC: Sending a message\n");
     print_opennnop_header(opennop_msg_header);
 
     /**
@@ -363,26 +366,29 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
     struct neighbor *this_neighbor;
 
 
-    logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Processing message!\n");
+    logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Processing message!\n");
 
     get_header_data(opennop_msg_header, &data);
     message_header = (struct opennop_message_header *)data.messages;
     switch(message_header->type) {
     case OPENNOP_IPC_HERE_I_AM:
-        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_HERE_I_AM.\n");
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_HERE_I_AM.\n");
         ipc_send_message(fd, OPENNOP_IPC_I_SEE_YOU);
         hello_message = (struct opennop_hello_message*)message_header;
 
         this_neighbor = find_neighbor_by_socket(fd);
 
         if(this_neighbor != NULL){
-        	binary_dump("ipc.c Saving neighbor ID: ", (char*)&hello_message->id, OPENNOP_IPC_ID_LENGTH);
+
+        	if(should_i_log(LOGGING_DEBUG, DEBUG_IPC) == 1){
+        		binary_dump("ipc.c Saving neighbor ID: ", (char*)&hello_message->id, OPENNOP_IPC_ID_LENGTH);
+        	}
         	save_opennopid((char*)&hello_message->id, (char*)&this_neighbor->id);
         }
 
         break;
     case OPENNOP_IPC_I_SEE_YOU:
-        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_I_SEE_YOU.\n");
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_I_SEE_YOU.\n");
         /**
          * @todo
          * If we get an I_SEE_YOU but our state is not >= ESTABLISHED send HERE_I_AM.
@@ -391,23 +397,26 @@ int process_message(int fd, struct opennop_ipc_header *opennop_msg_header) {
         this_neighbor = find_neighbor_by_socket(fd);
 
         if(this_neighbor != NULL){
-        	binary_dump("ipc.c Saving neighbor ID: ", (char*)&i_see_you_message->id, OPENNOP_IPC_ID_LENGTH);
+
+        	if(should_i_log(LOGGING_DEBUG, DEBUG_IPC) == 1){
+        		binary_dump("ipc.c Saving neighbor ID: ", (char*)&i_see_you_message->id, OPENNOP_IPC_ID_LENGTH);
+        	}
         	save_opennopid((char*)&i_see_you_message->id, (char*)&this_neighbor->id);
         }
 
         ipc_set_neighbor_state(fd, UP);
         break;
     case OPENNOP_IPC_AUTH_ERR:
-        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_AUTH_ERR.\n");
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_AUTH_ERR.\n");
         break;
     case OPENNOP_IPC_BAD_ID:
-        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_BAD_ID.\n");
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_BAD_ID.\n");
         break;
     case OPENNOP_IPC_DEDUP_MAP:
-        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_DEDUP_MAP.\n");
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Message Type: OPENNOP_IPC_DEDUP_MAP.\n");
         break;
     default:
-        logger2(LOGGING_WARN,DEBUG_IPC,"[IPC] Message Type: Unknown!\n");
+        logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Message Type: Unknown!\n");
     }
 
     return 0;
@@ -1312,7 +1321,7 @@ int verify_neighbor_in_domain(char *neighborid) {
         currentneighbor = currentneighbor->next;
     }
     sprintf(message, "ipc.c verify_neighobr_in_domain(): Neighbor not in domain.\n");
-    logger2(LOGGING_ALL, DEBUG_IPC, message); //* @todo Was LOGGING_DEBUG
+    logger2(LOGGING_DEBUG, DEBUG_IPC, message); //* @todo Was LOGGING_DEBUG
     return 0;
 }
 
