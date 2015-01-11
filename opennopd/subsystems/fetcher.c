@@ -291,7 +291,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
      */
 
     /* Before we return let increment the packets counter. */
-    thefetcher.metrics.packets++;
+    //thefetcher.metrics.packets++; //Removed dead code.
+
     return 0;
 }
 
