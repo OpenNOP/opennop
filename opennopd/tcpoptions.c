@@ -43,7 +43,7 @@ void remove_tcpopt_nop(__u8 *ippacket){
 			// While TCP option space = TCPOPT_NOP.
 			while (opt[i] == TCPOPT_NOP){
 				sprintf(message, "[NOD] Removing TCPOPT_NOP.\n");
-				logger2(LOGGING_ERROR,DEBUG_NOD,message);
+				logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 				// Move options forward to use TCPOPT_NOP space.
 				memmove(opt + i,opt +i + 1,(((tcph->doff*4) - sizeof(struct tcphdr)) -i) -1);
 				opt[(((tcph->doff*4)- sizeof(struct tcphdr)) -1)] = 0;
@@ -155,11 +155,11 @@ __u8 shift_tcpopt_space(__u8 *ippacket, __u8 *location, __u8 bytes){
 
 	if(optend != NULL){
 		sprintf(message, "[NOD] TCP Option space used: %u/%u.\n",(__u8)(optend - optstart), (__u8)(tcph->doff*4 - sizeof(struct tcphdr)));
-		logger(LOG_INFO, message);
+		logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 		bytestotcpoptend = (optend - location);
 		sprintf(message, "[NOD] TCP Bytes to end of TCP Options: %u.\n",bytestotcpoptend);
-		logger(LOG_INFO, message);
+		logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 		//binary_dump("[TCP] Shift bytes:\n", (char*)location, bytes);
 		memmove((void*)((__u8*)location + bytes), (void*)location, bytestotcpoptend);
@@ -278,7 +278,7 @@ int check_nod_header(struct nodhdr *nodh, const char *id){
 	char message[LOGSZ] = {0};
 
 	sprintf(message, "Entering check_nod_header():\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	iddata = (__u8*)&nodh->id;
 
@@ -296,17 +296,17 @@ struct nodhdr *get_nod_next_header(struct tcp_opt_nod *nod, struct nodhdr *nodh)
 	char message[LOGSZ] = {0};
 
 	sprintf(message, "Entering get_nod_next_header():\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	sprintf(message, "[NOD] NOD Length: %u.\n",nod->option_len);
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	//* If (&nod + nodlength = &nodh + nodh->length) we reached the end.
 	if((__u8*)&nod + nod->option_len < (__u8*)&nodh + nodh->tot_len){
 		return (struct nodhdr*)(__u8*)nodh + nodh->tot_len;
 	}
 	sprintf(message, "[NOD] No matching header.\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 	return NULL;
 }
 
@@ -322,17 +322,17 @@ struct nodhdr *get_nod_header(__u8 *ippacket, const char *id){
 	char message[LOGSZ] = {0};
 
 	sprintf(message, "Entering get_nod_header().\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	nod = get_tcpopt(ippacket, NOD);
 	sprintf(message, "Returning from:get_tcpopt() to:get_nod_header().\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	if(nod != NULL){
 
 		if(nod[1] > 2){
 			sprintf(message, "[TCPOPT] Found NOD headers.\n");
-			logger(LOG_INFO, message);
+			logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 			nodh = (struct nodhdr*)&nod[2];
 
 			while(nodh != NULL){
@@ -341,13 +341,13 @@ struct nodhdr *get_nod_header(__u8 *ippacket, const char *id){
 
 					if(check_nod_header(nodh, id) == 1){
 						sprintf(message, "[NOD] Header is a match.\n");
-						logger(LOG_INFO, message);
+						logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 						return nodh;
 					}
 				}else{
 					sprintf(message, "[NOD] Header length mismatch: %u.\n",nodh->idlen);
-					logger(LOG_INFO, message);
+					logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 				}
 
 				nodh = get_nod_next_header((struct tcp_opt_nod*)nod, nodh);
@@ -355,7 +355,7 @@ struct nodhdr *get_nod_header(__u8 *ippacket, const char *id){
 		}
 	}
 	sprintf(message, "[NOD] No match.\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 	return NULL;
 }
 
@@ -383,7 +383,7 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 	char message[LOGSZ] = {0};
 
 	sprintf(message, "Entering set_nod_header().\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	iph = (struct iphdr *)ippacket;
 	tcph = (struct tcphdr *) (((u_int32_t *)ippacket) + iph->ihl);
@@ -402,14 +402,14 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 
 	nod = set_tcpopt(ippacket, NOD, 2);
 	sprintf(message, "Returning from:set_tcpopt() to:set_nod_header().\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	nodh = get_nod_header(ippacket, id);
 
 	if(nodh == NULL){
 		headerlen = 2 + strlen(id);
 		sprintf(message, "[NOD] New header length: %u.\n",headerlen);
-		logger(LOG_INFO, message);
+		logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 		add_tcpopt_bytes(ippacket, headerlen);
 
@@ -441,7 +441,7 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 		nodh = (struct nodhdr*)((__u8*)nod + nod[1]);
 		nod[1] += headerlen;
 		sprintf(message, "[NOD] New NOD Length: %u.\n",nod[1]);
-		logger(LOG_INFO, message);
+		logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 		nodh->tot_len = headerlen;
 		nodh->idlen = (__u8)strlen(id);
 		nodh->hdr_len = headerlen;
@@ -454,7 +454,7 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 
 	if(get_nod_header(ippacket, id) == NULL){
 		sprintf(message, "[NOD] get_nod_header() failed!\n");
-		logger(LOG_INFO, message);
+		logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 	}
 
 
@@ -471,22 +471,25 @@ struct hdrdata get_nod_header_data(__u8 *ippacket, const char *id){
 	hdrdta.data = NULL;
 
 	sprintf(message, "Entering get_nod_header_data():\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	nodh = get_nod_header(ippacket, id);
 
 	sprintf(message, "Returning from get_nod_header():\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	if(nodh != NULL){
 
 		sprintf(message, "[NOD] hdr_len:%u, idlen:%u.\n",nodh->hdr_len,nodh->idlen);
-		logger(LOG_INFO, message);
+		logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 		if(nodh->hdr_len > (nodh->idlen + 2)){
 			headerdata = (__u8*)nodh + nodh->idlen + 2;
-			binary_dump("NOD Header (r): ",(char*)nodh, nodh->tot_len);
-			binary_dump("NOD Header Data (r): ",(char*)headerdata, nodh->hdr_len - (nodh->idlen + 2));
+
+			if(should_i_log(LOGGING_DEBUG, DEBUG_NOD) == 1){
+				binary_dump("NOD Header (r): ",(char*)nodh, nodh->tot_len);
+				binary_dump("NOD Header Data (r): ",(char*)headerdata, nodh->hdr_len - (nodh->idlen + 2));
+			}
 
 			hdrdta.data_len = nodh->hdr_len - (nodh->idlen + 2);
 			hdrdta.data = (__u8*)nodh + nodh->idlen + 2;
@@ -505,53 +508,57 @@ void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8
 	char message[LOGSZ] = {0};
 
 	sprintf(message, "Entering set_nod_header_data().\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	iph = (struct iphdr *)ippacket;
 	tcph = (struct tcphdr *) (((u_int32_t *)ippacket) + iph->ihl);
 
 	sprintf(message, "TCP Sequence #:%u\n",ntohl(tcph->seq));
-		logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	nodh = set_nod_header(ippacket, id);
 	sprintf(message, "Returning from:set_nod_header() to:set_nod_header_data().\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	nod = get_tcpopt(ippacket, NOD);
 	sprintf(message, "Returning from:get_tcpopt() to:set_nod_header_data().\n");
-	logger(LOG_INFO, message);
+	logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 	if((nodh != NULL) && (nod != NULL)){
 
 		if(nodh->hdr_len == nodh->idlen + 2){
 
 			sprintf(message, "[NOD] Header data is not set.\n");
-			logger(LOG_INFO, message);
+			logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 			//add_tcpopt_bytes(ippacket, header_data_length);
 			if(add_tcpopt_bytes(ippacket, header_data_length) == 0){
 
 				if(get_tcpopt_freespace(ippacket) >= header_data_length){
 					sprintf(message, "[NOD] There is enough free space.\n");
-					logger(LOG_INFO, message);
+					logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 					//binary_dump("[NOD] Header (wr): ", (char*)(__u8*)nodh, nodh->tot_len);
 
 					shift_tcpopt_space(ippacket, (__u8*)nodh + nodh->hdr_len, header_data_length);
 					sprintf(message, "Returning from:shift_tcpopt_space() to:set_nod_header_data().\n");
-					logger(LOG_INFO, message);
+					logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 
 					nod[1] += header_data_length;
 					nodh->tot_len += header_data_length;
 					nodh->hdr_len += header_data_length;
-					binary_dump("[NOD] Header (wr): ", (char*)(__u8*)nodh, nodh->tot_len);
+
+					if(should_i_log(LOGGING_DEBUG, DEBUG_NOD) == 1){
+						binary_dump("[NOD] Header (wr): ", (char*)(__u8*)nodh, nodh->tot_len);
+					}
 
 					headerdata = (__u8*)((__u8*)nodh) + nodh->idlen + 2;
 
 					//sprintf(message, "[NOD] hdr_len:%u, idlen:%u.\n", nodh->hdr_len, nodh->idlen);
 					//logger(LOG_INFO, message);
-
-					binary_dump("[NOD] Header Data (wr): ", (char*)headerdata, header_data_length);
-					binary_dump("[NOD] Header Data Source (wr): ", (char*)header_data, header_data_length);
+					if(should_i_log(LOGGING_DEBUG, DEBUG_NOD) == 1){
+						binary_dump("[NOD] Header Data (wr): ", (char*)headerdata, header_data_length);
+						binary_dump("[NOD] Header Data Source (wr): ", (char*)header_data, header_data_length);
+					}
 
 					memcpy((void*)headerdata, (void*)header_data, header_data_length);
 					//for(i=0; i<header_data_length; i++){
@@ -565,17 +572,19 @@ void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8
 					//headerdata[0] = 65;
 					//headerdata[header_data_length -1] = 90;
 
+					if(should_i_log(LOGGING_DEBUG, DEBUG_NOD) == 1){
+						binary_dump("[NOD] Header (wr): ", (char*)(__u8*)nodh, nodh->tot_len);
+						binary_dump("[NOD] Header Data (wr): ", (char*)headerdata, header_data_length);
+					}
 
-					binary_dump("[NOD] Header (wr): ", (char*)(__u8*)nodh, nodh->tot_len);
-					binary_dump("[NOD] Header Data (wr): ", (char*)headerdata, header_data_length);
 				}else{
 					sprintf(message, "[NOD] Could not write header data.\n");
-					logger(LOG_INFO, message);
+					logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 				}
 			}
 		}else{
 			sprintf(message, "[NOD] Header data already allocated.\n");
-			logger(LOG_INFO, message);
+			logger2(LOGGING_DEBUG, DEBUG_NOD, message);
 		}
 	}
 }
