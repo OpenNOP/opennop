@@ -46,6 +46,7 @@ void *worker_thread(void *dummyPtr) {
 
     me->lzbuffer = calloc(1, BUFSIZE + 400);
     /* Sharwan J: QuickLZ buffer needs (original data size + 400 bytes) buffer */
+
     if (me->lzbuffer == NULL) {
         sprintf(message, "Worker: Couldn't allocate buffer");
         logger(LOG_INFO, message);

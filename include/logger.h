@@ -15,6 +15,7 @@
 #define LOGGING_TRACE	32	// Logging Level 6 00100000
 #define LOGGING_ALL		64	// Logging Level 7 01000000
 
+int should_i_log(int messagelevel, int componentlevel);
 void logger(int LOG_TYPE, char *message);
 int logger2(int level, int debug, char *message);
 
