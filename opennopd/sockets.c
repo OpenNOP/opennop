@@ -133,7 +133,7 @@ int accept_ip_client(int server_socket) {
 
         } else {
             sprintf(message, "IPC: Failed to accept socket.\n");
-            logger(LOG_INFO, message);
+            logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
             return -1;
         }
     }
@@ -146,7 +146,7 @@ int accept_ip_client(int server_socket) {
     if (error == 0) {
         sprintf(message,"IPC: Accepted connection on descriptor %d "
                 "(host=%s, port=%s)\n", newclient_socket, hbuf, sbuf);
-        logger(LOG_INFO, message);
+        logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
     }
 
     return newclient_socket;
@@ -364,7 +364,7 @@ int epoll_handler(struct epoll_server *server) {
         numevents = epoll_wait(server->epoll_fd, server->events, MAXEVENTS, server->timeout);
 
         sprintf(message, "[epoll]: processing events.\n");
-        logger(LOG_INFO, message);
+        logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
 
         /**
          * @todo:
@@ -375,7 +375,7 @@ int epoll_handler(struct epoll_server *server) {
          */
         if(server->timeoutfunction != NULL) {
         	sprintf(message, "[epoll]: calling timeout function!\n");
-        	logger(LOG_INFO, message);
+        	logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
             (server->timeoutfunction(server));
         }
 
@@ -390,7 +390,7 @@ int epoll_handler(struct epoll_server *server) {
                  */
 
                 sprintf(message, "[epoll]: error.\n");
-                logger(LOG_INFO, message);
+                logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
 
                 close(server->events[i].data.fd);
 
@@ -469,7 +469,7 @@ int epoll_handler(struct epoll_server *server) {
                          */
                         //buf[count - 1] = '\0';
                         sprintf(message, "[epoll]: received %u bytes.\n", (unsigned int)count);
-                        logger(LOG_INFO, message);
+                        logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
                     }
 
                     if (count == -1) {
@@ -477,7 +477,7 @@ int epoll_handler(struct epoll_server *server) {
                            data. So go back to the main loop. */
                         if (errno != EAGAIN) {
                             sprintf(message, "[epoll]: Failed reading message.\n");
-                            logger(LOG_INFO, message);
+                            logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
                             done = 1;
                         }
                         break;
@@ -485,7 +485,7 @@ int epoll_handler(struct epoll_server *server) {
                         /* End of file. The remote has closed the
                            connection. */
                         sprintf(message, "[epoll]: Remote closed the connection.\n");
-                        logger(LOG_INFO, message);
+                        logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
                         done = 1;
                         break;
                     }
@@ -499,7 +499,7 @@ int epoll_handler(struct epoll_server *server) {
                 if (done) {
                     sprintf(message, "[epoll]: Closed connection on descriptor %d\n",
                             server->events[i].data.fd);
-                    logger(LOG_INFO, message);
+                    logger2(LOGGING_DEBUG, DEBUG_SOCKETS, message);
 
                     /*
                      * Closing the descriptor will make epoll remove it
