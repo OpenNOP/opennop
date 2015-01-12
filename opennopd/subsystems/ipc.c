@@ -1158,6 +1158,71 @@ int validate_neighbor_input(int client_fd, char *stringip, char *key, t_neighbor
     return 0;
 }
 
+int cli_debug_ipc_help(int client_fd) {
+    char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
+
+    /*
+     * @todo: We only have OFF, DEBUG and ALL level for the IPC right now.
+     */
+
+    //sprintf(msg,"Usage: debug ipc <level>\n");
+    //cli_send_feedback(client_fd, msg);
+    sprintf(msg,"off\n");
+    cli_send_feedback(client_fd, msg);
+    //sprintf(msg,"fatal\n");
+    //cli_send_feedback(client_fd, msg);
+    //sprintf(msg,"error\n");
+    //cli_send_feedback(client_fd, msg);
+    //sprintf(msg,"warn\n");
+    //cli_send_feedback(client_fd, msg);
+    //sprintf(msg,"info\n");
+    //cli_send_feedback(client_fd, msg);
+    sprintf(msg,"debug\n");
+    cli_send_feedback(client_fd, msg);
+    //sprintf(msg,"trace\n");
+    //cli_send_feedback(client_fd, msg);
+    sprintf(msg,"all\n");
+    cli_send_feedback(client_fd, msg);
+
+    return 0;
+}
+
+/** @brief CLI to change IPC debug levels.
+ *
+ * Changes the logging level for the IPC.
+ *
+ * @param client_fd [in] The CLI session that executed the command.
+ * @param parameters[0] [in] The debug level
+ * @param numparameters [in] Should only be 1. (Verified by function)
+ * @param data [in] Should be NULL.
+ */
+struct commandresult cli_debug_ipc(int client_fd, char **parameters, int numparameters, void *data) {
+    struct commandresult result  = { 0 };
+    char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    if (numparameters != 1) {
+    	cli_debug_ipc_help(client_fd);
+        return result;
+    }
+
+    if (strcmp(parameters[0], "off") == 0) {
+    	DEBUG_IPC = LOGGING_OFF;
+    }else if (strcmp(parameters[0], "debug") == 0){
+    	DEBUG_IPC = LOGGING_DEBUG;
+    }else if (strcmp(parameters[0], "all") == 0){
+    	DEBUG_IPC = LOGGING_ALL;
+    }
+
+    sprintf(msg,"ipc debug level = %s\n",parameters[0]);
+    cli_send_feedback(client_fd, msg);
+
+    return result;
+}
+
 /*
  * We only need to validate the number of parameters are correct here.
  * Lets let the more specific functions do the data validation from the input.
@@ -1356,6 +1421,7 @@ void start_ipc() {
     register_command(NULL, "key", cli_set_key, true, true);
     register_command(NULL, "show key", cli_show_key, false, true);
     register_command(NULL, "show neighbor", cli_show_neighbor, true, true);
+    register_command(NULL, "debug ipc", cli_debug_ipc, true, false);
 
     /**
      *
