@@ -14,6 +14,10 @@
 #include "clisocket.h"
 #include "logger.h"
 
+/*
+ * Starts the CLI socket.
+ * http://troydhanson.github.io/misc/Unix_domain_sockets.html
+ */
 void start_cli_server() {
     int socket_desc, client_sock, c, *new_sock, length;
     struct sockaddr_un server, client;
@@ -27,7 +31,7 @@ void start_cli_server() {
 
     //Prepare the sockaddr_in structure
     server.sun_family = AF_UNIX;
-    strcpy(server.sun_path, OPENNOP_SOCK);
+    strncpy(server.sun_path, OPENNOP_SOCK, sizeof(server.sun_path)-1);
     unlink(server.sun_path);
 
     //Bind the socket

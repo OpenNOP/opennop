@@ -35,7 +35,7 @@
 #define LOOPBACKIP 16777343UL // Loopback IP address 127.0.0.1.
 /* Global Variables. */
 int servicestate = RUNNING; // Current state of the service.
-__u32 localID = 0; // Variable to store eth0 IP address used as the device ID.
+static __u32 localID = 0; // Variable to store eth0 IP address used as the device ID.
 int isdaemon = true; // Determines how to log the messages and errors.
 
 int main(int argc, char *argv[]) {
@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
     signal(SIGTERM, signal_handler);
     signal(SIGINT, signal_handler);
     signal(SIGQUIT, signal_handler);
+    signal(SIGPIPE,SIG_IGN); // Ignore SIGPIPE on write errors.
 
     int c;
     while ((c = getopt(argc, argv, "nh|help")) != -1) {
@@ -202,11 +203,11 @@ int main(int argc, char *argv[]) {
     create_fetcher();
     pthread_create(&t_cleanup, NULL, cleanup_function, (void *) NULL);
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *) NULL);
+    start_ipc();
     pthread_create(&t_cli, NULL, cli_manager_init, (void *) NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *) NULL);
     pthread_create(&t_memorymanager, NULL, memorymanager_function,
                    (void *) NULL);
-    start_ipc();
 
     sprintf(message, "[OpenNOP]: Started all threads.\n");
     logger(LOG_INFO, message);
@@ -229,6 +230,7 @@ int main(int argc, char *argv[]) {
     rejoin_fetcher();
     pthread_join(t_cleanup, NULL);
     pthread_join(t_healthagent, NULL);
+    rejoin_ipc();
     pthread_join(t_cli, NULL);
     pthread_join(t_counters, NULL);
     pthread_join(t_memorymanager, NULL);
