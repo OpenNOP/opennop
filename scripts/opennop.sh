@@ -1,0 +1,87 @@
+#!/bin/bash
+#
+# 2011 OpenNOP.org
+# All rights reserved.
+#
+# Author: Justin Yaple, feedback at http://www.opennop.org
+#
+### BEGIN INIT INFO
+# Provides:          opennopd
+# Required-Start:    $network $remote_fs
+# Required-Stop:     $null
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: OpenNOP network accelerator
+# Description:       Starts the opennop daemon and begins processing
+#       IP packets sent to the netfilter queue.
+### END INIT INFO
+
+
+# Do preliminary checks here, if any
+#### START of preliminary checks #########
+
+#Check for missing binaries
+OPENNOP_BIN=/usr/sbin/opennopd
+test -x $OPENNOP_BIN || { echo "$OPENNOP_BIN not installed";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+
+##### END of preliminary checks #######
+
+
+# Handle manual control parameters like start, stop, status, restart, etc.
+
+case "$1" in
+  start)
+    # Start daemons.
+
+    echo -n $"Starting the opennop daemon: "
+    echo
+    $OPENNOP_BIN
+    echo
+    ;;
+
+  stop)
+    # Stop daemons.
+    echo -n $"Shutting down opennop: "
+    pkill -9 opennopd
+    echo
+
+    # Do clean-up works here like removing pid files from /var/run, etc.
+    ;;
+    
+  status)
+    status opennopd
+    ;;
+    
+  restart)
+    $0 stop
+    $0 start
+    ;;
+    
+  setup)
+    # Rebuild the opennop driver here.
+    echo -n $"Extracting opennop driver soruce: "
+    cd /usr/src/opennop
+    tar -xf opennopdrv-*.tar.gz
+    cd opennopdrv-*
+    echo
+    echo -n $"Building the opennop driver: "
+    make
+    echo
+    echo -n $"Installing the opennop driver: "
+    mkdir -p /lib/modules/`uname -r`/extra
+    cp opennopdrv.ko /lib/modules/`uname -r`/extra/opennopdrv.ko
+    depmod -a
+    make clean
+    cd /usr/src/opennop
+    rm -rf opennopdrv-*/
+    echo
+    ;;
+
+  *)
+    echo $"Usage: $0 {start|stop|status|restart|setup}"
+    exit 1
+esac
+
+exit 0
