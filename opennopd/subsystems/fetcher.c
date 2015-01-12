@@ -44,10 +44,11 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
     struct packet *thispacket = NULL;
     struct nfqnl_msg_packet_hdr *ph;
     struct timeval tv;
-    __u32 largerIP, smallerIP, remoteID;
+    __u32 largerIP, smallerIP;
     __u16 largerIPPort, smallerIPPort, mms;
     int ret;
     unsigned char *originalpacket = NULL;
+    char *remoteID = NULL;
     char message[LOGSZ];
     char strIP[20];
     //struct packet *newpacket = NULL;
@@ -75,10 +76,11 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
             /* Check what IP address is larger. */
             sort_sockets(&largerIP, &largerIPPort, &smallerIP, &smallerIPPort, iph->saddr, tcph->source, iph->daddr, tcph->dest);
 
-            remoteID = (__u32) __get_tcp_option((__u8 *)originalpacket,30);
+            //remoteID = (__u32) __get_tcp_option((__u8 *)originalpacket,30);
+            remoteID = get_nod_header_data((__u8 *)iph, ONOP).data;
 
             if (DEBUG_FETCHER == true) {
-                inet_ntop(AF_INET, &remoteID, strIP, INET_ADDRSTRLEN);
+                inet_ntop(AF_INET, remoteID, strIP, INET_ADDRSTRLEN);
                 sprintf(message, "Fetcher: The accelerator ID is:%s.\n", strIP);
                 logger(LOG_INFO, message);
             }
@@ -108,18 +110,19 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     sourceisclient(largerIP, iph, thissession);
                     updateseq(largerIP, iph, tcph, thissession);
 
-                    if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) {// Accelerator ID was not found.
+                    if ((remoteID == NULL) || verify_neighbor_in_domain(remoteID) == false) {// Accelerator ID was not found.
                         mms = __get_tcp_option((__u8 *)originalpacket,2);
 
                         if (mms > 60) {
                             __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
-                            __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
+                            //__set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
+                            set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
                             /*
                              * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
                              */
                             //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
-                            saveacceleratorid(largerIP, localID, iph, thissession);
+                            saveacceleratorid(largerIP, (char*)get_opennop_id(), iph, thissession);
 
                             /*
                              * Changing anything requires the IP and TCP
@@ -128,7 +131,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             checksum(originalpacket);
                         }
 
-                    } else if(verify_node_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
+                    } else if(verify_neighbor_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
                         saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                     }
@@ -156,22 +159,23 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if ((tcph->syn == 1) && (tcph->ack == 1)) {
                         updateseq(largerIP, iph, tcph, thissession);
 
-                        if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) { // Accelerator ID was not found.
+                        if ((remoteID == NULL) || verify_neighbor_in_domain(remoteID) == false) { // Accelerator ID was not found.
                             mms = __get_tcp_option((__u8 *)originalpacket,2);
 
                             if (mms > 60) {
                                 __set_tcp_option((__u8 *)originalpacket,2,4,mms - 60); // Reduce the MSS.
-                                __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
+                                //__set_tcp_option((__u8 *)originalpacket,30,6,localID); // Add the Accelerator ID to this packet.
+                                set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
                                 /*
                                  * TCP Window Scale option seemed to break Win7 & Win8 Internet access.
                                  */
                                 //__set_tcp_option((__u8 *)originalpacket,3,3,G_SCALEWINDOW); // Enable window scale.
 
-                                saveacceleratorid(largerIP, localID, iph, thissession);
+                                saveacceleratorid(largerIP, (char*)get_opennop_id(), iph, thissession);
 
                             }
 
-                        } else if(verify_node_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
+                        } else if(verify_neighbor_in_domain(remoteID) == true) { // Accelerator ID was found and in domain.
                             saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                         }
@@ -205,10 +209,10 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                     if (thispacket != NULL) {
                         save_packet(thispacket,hq, id, ret, (__u8 *)originalpacket, thissession);
 
-                        if ((remoteID == 0) || verify_node_in_domain(remoteID) == false) {
+                        if ((remoteID == NULL) || verify_neighbor_in_domain(remoteID) == false) {
                             optimize_packet(thissession->queue, thispacket);
 
-                        } else if(verify_node_in_domain(remoteID) == true) {
+                        } else if(verify_neighbor_in_domain(remoteID) == true) {
                             deoptimize_packet(thissession->queue, thispacket);
                         }
                     } else {
@@ -237,12 +241,13 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                             if (thissession != NULL) { // Test to make sure the session was added.
                                 thissession->state = TCP_ESTABLISHED;
 
-                                if(verify_node_in_domain(remoteID) == true) {
+                                if(verify_neighbor_in_domain(remoteID) == true) {
                                     saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                                 } else {
-                                    __set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
-                                    saveacceleratorid(largerIP, localID, iph, thissession);
+                                    //__set_tcp_option((__u8 *)originalpacket,30,6,localID); // Overwrite the Accelerator ID to this packet.
+                                	set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
+                                    saveacceleratorid(largerIP, (char*)get_opennop_id(), iph, thissession);
                                 }
 
                                 thispacket = get_freepacket_buffer();
@@ -286,7 +291,8 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
      */
 
     /* Before we return let increment the packets counter. */
-    thefetcher.metrics.packets++;
+    //thefetcher.metrics.packets++; //Removed dead code.
+
     return 0;
 }
 
