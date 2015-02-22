@@ -574,7 +574,7 @@ int update_neighbor_timer(struct neighbor *thisneighbor) {
  * @todo:
  * This could overwrite a valid connection if someone were to spoof a new connection from the same IP address.
  */
-int ipc_check_neighbor(struct epoller *epoller, int fd, void *buf) {
+int ipc_check_neighbor(struct epoller *this_epoller, int fd, void *buf) {
     struct neighbor *thisneighbor = NULL;
 
     char message[LOGSZ] = {0};
@@ -605,7 +605,7 @@ int ipc_check_neighbor(struct epoller *epoller, int fd, void *buf) {
  * Returns 0 on successful completion.
  * Return -1 on failure. (should close socket)
  */
-int ipc_handler(struct epoller *epoller, int fd, void *buf) {
+int ipc_handler(struct epoller *this_epoller, int fd, void *buf) {
     struct opennop_ipc_header *opennop_msg_header = NULL;
     char message[LOGSZ] = {0};
     /**
@@ -684,7 +684,7 @@ int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype) {
 
 }
 
-int hello_neighbors(struct epoller *epoller) {
+int hello_neighbors(struct epoller *this_epoller) {
     struct neighbor *currentneighbor = NULL;
     time_t currenttime;
     int error = 0;
@@ -730,7 +730,7 @@ int hello_neighbors(struct epoller *epoller) {
                     /*
                      * This socket has to be registered with the epoll server.
                      */
-                    register_socket(newsocket, epoller->epoll_fd, &epoller->event);
+                    register_socket(newsocket, this_epoller->epoll_fd, &this_epoller->event);
                 }
             }else{ // If we already have a socket lets move to the next state.
             	currentneighbor->state = ATTEMPT;
