@@ -11,15 +11,22 @@ struct epoller;
 typedef int (*t_epoll_callback)(struct epoller *, int, void *);
 typedef int (*t_epoll_timeout)(struct epoller *);
 
+/**
+ *  @brief Create an instance of a epoller.
+ *
+ *  An epoller provides a quick way to setup an epoll instance.
+ *  The epoller can be TCP or UDP have an associated server socket or only handle client sockets.
+ *
+ */
 struct epoller {
-	int socket;
-	int epoll_fd;
-	struct epoll_event event;
-	struct epoll_event *events;
-	t_epoll_callback secure;
-	t_epoll_callback callback;
-	t_epoll_timeout timeoutfunction;
-	int timeout;
+	int socket;						/** Stores the server fd for client only set to 0.#socket */
+	int epoll_fd;					/** Internal epoll instance used by this epoller.#epoll_fd */
+	struct epoll_event event;		/** Internal event trigger.#event */
+	struct epoll_event *events;		/** Internal pointer to list of events that need processed.#events */
+	t_epoll_callback secure;		/** External pointer to function used to secure the connections.#secure */
+	t_epoll_callback callback;  	/** External pointer to function used to process the messages.#callback */
+	t_epoll_timeout timeoutfunction;/** External pointer to function used when epoller timesout.#timeoutfunction */
+	int timeout;					/** Measure of time (ms) before epoll instance times out.#timeout */
 };
 
 int new_ip_client(__u32 serverip ,int port);
