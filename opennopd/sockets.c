@@ -347,7 +347,7 @@ int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event
 }
 
 
-int epoll_handler(struct epoll_server *server) {
+int epoll_handler(struct epoller *server) {
     int client_socket;
     int error = 0;
     int numevents = 0;
@@ -404,7 +404,7 @@ int epoll_handler(struct epoll_server *server) {
                 while (1) {
                     /**
                      *@todo: Here we need to detect if the "server" was UNIX or IP.
-                     *@todo: We might use the family type and add it to "struct epoll_server"
+                     *@todo: We might use the family type and add it to "struct epoller"
                      *@todo: and set it when we create the new epoll server.
                      *@todo: It would probably be better to check the server->socket.
                      */
@@ -528,7 +528,7 @@ int epoll_handler(struct epoll_server *server) {
  * A new epoll server should include a max length for the messages it is expected to receive.
  * If it receives a message larger than this is should shutdown that socket right away.
  */
-int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_epoll_callback callback, int port, t_epoll_timeout timeoutfunction, int timeout) {
+int new_ip_epoll_server(struct epoller *server, t_epoll_callback secure, t_epoll_callback callback, int port, t_epoll_timeout timeoutfunction, int timeout) {
     char message[LOGSZ] = {0};
 
     server->events = calloc (MAXEVENTS, sizeof server->event);
@@ -563,7 +563,7 @@ int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_
 }
 
 
-int shutdown_epoll_server(struct epoll_server *server) {
+int shutdown_epoll_server(struct epoller *server) {
     free(server->events);
     close(server->socket);
     return 0;

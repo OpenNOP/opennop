@@ -574,7 +574,7 @@ int update_neighbor_timer(struct neighbor *thisneighbor) {
  * @todo:
  * This could overwrite a valid connection if someone were to spoof a new connection from the same IP address.
  */
-int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
+int ipc_check_neighbor(struct epoller *epoller, int fd, void *buf) {
     struct neighbor *thisneighbor = NULL;
 
     char message[LOGSZ] = {0};
@@ -605,7 +605,7 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
  * Returns 0 on successful completion.
  * Return -1 on failure. (should close socket)
  */
-int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
+int ipc_handler(struct epoller *epoller, int fd, void *buf) {
     struct opennop_ipc_header *opennop_msg_header = NULL;
     char message[LOGSZ] = {0};
     /**
@@ -684,7 +684,7 @@ int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype) {
 
 }
 
-int hello_neighbors(struct epoll_server *epoller) {
+int hello_neighbors(struct epoller *epoller) {
     struct neighbor *currentneighbor = NULL;
     time_t currenttime;
     int error = 0;
@@ -789,7 +789,7 @@ int hello_neighbors(struct epoll_server *epoller) {
  */
 void *ipc_thread(void *dummyPtr) {
     int error = 0;
-    struct epoll_server ipc_server = {
+    struct epoller ipc_server = {
                                          0
                                      };
     char message[LOGSZ] = {0};

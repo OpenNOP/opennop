@@ -6,12 +6,12 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 
-struct epoll_server;
+struct epoller;
 
-typedef int (*t_epoll_callback)(struct epoll_server *, int, void *);
-typedef int (*t_epoll_timeout)(struct epoll_server *);
+typedef int (*t_epoll_callback)(struct epoller *, int, void *);
+typedef int (*t_epoll_timeout)(struct epoller *);
 
-struct epoll_server {
+struct epoller {
 	int socket;
 	int epoll_fd;
 	struct epoll_event event;
@@ -30,8 +30,8 @@ int new_unix_server(char* path);
 int accept_unix_client(int server_socket);
 int make_socket_non_blocking (int socket);
 int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event);
-int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_epoll_callback callback, int port, t_epoll_timeout timeoutfunction, int timeout);
-int shutdown_epoll_server(struct epoll_server *server);
-int epoll_handler(struct epoll_server *server);
+int new_ip_epoll_server(struct epoller *server, t_epoll_callback secure, t_epoll_callback callback, int port, t_epoll_timeout timeoutfunction, int timeout);
+int shutdown_epoll_server(struct epoller *server);
+int epoll_handler(struct epoller *server);
 
 #endif
