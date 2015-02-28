@@ -1,8 +1,13 @@
-#include "wccpv2.h"
 /**
  * http://www.web-cache.com/Writings/Internet-Drafts/draft-wilson-wrec-wccp-v2-00.txt
  * http://www.opennet.ru/base/net/wccp2_squid.txt.html
- *
+ * http://www.ciscopress.com/articles/article.asp?p=1192686&seqNum=2
+ */
+
+#include "wccpv2.h"
+#include "list.h"
+
+/**
  * Do be honest I am not sure what ones of these I am actually going to need
  * but I will define everything here as described in the RFC draft.
  */
@@ -93,8 +98,48 @@
 #define	WCCP2_PACKET_RETURN_METHOD_GRE  		0x00000001
 #define	WCCP2_PACKET_RETURN_METHOD_L2   		0x00000002
 
+// Section 5.5
+struct wccp2_message_header {
+    __u32 type;
+    __u16 version;
+    __u16 length;
+};
 
+// Section 5.6.1
+struct wccp_security_info {
+	__u16 type;
+	__u16 length;
+	__u32 security_option;
+};
 
+// Section 5.6.2
+struct wccp_service_info {
+	__u16 type;
+	__u16 length;
+	__u8  service_type;
+	__u8  service_id;
+	__u8  priority;
+	__u8  protocol;
+	__32  service_flags;
+	__u8  ports[8];
+};
+
+// Section 5.6.3
+struct wccp_router_id_info{
+	__u16 type;
+	__u16 length;
+	__u32 router_id;
+	__u32 send_to;
+	__u32 num_received_from;
+	// List of __u32 IP addresses 0-n.
+};
+
+// Section 5.6.4
+struct wccp_webcache_id_info{
+	__u16 type;
+	__u16 length;
+	// Web Cache Identity Element 5.7.2
+};
 
 
 
