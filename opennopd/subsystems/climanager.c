@@ -111,7 +111,7 @@ void *client_handler(void *socket_desc) {
         }
 
         if (result.finished) {
-            shutdown(sock, SHUT_RDWR);
+        	close(sock);
         }
 
         if (read_size == 0) {

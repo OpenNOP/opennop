@@ -763,7 +763,7 @@ int hello_neighbors(struct epoll_server *epoller) {
                 if (error < 0) {
                     logger2(LOGGING_DEBUG,DEBUG_IPC,"[IPC] Failed sending hello.\n");
                     currentneighbor->state = DOWN;
-                    shutdown(currentneighbor->sock, SHUT_RDWR);
+                    close(currentneighbor->sock);
                     currentneighbor->sock = 0;
                 }
             }
