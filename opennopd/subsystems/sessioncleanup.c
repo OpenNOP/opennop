@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h> // for sleep function
 
 #include <sys/time.h> 
@@ -17,8 +18,14 @@
 #include "tcpoptions.h"
 #include "csum.h"
 #include "logger.h"
+#include "climanager.h"
 
-int rawsock = 0; // Used to send keep-alive messages.
+static int rawsock = 0; // Used to send keep-alive messages.
+static int dead_session_detection = true; //Detect dead sessions by default.
+
+static int DEBUG_SESSION_TRACKING = LOGGING_INFO;
+
+static pthread_t t_cleanup; // thread for cleaning up dead sessions.
 
 /*
  * This sends a keep alive message to the specified IP.
@@ -106,6 +113,7 @@ void cleanuplist (struct session_head *currentlist){
 	struct session *currentsession = NULL;
 	struct timeval tv; // Used to get the system time.
 	__u64 currenttime; // The current time in seconds.
+	char message[LOGSZ];
 	
 	gettimeofday(&tv,NULL); // Get the time from hardware.
 	currenttime = tv.tv_sec - 60; // Set the currenttime minus one minuet.
@@ -131,6 +139,8 @@ void cleanuplist (struct session_head *currentlist){
 					clearsession(currentsession);
 					currentsession = NULL;
 				}
+			    sprintf(message, "Dead session removed.\n");
+			    logger2(LOGGING_INFO,DEBUG_SESSION_TRACKING,message);
 			}
 			else{ // Session needs checked for idle time.
 				
@@ -182,13 +192,20 @@ void *cleanup_function(void *data){
 	
 	while (servicestate >= STOPPING) {
 		sleep(300); // Sleeping for 5 minuets.
+
+		if(dead_session_detection == true){
 		
-		for (i = 0; i < SESSIONBUCKETS; i++){  // Process each bucket.
+			for (i = 0; i < SESSIONBUCKETS; i++){  // Process each bucket.
 		
-			if (getsessionhead(i)->next != NULL){
-    			cleanuplist(getsessionhead(i));
-    		}
+				if (getsessionhead(i)->next != NULL){
+    				cleanuplist(getsessionhead(i));
+    			}
+			}
+		}else{
+		    sprintf(message, "Skipping dead session detection.\n");
+		    logger2(LOGGING_INFO,DEBUG_SESSION_TRACKING,message);
 		}
+
 	}
 	
 	/*
@@ -198,4 +215,64 @@ void *cleanup_function(void *data){
 	rawsock = 0;
         
 	return NULL;
+}
+
+struct commandresult cli_show_dead_session_detection(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result  = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+
+	if (dead_session_detection == true) {
+		sprintf(msg, "dead session detection enabled\n");
+	} else {
+		sprintf(msg, "dead session detection disabled\n");
+	}
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+struct commandresult cli_dead_session_detection_enable(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	dead_session_detection = true;
+	sprintf(msg, "dead session detection enabled\n");
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+struct commandresult cli_dead_session_detection_disable(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	dead_session_detection = false;
+	sprintf(msg, "dead session detection disabled\n");
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+void start_dead_session_detection() {
+
+    register_command(NULL, "show dead session detection", cli_show_dead_session_detection, false, false);
+    register_command(NULL, "dead session detection enable", cli_dead_session_detection_enable, false, false);
+    register_command(NULL, "dead session detection disable", cli_dead_session_detection_disable, false, false);
+
+    pthread_create(&t_cleanup, NULL, cleanup_function, (void *) NULL);
+
+}
+
+void rejoin_dead_session_detection() {
+    pthread_join(t_cleanup, NULL);
 }
