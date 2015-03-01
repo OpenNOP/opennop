@@ -90,6 +90,8 @@ void *worker_thread(void *dummyPtr) {
 
                 if (thissession != NULL) {
 
+                	updateseq(largerIP, iph, tcph, thissession);
+
                     if (DEBUG_WORKER == true) {
                         sprintf(message, "Worker: Found a session.\n");
                         logger(LOG_INFO, message);
