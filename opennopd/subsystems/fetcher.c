@@ -106,6 +106,7 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
 
                     gettimeofday(&tv,NULL); // Get the time from hardware.
                     thissession->lastactive = tv.tv_sec; // Update the session timestamp.
+                    thissession->deadcounter = 0; // Need to reset the deadcounter on any activity.
 
                     sourceisclient(largerIP, iph, thissession);
                     updateseq(largerIP, iph, tcph, thissession);
