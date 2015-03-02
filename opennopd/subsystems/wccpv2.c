@@ -141,6 +141,22 @@ struct wccp_webcache_id_info{
 	// Web Cache Identity Element 5.7.2
 };
 
+static pthread_t t_wccp; // thread for wccp.
+
+void *wccp_thread(void *dummyPtr) {
+
+
+	return EXIT_SUCCESS;
+}
+
+void start_wccp(){
+	 pthread_create(&t_wccp, NULL, wccp_thread, (void *) NULL);
+}
+
+void stop_wccp(){
+	pthread_join(t_wccp, NULL);
+}
+
 
 
 
