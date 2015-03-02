@@ -22,6 +22,7 @@
 
 static int rawsock = 0; // Used to send keep-alive messages.
 static int dead_session_detection = true; //Detect dead sessions by default.
+static int cleanup_timer = 300; // Time in seconds the dead session detection should run.
 
 static int DEBUG_SESSION_TRACKING = LOGGING_INFO;
 
@@ -116,7 +117,7 @@ void cleanuplist (struct session_head *currentlist){
 	char message[LOGSZ];
 	
 	gettimeofday(&tv,NULL); // Get the time from hardware.
-	currenttime = tv.tv_sec - 60; // Set the currenttime minus one minuet.
+	currenttime = tv.tv_sec - cleanup_timer; // Set the currenttime minus one minuet.
 	
 	if (currentlist->next != NULL){ // Make sure there is something in the list.
 		currentsession = currentlist->next; // Make the first session of the list the current.
@@ -192,7 +193,7 @@ void *cleanup_function(void *data){
 	}
 	
 	while (servicestate >= STOPPING) {
-		sleep(300); // Sleeping for 5 minuets.
+		sleep(cleanup_timer); // Sleeping for 5 minuets.
 
 		if(dead_session_detection == true){
 		
