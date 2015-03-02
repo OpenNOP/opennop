@@ -153,6 +153,7 @@ void cleanuplist (struct session_head *currentlist){
 									currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq);
 					 
 				}
+				currentsession->deadcounter = 0;
 	
 				if (currentsession->next != NULL){ // Check if there are more sessions.
 					currentsession = currentsession->next; // Advance to the next session.
