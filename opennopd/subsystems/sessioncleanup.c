@@ -22,7 +22,7 @@
 
 static int rawsock = 0; // Used to send keep-alive messages.
 static int dead_session_detection = true; //Detect dead sessions by default.
-static int cleanup_timer = 300; // Time in seconds the dead session detection should run.
+static int cleanup_timer = 30; // Time in seconds the dead session detection should run.
 
 static int DEBUG_SESSION_TRACKING = LOGGING_INFO;
 
@@ -42,6 +42,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	struct tcphdr *tcph = NULL;
 	struct sockaddr_in sin, din;
 	__u16 tcplen;
+	char message[LOGSZ];
 
 	memset(packet, 0, BUFSIZE);
 
@@ -97,7 +98,8 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	
 	
 	if(sendto(rawsock, packet, ntohs(iph->tot_len), 0, (struct sockaddr *)&din, sizeof(din)) < 0){
-		printf("sendto() error\n");
+	    sprintf(message, "Failed sending keepalive.\n");
+	    logger2(LOGGING_INFO,DEBUG_SESSION_TRACKING,message);
 	}
 	
 	return;
@@ -112,12 +114,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
  */
 void cleanuplist (struct session_head *currentlist){
 	struct session *currentsession = NULL;
-	struct timeval tv; // Used to get the system time.
-	__u64 currenttime; // The current time in seconds.
 	char message[LOGSZ];
-	
-	gettimeofday(&tv,NULL); // Get the time from hardware.
-	currenttime = tv.tv_sec - cleanup_timer; // Set the currenttime minus one minuet.
 	
 	if (currentlist->next != NULL){ // Make sure there is something in the list.
 		currentsession = currentlist->next; // Make the first session of the list the current.
@@ -145,8 +142,9 @@ void cleanuplist (struct session_head *currentlist){
 			}
 			else{ // Session needs checked for idle time.
 				
+				/*
 				if (currentsession->lastactive < currenttime){ // If this session is not active.
-					++currentsession->deadcounter; // Increment the deadcounter.
+					currentsession->deadcounter++; // Increment the deadcounter.
 					sendkeepalive(currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq,
 									currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq);
 									
@@ -154,7 +152,23 @@ void cleanuplist (struct session_head *currentlist){
 									currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq);
 					 
 				}
-				currentsession->deadcounter = 0;
+				*/
+
+				if((currentsession->largerIPseq == currentsession->largerIPPreviousseq) && (currentsession->smallerIPseq == currentsession->smallerIPPreviousseq)){
+					sendkeepalive(currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq,
+									currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq);
+
+					sendkeepalive(currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq,
+									currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq);
+
+					currentsession->deadcounter++;
+				}else{
+					currentsession->deadcounter = 0;
+				}
+
+				currentsession->largerIPPreviousseq = currentsession->largerIPseq;
+				currentsession->smallerIPPreviousseq = currentsession->smallerIPseq;
+
 	
 				if (currentsession->next != NULL){ // Check if there are more sessions.
 					currentsession = currentsession->next; // Advance to the next session.
