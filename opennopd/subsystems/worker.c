@@ -90,8 +90,6 @@ void *worker_thread(void *dummyPtr) {
 
                 if (thissession != NULL) {
 
-                	updateseq(largerIP, iph, tcph, thissession);
-
                     if (DEBUG_WORKER == true) {
                         sprintf(message, "Worker: Found a session.\n");
                         logger(LOG_INFO, message);
@@ -139,6 +137,7 @@ void *worker_thread(void *dummyPtr) {
                                     sprintf(message, "Worker: Compressing packet.\n");
                                     logger(LOG_INFO, message);
                                 }
+                                updateseq(largerIP, iph, tcph, thissession);
                                 tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
                             } else {
 
@@ -179,6 +178,8 @@ void *worker_thread(void *dummyPtr) {
                                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
                                         put_freepacket_buffer(thispacket);
                                         thispacket = NULL;
+                                    }else{
+                                    	updateseq(largerIP, iph, tcph, thissession); // Only update the sequence after decompression.
                                     }
                                 }
                             }
