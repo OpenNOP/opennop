@@ -43,7 +43,6 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
     struct session *thissession = NULL;
     struct packet *thispacket = NULL;
     struct nfqnl_msg_packet_hdr *ph;
-    struct timeval tv;
     __u32 largerIP, smallerIP;
     __u16 largerIPPort, smallerIPPort, mms;
     int ret;
@@ -104,10 +103,6 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                         logger(LOG_INFO, message);
                     }
 
-                    gettimeofday(&tv,NULL); // Get the time from hardware.
-                    thissession->lastactive = tv.tv_sec; // Update the session timestamp.
-                    thissession->deadcounter = 0; // Need to reset the deadcounter on any activity.
-
                     sourceisclient(largerIP, iph, thissession);
                     updateseq(largerIP, iph, tcph, thissession);
 
@@ -151,9 +146,6 @@ int fetcher_callback(struct nfq_q_handle *hq, struct nfgenmsg *nfmsg,
                 thissession = getsession(largerIP, largerIPPort, smallerIP, smallerIPPort);
 
                 if (thissession != NULL) {
-                    gettimeofday(&tv,NULL); // Get the time from hardware.
-                    thissession->lastactive = tv.tv_sec; // Update the active timer.
-                    thissession->deadcounter = 0; // Reset the dead counter.
 
                     /* Identify SYN/ACK packets that are part of a new */
                     /* session opening its connection. */
