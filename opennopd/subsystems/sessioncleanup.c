@@ -73,7 +73,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	tcph->source = source; // Source TCP Port.
 	tcph->dest = dest; // Destination TCP Port.
 	tcph->seq = htonl(seq - 1); // Current SEQ minus one is used for TCP keepalives.
-	tcph->ack_seq = htonl( ack_seq - 1); // Ummm not sure yet.
+	tcph->ack_seq = htonl(ack_seq); // Ummm not sure yet.
 	tcph->res1 = 0; // Not sure.
 	tcph->doff = 5; // TCP Offset.  At least 5 if there are no TCP options.
 	tcph->fin = 0; // FIN flag.
@@ -82,6 +82,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	tcph->psh = 0; // PSH flag.
 	tcph->ack = 1; // ACK flag.
 	tcph->urg = 0; // URG flag.
+	tcph->window = htonl(65535);
 	
 	//__set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
 	set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
