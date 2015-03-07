@@ -472,21 +472,28 @@ struct commandresult cli_show_sessionss(int client_fd, char **parameters, int nu
 
 int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 		struct session *thissession) {
+	char message[LOGSZ];
 
 	if ((largerIP != 0) && (iph != NULL) && (tcph != NULL) && (thissession != NULL)) {
 
 		if (iph->saddr == largerIP) { // See what IP this is coming from.
 
-			//if (ntohl(tcph->seq) >= thissession->largerIPseq) {
+			if (ntohl(tcph->seq) != (thissession->largerIPseq - 1)) {
 				thissession->largerIPseq = ntohl(tcph->seq);
 				thissession->deadcounter = 0;
-			//}
+			}else{
+			    sprintf(message, "Packet was keepalive.\n");
+			    logger2(LOGGING_INFO,LOGGING_INFO,message);
+			}
 		} else {
 
-			//if (ntohl(tcph->seq) >= thissession->smallerIPseq) {
+			if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1)) {
 				thissession->smallerIPseq = ntohl(tcph->seq);
 				thissession->deadcounter = 0;
-			//}
+			}else{
+			    sprintf(message, "Packet was keepalive.\n");
+			    logger2(LOGGING_INFO,LOGGING_INFO,message);
+			}
 		}
 		return 0; // Everything OK.
 	}
