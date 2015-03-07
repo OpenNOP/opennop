@@ -477,6 +477,12 @@ int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 	if ((largerIP != 0) && (iph != NULL) && (tcph != NULL) && (thissession != NULL)) {
 
 		if (iph->saddr == largerIP) { // See what IP this is coming from.
+			thissession->largerIPNextAck = ntohl(tcph->seq + (iph->tot_len - (tcph->doff * 4)));
+
+			if(ntohl(tcph->ack_seq) != thissession->smallerIPNextAck){
+			    sprintf(message, "Expected Packet Sequence Wrong.\n  Expected: %u\n  Received: %u", thissession->smallerIPNextAck, ntohl(tcph->ack_seq));
+			    logger2(LOGGING_INFO,LOGGING_INFO,message);
+			}
 
 			if (ntohl(tcph->seq) != (thissession->largerIPseq - 1)) {
 				thissession->largerIPseq = ntohl(tcph->seq);
@@ -486,6 +492,12 @@ int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 			    logger2(LOGGING_INFO,LOGGING_INFO,message);
 			}
 		} else {
+			thissession->smallerIPNextAck = ntohl(tcph->seq + (iph->tot_len - (tcph->doff * 4)));
+
+			if(ntohl(tcph->ack_seq) != thissession->largerPNextAck){
+			    sprintf(message, "Expected Packet Sequence Wrong.\n  Expected: %u\n  Received: %u", thissession->largerIPNextAck, ntohl(tcph->ack_seq));
+			    logger2(LOGGING_INFO,LOGGING_INFO,message);
+			}
 
 			if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1)) {
 				thissession->smallerIPseq = ntohl(tcph->seq);
