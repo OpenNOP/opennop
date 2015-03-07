@@ -477,16 +477,16 @@ int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 
 		if (iph->saddr == largerIP) { // See what IP this is coming from.
 
-			if (ntohl(tcph->seq) >= thissession->largerIPseq) {
+			//if (ntohl(tcph->seq) >= thissession->largerIPseq) {
 				thissession->largerIPseq = ntohl(tcph->seq);
 				thissession->deadcounter = 0;
-			}
+			//}
 		} else {
 
-			if (ntohl(tcph->seq) >= thissession->smallerIPseq) {
+			//if (ntohl(tcph->seq) >= thissession->smallerIPseq) {
 				thissession->smallerIPseq = ntohl(tcph->seq);
 				thissession->deadcounter = 0;
-			}
+			//}
 		}
 		return 0; // Everything OK.
 	}
