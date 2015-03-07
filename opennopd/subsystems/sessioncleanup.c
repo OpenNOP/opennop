@@ -59,7 +59,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	iph->ihl = 5; // IP header length.
 	iph->version = 4; // IP version 4.
 	iph->tos = 0; // No TOS.
-	iph->tot_len=htons(sizeof(struct iphdr) + sizeof(struct tcphdr)); // L3 + L4 header length.
+	iph->tot_len=htons(sizeof(struct iphdr) + sizeof(struct tcphdr) + 1); // L3 + L4 header length.
 	iph->id = 0; // What?
 	iph->frag_off = 0; // No fragmenting.
 	iph->ttl = 64; // Set a TTL.
