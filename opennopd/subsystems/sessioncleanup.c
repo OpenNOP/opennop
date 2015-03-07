@@ -44,6 +44,12 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	__u16 tcplen;
 	char message[LOGSZ];
 
+    sprintf(message, "Keepalive: seq->%u.\n",seq);
+    logger2(LOGGING_DEBUG,LOGGING_DEBUG,message);
+
+    sprintf(message, "Keepalive: ack->%u.\n",ack_seq);
+    logger2(LOGGING_DEBUG,LOGGING_DEBUG,message);
+
 	memset(packet, 0, BUFSIZE);
 
 	sin.sin_family = AF_INET;
