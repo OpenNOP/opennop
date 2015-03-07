@@ -155,12 +155,15 @@ void cleanuplist (struct session_head *currentlist){
 				}
 				*/
 
-				if((currentsession->largerIPseq == currentsession->largerIPPreviousseq) && (currentsession->smallerIPseq == currentsession->smallerIPPreviousseq)){
-					sendkeepalive(currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq,
-									currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq);
-
+				if(currentsession->largerIPseq == currentsession->largerIPPreviousseq){
 					sendkeepalive(currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq,
 									currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq);
+
+					currentsession->deadcounter++;
+
+				}else if(currentsession->smallerIPseq == currentsession->smallerIPPreviousseq){
+					sendkeepalive(currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq,
+									currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq);
 
 					currentsession->deadcounter++;
 				}else{
