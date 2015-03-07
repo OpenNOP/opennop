@@ -22,7 +22,7 @@
 
 static int rawsock = 0; // Used to send keep-alive messages.
 static int dead_session_detection = true; //Detect dead sessions by default.
-static int cleanup_timer = 300; // Time in seconds the dead session detection should run.
+static int cleanup_timer = 30; // Time in seconds the dead session detection should run.
 
 static int DEBUG_SESSION_TRACKING = LOGGING_INFO;
 
@@ -173,7 +173,6 @@ void cleanuplist (struct session_head *currentlist){
 				currentsession->largerIPPreviousseq = currentsession->largerIPseq;
 				currentsession->smallerIPPreviousseq = currentsession->smallerIPseq;
 
-	
 				if (currentsession->next != NULL){ // Check if there are more sessions.
 					currentsession = currentsession->next; // Advance to the next session.
 				}
