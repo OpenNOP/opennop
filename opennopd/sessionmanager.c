@@ -494,7 +494,7 @@ int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 		} else {
 			thissession->smallerIPNextAck = ntohl(tcph->seq + (iph->tot_len - (tcph->doff * 4)));
 
-			if(ntohl(tcph->ack_seq) != thissession->largerPNextAck){
+			if(ntohl(tcph->ack_seq) != thissession->largerIPNextAck){
 			    sprintf(message, "Expected Packet Sequence Wrong.\n  Expected: %u\n  Received: %u", thissession->largerIPNextAck, ntohl(tcph->ack_seq));
 			    logger2(LOGGING_INFO,LOGGING_INFO,message);
 			}
