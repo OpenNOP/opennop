@@ -477,12 +477,13 @@ int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 	if ((largerIP != 0) && (iph != NULL) && (tcph != NULL) && (thissession != NULL)) {
 
 		if (iph->saddr == largerIP) { // See what IP this is coming from.
-			thissession->largerIPNextAck = ntohl(tcph->seq) + (((ntohs(iph->tot_len) - (iph->ihl * 4))) - (tcph->doff * 4));
 
-			if(ntohl(tcph->ack_seq) != thissession->smallerIPNextAck){
-			    sprintf(message, "Expected Packet Sequence Wrong.\n  Expected: %u\n  Received: %u", thissession->smallerIPNextAck, ntohl(tcph->ack_seq));
+			if(ntohl(tcph->seq) != thissession->largerIPExpectedSeq){
+			    sprintf(message, "Expected Packet Sequence Wrong.\n  Expected: %u\n  Received: %u", thissession->largerIPExpectedSeq, ntohl(tcph->seq));
 			    logger2(LOGGING_INFO,LOGGING_INFO,message);
 			}
+
+			thissession->largerIPExpectedSeq = ntohl(tcph->seq) + (((ntohs(iph->tot_len) - (iph->ihl * 4))) - (tcph->doff * 4)) + 1;
 
 			if (ntohl(tcph->seq) != (thissession->largerIPseq - 1)) {
 				thissession->largerIPseq = ntohl(tcph->seq);
@@ -490,7 +491,7 @@ int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 			}else{
 			    sprintf(message, "Packet was keepalive.\n");
 			    logger2(LOGGING_INFO,LOGGING_INFO,message);
-			}
+			}/*
 		} else {
 			thissession->smallerIPNextAck = ntohl(tcph->seq) + (((ntohs(iph->tot_len) - (iph->ihl * 4))) - (tcph->doff * 4));
 
@@ -506,7 +507,7 @@ int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
 			    sprintf(message, "Packet was keepalive.\n");
 			    logger2(LOGGING_INFO,LOGGING_INFO,message);
 			}
-		}
+		}*/
 		return 0; // Everything OK.
 	}
 
