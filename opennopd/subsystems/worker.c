@@ -118,7 +118,7 @@ void *worker_thread(void *dummyPtr) {
                                     //(thissession->smallerIPAccelerator != 0) &&
                             		(check_opennopid((char*)&thissession->smallerIPAccelerator) == 1) &&
                                     //(thissession->smallerIPAccelerator != localID)) ||
-                            		(compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) != 1))
+                            		(compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) != 1))
                             		||
                                     ((iph->saddr == smallerIP) &&
                                      //(thissession->smallerIPAccelerator == localID) &&
@@ -126,7 +126,7 @@ void *worker_thread(void *dummyPtr) {
                                      //(thissession->largerIPAccelerator != 0) &&
                                     (check_opennopid((char*)&thissession->largerIPAccelerator) == 1) &&
                                      //(thissession->largerIPAccelerator != localID))) &&
-                                    (compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) != 1))) &&
+                                    (compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) != 1))) &&
                                     (thissession->state == TCP_ESTABLISHED)) {
 
                                 /*
