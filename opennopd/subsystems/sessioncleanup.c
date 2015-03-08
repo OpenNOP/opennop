@@ -161,6 +161,8 @@ void cleanuplist (struct session_head *currentlist){
 				}
 				*/
 
+
+/*
 				if(currentsession->largerIPseq == currentsession->largerIPPreviousseq){
 					sendkeepalive(currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq,
 									currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq);
@@ -178,6 +180,7 @@ void cleanuplist (struct session_head *currentlist){
 
 				currentsession->largerIPPreviousseq = currentsession->largerIPseq;
 				currentsession->smallerIPPreviousseq = currentsession->smallerIPseq;
+*/
 
 				if (currentsession->next != NULL){ // Check if there are more sessions.
 					currentsession = currentsession->next; // Advance to the next session.
