@@ -183,6 +183,7 @@ void *worker_thread(void *dummyPtr) {
                                     }
                                 }
                             }
+                            updateseq(largerIP, iph, tcph, thissession); // Also update sequences if packet is not optimized.
                             /*
                              * End of what should be the deoptimize function.
                              */
