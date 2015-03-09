@@ -141,6 +141,8 @@ void *worker_thread(void *dummyPtr) {
                                 tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
                             } else {
 
+                            	 updateseq(largerIP, iph, tcph, thissession);
+
                                 if (DEBUG_WORKER == true) {
                                     sprintf(message, "Worker: Not compressing packet.\n");
                                     logger(LOG_INFO, message);
@@ -182,8 +184,9 @@ void *worker_thread(void *dummyPtr) {
                                     	updateseq(largerIP, iph, tcph, thissession); // Only update the sequence after decompression.
                                     }
                                 }
-                            }
-                            updateseq(largerIP, iph, tcph, thissession); // Also update sequences if packet is not optimized.
+                            }else{
+                            	updateseq(largerIP, iph, tcph, thissession); // Also update sequences if packet is not optimized.
+                    		}
                             /*
                              * End of what should be the deoptimize function.
                              */
