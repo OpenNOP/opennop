@@ -21,7 +21,7 @@
 #include "climanager.h"
 
 static int rawsock = 0; // Used to send keep-alive messages.
-static int dead_session_detection = false; //Detect dead sessions by default.
+static int dead_session_detection = true; //Detect dead sessions by default.
 static int cleanup_timer = 30; // Time in seconds the dead session detection should run.
 
 static int DEBUG_SESSION_TRACKING = LOGGING_INFO;
@@ -65,7 +65,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	iph->ihl = 5; // IP header length.
 	iph->version = 4; // IP version 4.
 	iph->tos = 0; // No TOS.
-	iph->tot_len=htons(sizeof(struct iphdr) + sizeof(struct tcphdr) + 1); // L3 + L4 header length.
+	iph->tot_len=htons(sizeof(struct iphdr) + sizeof(struct tcphdr)); // L3 + L4 header length.
 	iph->id = 0; // What?
 	iph->frag_off = 0; // No fragmenting.
 	iph->ttl = 64; // Set a TTL.
@@ -88,7 +88,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	tcph->psh = 0; // PSH flag.
 	tcph->ack = 1; // ACK flag.
 	tcph->urg = 0; // URG flag.
-	tcph->window = htonl(65535);
+	tcph->window = htons(65535);
 	
 	//__set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
 	set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
