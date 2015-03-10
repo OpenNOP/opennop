@@ -13,6 +13,14 @@ struct session_head {
 	pthread_mutex_t lock; // Lock for this session bucket.
 };
 
+struct endpoint {
+	__u32 address;
+	__u16 port;
+	__u32 sequence;
+	__u32 nextsequence;
+	char accelerator[OPENNOP_IPC_ID_LENGTH];
+};
+
 /* Structure used to store TCP session info. */
 struct session {
 	struct session_head *head; // Points to the head of this list.
