@@ -113,20 +113,20 @@ void *worker_thread(void *dummyPtr) {
                             //binary_dump("worker.c IP Packet: ", (char*)iph, ntohs(iph->tot_len));
 
                             if ((((iph->saddr == largerIP) &&
-                                    //(thissession->largerIPAccelerator == localID) &&
-                            		(compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) == 1) &&
-                                    //(thissession->smallerIPAccelerator != 0) &&
-                            		(check_opennopid((char*)&thissession->smallerIPAccelerator) == 1) &&
-                                    //(thissession->smallerIPAccelerator != localID)) ||
-                            		(compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) != 1))
+                                    //(thissession->larger.accelerator == localID) &&
+                            		(compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) == 1) &&
+                                    //(thissession->smaller.accelerator != 0) &&
+                            		(check_opennopid((char*)&thissession->smaller.accelerator) == 1) &&
+                                    //(thissession->smaller.accelerator != localID)) ||
+                            		(compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) != 1))
                             		||
                                     ((iph->saddr == smallerIP) &&
-                                     //(thissession->smallerIPAccelerator == localID) &&
-                                    (compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1) &&
-                                     //(thissession->largerIPAccelerator != 0) &&
-                                    (check_opennopid((char*)&thissession->largerIPAccelerator) == 1) &&
-                                     //(thissession->largerIPAccelerator != localID))) &&
-                                    (compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) != 1))) &&
+                                     //(thissession->smaller.accelerator == localID) &&
+                                    (compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) == 1) &&
+                                     //(thissession->larger.accelerator != 0) &&
+                                    (check_opennopid((char*)&thissession->larger.accelerator) == 1) &&
+                                     //(thissession->larger.accelerator != localID))) &&
+                                    (compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) != 1))) &&
                                     (thissession->state == TCP_ESTABLISHED)) {
 
                                 /*
@@ -167,11 +167,11 @@ void *worker_thread(void *dummyPtr) {
                                 }
 
                                 if (((iph->saddr == largerIP) &&
-                                        //(thissession->smallerIPAccelerator == localID)) ||
-                                		(compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))||
+                                        //(thissession->smaller.accelerator == localID)) ||
+                                		(compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) == 1))||
                                         ((iph->saddr == smallerIP) &&
-                                         //(thissession->largerIPAccelerator == localID))) {
-                                        (compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) == 1))) {
+                                         //(thissession->larger.accelerator == localID))) {
+                                        (compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) == 1))) {
 
                                     /*
                                      * Decompress this packet!

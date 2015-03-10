@@ -28,20 +28,12 @@ struct session {
 	struct session *prev; // Points to the previous session in the list.
 	__u32 *client; // Points to the client IP Address.
 	__u32 *server; // Points to the server IP Address.
-	__u32 largerIP; // Stores the larger IP address.
-	__u16 largerIPPort; // Stores the larger IP port #.
+	struct endpoint larger;
 	__u32 largerIPStartSEQ; // Stores the starting SEQ number.
-	__u32 largerIPseq; // Stores the TCP SEQ from the largerIP.
-	__u32 largerIPExpectedSEQ; // Stores the TCP SEQ from the largerIP.
 	__u32 largerIPNextAck;
-	char largerIPAccelerator[OPENNOP_IPC_ID_LENGTH]; // Stores the AcceleratorIP of the largerIP.
-	__u32 smallerIP; // Stores the smaller IP address.
-	__u16 smallerIPPort; // Stores the smaller IP port #.
+	struct endpoint smaller;
 	__u32 smallerIPStartSEQ; // Stores the starting SEQ number.
-	__u32 smallerIPseq; // Stores the TCP SEQ from the smallerIP.
-	__u32 smallerIPExpectedSEQ; // Stores the TCP SEQ from the smallerIP.
 	__u32 smallerIPNextAck;
-	char smallerIPAccelerator[OPENNOP_IPC_ID_LENGTH]; // Stores the AcceleratorIP of the smallerIP.
 	__u8 deadcounter; // Stores how many counts the session has been idle.
 	__u8 state; // Stores the TCP session state.
 	__u8 queue; // What worker queue the packets for this session go to.
