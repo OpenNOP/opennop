@@ -149,20 +149,6 @@ void cleanuplist (struct session_head *currentlist){
 			}
 			else{ // Session needs checked for idle time.
 				
-				/*
-				if (currentsession->lastactive < currenttime){ // If this session is not active.
-					currentsession->deadcounter++; // Increment the deadcounter.
-					sendkeepalive(currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence,
-									currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence);
-									
-					sendkeepalive(currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence,
-									currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence);
-					 
-				}
-				*/
-
-
-/*
 				if(currentsession->larger->sequence == currentsession->largerIPPreviousseq){
 					sendkeepalive(currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence,
 									currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence);
@@ -180,7 +166,7 @@ void cleanuplist (struct session_head *currentlist){
 
 				currentsession->largerIPPreviousseq = currentsession->larger->sequence;
 				currentsession->smallerIPPreviousseq = currentsession->smaller->sequence;
-*/
+
 
 				if (currentsession->next != NULL){ // Check if there are more sessions.
 					currentsession = currentsession->next; // Advance to the next session.
