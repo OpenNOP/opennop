@@ -16,6 +16,7 @@ struct session_head {
 struct endpoint {
 	__u32 address;
 	__u16 port;
+	__u32 previoussequence;
 	__u32 sequence;
 	__u32 nextsequence;
 	char accelerator[OPENNOP_IPC_ID_LENGTH];
