@@ -21,6 +21,7 @@ struct session_head sessiontable[SESSIONBUCKETS]; // Setup the session hashtable
 int DEBUG_SESSIONMANAGER_INSERT = false;
 int DEBUG_SESSIONMANAGER_GET = false;
 int DEBUG_SESSIONMANAGER_REMOVE = false;
+static int DEBUG_SESSION_TRACKING = LOGGING_WARN;
 
 /*
  * Calculates the hash of a session provided the IP addresses, and ports.
@@ -475,14 +476,14 @@ int __updateseq(struct iphdr *iph, struct tcphdr *tcph, struct session *thissess
 
 	if(ntohl(tcph->seq) == source->nextsequence){
 		sprintf(message, "Received Expected Packet.\n");
-		logger2(LOGGING_INFO,LOGGING_INFO,message);
+		logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
 	}else if(ntohl(tcph->seq) == (source->sequence - 1)){
 		sprintf(message, "Packet was keepalive.\n");
-		logger2(LOGGING_INFO,LOGGING_INFO,message);
+		logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
 		return 0;
 	}else if(source->sequence != 0){
 		sprintf(message, "Expected Packet Sequence Wrong.\n  Expected: %u\n  Received: %u\n", source->nextsequence, ntohl(tcph->seq));
-		logger2(LOGGING_INFO,LOGGING_INFO,message);
+		logger2(LOGGING_WARN,DEBUG_SESSION_TRACKING,message);
 	}
 
 	source->nextsequence = ntohl(tcph->seq) + (((ntohs(iph->tot_len) - (iph->ihl * 4))) - (tcph->doff * 4));
