@@ -152,34 +152,34 @@ void cleanuplist (struct session_head *currentlist){
 				/*
 				if (currentsession->lastactive < currenttime){ // If this session is not active.
 					currentsession->deadcounter++; // Increment the deadcounter.
-					sendkeepalive(currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq,
-									currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq);
+					sendkeepalive(currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence,
+									currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence);
 									
-					sendkeepalive(currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq,
-									currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq);
+					sendkeepalive(currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence,
+									currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence);
 					 
 				}
 				*/
 
 
 /*
-				if(currentsession->largerIPseq == currentsession->largerIPPreviousseq){
-					sendkeepalive(currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq,
-									currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq);
+				if(currentsession->larger->sequence == currentsession->largerIPPreviousseq){
+					sendkeepalive(currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence,
+									currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence);
 
 					currentsession->deadcounter++;
 
-				}else if(currentsession->smallerIPseq == currentsession->smallerIPPreviousseq){
-					sendkeepalive(currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq,
-									currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq);
+				}else if(currentsession->smaller->sequence == currentsession->smallerIPPreviousseq){
+					sendkeepalive(currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence,
+									currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence);
 
 					currentsession->deadcounter++;
 				}else{
 					currentsession->deadcounter = 0;
 				}
 
-				currentsession->largerIPPreviousseq = currentsession->largerIPseq;
-				currentsession->smallerIPPreviousseq = currentsession->smallerIPseq;
+				currentsession->largerIPPreviousseq = currentsession->larger->sequence;
+				currentsession->smallerIPPreviousseq = currentsession->smaller->sequence;
 */
 
 				if (currentsession->next != NULL){ // Check if there are more sessions.
