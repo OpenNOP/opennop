@@ -149,23 +149,23 @@ void cleanuplist (struct session_head *currentlist){
 			}
 			else{ // Session needs checked for idle time.
 				
-				if(currentsession->larger->sequence == currentsession->largerIPPreviousseq){
-					sendkeepalive(currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence,
-									currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence);
+				if(currentsession->larger.sequence == currentsession->larger.previoussequence){
+					sendkeepalive(currentsession->smaller.address, currentsession->smaller.port, currentsession->smaller.sequence,
+									currentsession->larger.address, currentsession->larger.port, currentsession->larger.sequence);
 
 					currentsession->deadcounter++;
 
-				}else if(currentsession->smaller->sequence == currentsession->smallerIPPreviousseq){
-					sendkeepalive(currentsession->larger->address, currentsession->larger->port, currentsession->larger->sequence,
-									currentsession->smaller->address, currentsession->smaller->port, currentsession->smaller->sequence);
+				}else if(currentsession->smaller.sequence == currentsession->smaller.previoussequence){
+					sendkeepalive(currentsession->larger.address, currentsession->larger.port, currentsession->larger.sequence,
+									currentsession->smaller.address, currentsession->smaller.port, currentsession->smaller.sequence);
 
 					currentsession->deadcounter++;
 				}else{
 					currentsession->deadcounter = 0;
 				}
 
-				currentsession->largerIPPreviousseq = currentsession->larger->sequence;
-				currentsession->smallerIPPreviousseq = currentsession->smaller->sequence;
+				currentsession->larger.previoussequence = currentsession->larger.sequence;
+				currentsession->smaller.previoussequence = currentsession->smaller.sequence;
 
 
 				if (currentsession->next != NULL){ // Check if there are more sessions.
