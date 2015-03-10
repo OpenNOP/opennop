@@ -45,10 +45,10 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	char message[LOGSZ];
 
     sprintf(message, "Keepalive: seq->%u.\n",seq);
-    logger2(LOGGING_DEBUG,LOGGING_DEBUG,message);
+    logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
 
     sprintf(message, "Keepalive: ack->%u.\n",ack_seq);
-    logger2(LOGGING_DEBUG,LOGGING_DEBUG,message);
+    logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
 
 	memset(packet, 0, BUFSIZE);
 
@@ -106,7 +106,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	
 	if(sendto(rawsock, packet, ntohs(iph->tot_len), 0, (struct sockaddr *)&din, sizeof(din)) < 0){
 	    sprintf(message, "Failed sending keepalive.\n");
-	    logger2(LOGGING_INFO,DEBUG_SESSION_TRACKING,message);
+	    logger2(LOGGING_ERROR,DEBUG_SESSION_TRACKING,message);
 	}
 	
 	return;
