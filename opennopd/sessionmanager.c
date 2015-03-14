@@ -474,10 +474,6 @@ struct commandresult cli_show_sessionss(int client_fd, char **parameters, int nu
 int __updateseq(struct iphdr *iph, struct tcphdr *tcph, struct session *thissession, struct endpoint *source){
 	char message[LOGSZ];
 
-	if(tcph->syn == 1){
-		source->nextsequence = ntohl(tcph->seq) + 1;
-	}
-
 	if(ntohl(tcph->seq) == source->nextsequence){
 		sprintf(message, "Received Expected Packet.\n");
 		logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
@@ -492,8 +488,11 @@ int __updateseq(struct iphdr *iph, struct tcphdr *tcph, struct session *thissess
 
 	source->sequence = ntohl(tcph->seq);
 
-	source->nextsequence = ntohl(tcph->seq) + (((ntohs(iph->tot_len) - (iph->ihl * 4))) - (tcph->doff * 4));
-
+	if(tcph->syn == 1){
+		source->nextsequence = ntohl(tcph->seq) + 1;
+	}else{
+		source->nextsequence = ntohl(tcph->seq) + (((ntohs(iph->tot_len) - (iph->ihl * 4))) - (tcph->doff * 4));
+	}
 
 	thissession->deadcounter = 0;
 
