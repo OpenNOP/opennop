@@ -112,6 +112,7 @@ void *client_handler(void *socket_desc) {
 
         if (result.finished) {
         	close(sock);
+        	finish = true;
         }
 
         if (read_size == 0) {
