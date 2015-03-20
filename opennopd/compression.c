@@ -112,6 +112,7 @@ unsigned int tcp_compress(__u8 *ippacket, __u8 *lzbuffer,
 						sprintf(message, "Compression: lzbuffer was NULL!\n");
 						logger(LOG_INFO, message);
 					}
+					return 0;
 				}
 
 				if (DEBUG_COMPRESSION == true) {

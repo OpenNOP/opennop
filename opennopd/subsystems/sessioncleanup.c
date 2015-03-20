@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <unistd.h> // for sleep function
 
 #include <sys/time.h> 
@@ -17,8 +18,15 @@
 #include "tcpoptions.h"
 #include "csum.h"
 #include "logger.h"
+#include "climanager.h"
 
-int rawsock = 0; // Used to send keep-alive messages.
+static int rawsock = 0; // Used to send keep-alive messages.
+static int dead_session_detection = true; //Detect dead sessions by default.
+static int cleanup_timer = 30; // Time in seconds the dead session detection should run.
+
+static int DEBUG_SESSION_TRACKING = LOGGING_WARN;
+
+static pthread_t t_cleanup; // thread for cleaning up dead sessions.
 
 /*
  * This sends a keep alive message to the specified IP.
@@ -34,6 +42,13 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	struct tcphdr *tcph = NULL;
 	struct sockaddr_in sin, din;
 	__u16 tcplen;
+	char message[LOGSZ];
+
+    sprintf(message, "Keepalive: seq->%u.\n",seq);
+    logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
+
+    sprintf(message, "Keepalive: ack->%u.\n",ack_seq);
+    logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
 
 	memset(packet, 0, BUFSIZE);
 
@@ -64,7 +79,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	tcph->source = source; // Source TCP Port.
 	tcph->dest = dest; // Destination TCP Port.
 	tcph->seq = htonl(seq - 1); // Current SEQ minus one is used for TCP keepalives.
-	tcph->ack_seq = htonl( ack_seq - 1); // Ummm not sure yet.
+	tcph->ack_seq = htonl(ack_seq); // Ummm not sure yet.
 	tcph->res1 = 0; // Not sure.
 	tcph->doff = 5; // TCP Offset.  At least 5 if there are no TCP options.
 	tcph->fin = 0; // FIN flag.
@@ -73,6 +88,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	tcph->psh = 0; // PSH flag.
 	tcph->ack = 1; // ACK flag.
 	tcph->urg = 0; // URG flag.
+	tcph->window = htons(65535);
 	
 	//__set_tcp_option((__u8 *)iph,30,6,localID); // Add the Accelerator ID to this packet.
 	set_nod_header_data((__u8 *)iph, ONOP, get_opennop_id(), OPENNOP_IPC_ID_LENGTH);
@@ -89,7 +105,8 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
 	
 	
 	if(sendto(rawsock, packet, ntohs(iph->tot_len), 0, (struct sockaddr *)&din, sizeof(din)) < 0){
-		printf("sendto() error\n");
+	    sprintf(message, "Failed sending keepalive.\n");
+	    logger2(LOGGING_ERROR,DEBUG_SESSION_TRACKING,message);
 	}
 	
 	return;
@@ -104,11 +121,7 @@ __u32 daddr, __u16 dest, __u32 ack_seq){
  */
 void cleanuplist (struct session_head *currentlist){
 	struct session *currentsession = NULL;
-	struct timeval tv; // Used to get the system time.
-	__u64 currenttime; // The current time in seconds.
-	
-	gettimeofday(&tv,NULL); // Get the time from hardware.
-	currenttime = tv.tv_sec - 60; // Set the currenttime minus one minuet.
+	char message[LOGSZ];
 	
 	if (currentlist->next != NULL){ // Make sure there is something in the list.
 		currentsession = currentlist->next; // Make the first session of the list the current.
@@ -131,19 +144,30 @@ void cleanuplist (struct session_head *currentlist){
 					clearsession(currentsession);
 					currentsession = NULL;
 				}
+			    sprintf(message, "Dead session removed.\n");
+			    logger2(LOGGING_INFO,DEBUG_SESSION_TRACKING,message);
 			}
 			else{ // Session needs checked for idle time.
 				
-				if (currentsession->lastactive < currenttime){ // If this session is not active.
-					++currentsession->deadcounter; // Increment the deadcounter.
-					sendkeepalive(currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq,
-									currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq);
-									
-					sendkeepalive(currentsession->smallerIP, currentsession->smallerIPPort, currentsession->smallerIPseq,
-									currentsession->largerIP, currentsession->largerIPPort, currentsession->largerIPseq);
-					 
+				if(currentsession->larger.sequence == currentsession->larger.previoussequence){
+					sendkeepalive(currentsession->smaller.address, currentsession->smaller.port, currentsession->smaller.sequence,
+									currentsession->larger.address, currentsession->larger.port, currentsession->larger.sequence);
+
+					currentsession->deadcounter++;
+
+				}else if(currentsession->smaller.sequence == currentsession->smaller.previoussequence){
+					sendkeepalive(currentsession->larger.address, currentsession->larger.port, currentsession->larger.sequence,
+									currentsession->smaller.address, currentsession->smaller.port, currentsession->smaller.sequence);
+
+					currentsession->deadcounter++;
+				}else{
+					currentsession->deadcounter = 0;
 				}
-	
+
+				currentsession->larger.previoussequence = currentsession->larger.sequence;
+				currentsession->smaller.previoussequence = currentsession->smaller.sequence;
+
+
 				if (currentsession->next != NULL){ // Check if there are more sessions.
 					currentsession = currentsession->next; // Advance to the next session.
 				}
@@ -181,14 +205,21 @@ void *cleanup_function(void *data){
 	}
 	
 	while (servicestate >= STOPPING) {
-		sleep(300); // Sleeping for 5 minuets.
+		sleep(cleanup_timer); // Sleeping for 5 minuets.
+
+		if(dead_session_detection == true){
 		
-		for (i = 0; i < SESSIONBUCKETS; i++){  // Process each bucket.
+			for (i = 0; i < SESSIONBUCKETS; i++){  // Process each bucket.
 		
-			if (getsessionhead(i)->next != NULL){
-    			cleanuplist(getsessionhead(i));
-    		}
+				if (getsessionhead(i)->next != NULL){
+    				cleanuplist(getsessionhead(i));
+    			}
+			}
+		}else{
+		    sprintf(message, "Skipping dead session detection.\n");
+		    logger2(LOGGING_INFO,DEBUG_SESSION_TRACKING,message);
 		}
+
 	}
 	
 	/*
@@ -198,4 +229,64 @@ void *cleanup_function(void *data){
 	rawsock = 0;
         
 	return NULL;
+}
+
+struct commandresult cli_show_dead_session_detection(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result  = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+
+	if (dead_session_detection == true) {
+		sprintf(msg, "dead session detection enabled\n");
+	} else {
+		sprintf(msg, "dead session detection disabled\n");
+	}
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+struct commandresult cli_dead_session_detection_enable(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	dead_session_detection = true;
+	sprintf(msg, "dead session detection enabled\n");
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+struct commandresult cli_dead_session_detection_disable(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	dead_session_detection = false;
+	sprintf(msg, "dead session detection disabled\n");
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+void start_dead_session_detection() {
+
+    register_command(NULL, "show dead session detection", cli_show_dead_session_detection, false, false);
+    register_command(NULL, "dead session detection enable", cli_dead_session_detection_enable, false, false);
+    register_command(NULL, "dead session detection disable", cli_dead_session_detection_disable, false, false);
+
+    pthread_create(&t_cleanup, NULL, cleanup_function, (void *) NULL);
+
+}
+
+void rejoin_dead_session_detection() {
+    pthread_join(t_cleanup, NULL);
 }

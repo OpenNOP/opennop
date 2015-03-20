@@ -129,5 +129,6 @@ __u8 *get_opennop_id();
 void binary_dump(const char *header, char *data, unsigned int bytes);
 int compare_opennopid(char *first_opennopid, char *second_opennopid);
 int check_opennopid(char *opennopid);
+int save_opennopid(char *source, char *destination);
 
 #endif
