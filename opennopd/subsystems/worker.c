@@ -113,20 +113,20 @@ void *worker_thread(void *dummyPtr) {
                             //binary_dump("worker.c IP Packet: ", (char*)iph, ntohs(iph->tot_len));
 
                             if ((((iph->saddr == largerIP) &&
-                                    //(thissession->largerIPAccelerator == localID) &&
-                            		(compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) == 1) &&
-                                    //(thissession->smallerIPAccelerator != 0) &&
-                            		(check_opennopid((char*)&thissession->smallerIPAccelerator) == 1) &&
-                                    //(thissession->smallerIPAccelerator != localID)) ||
-                            		(compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) != 1))
+                                    //(thissession->larger.accelerator == localID) &&
+                            		(compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) == 1) &&
+                                    //(thissession->smaller.accelerator != 0) &&
+                            		(check_opennopid((char*)&thissession->smaller.accelerator) == 1) &&
+                                    //(thissession->smaller.accelerator != localID)) ||
+                            		(compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) != 1))
                             		||
                                     ((iph->saddr == smallerIP) &&
-                                     //(thissession->smallerIPAccelerator == localID) &&
-                                    (compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1) &&
-                                     //(thissession->largerIPAccelerator != 0) &&
-                                    (check_opennopid((char*)&thissession->largerIPAccelerator) == 1) &&
-                                     //(thissession->largerIPAccelerator != localID))) &&
-                                    (compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) != 1))) &&
+                                     //(thissession->smaller.accelerator == localID) &&
+                                    (compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) == 1) &&
+                                     //(thissession->larger.accelerator != 0) &&
+                                    (check_opennopid((char*)&thissession->larger.accelerator) == 1) &&
+                                     //(thissession->larger.accelerator != localID))) &&
+                                    (compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) != 1))) &&
                                     (thissession->state == TCP_ESTABLISHED)) {
 
                                 /*
@@ -137,8 +137,11 @@ void *worker_thread(void *dummyPtr) {
                                     sprintf(message, "Worker: Compressing packet.\n");
                                     logger(LOG_INFO, message);
                                 }
+                                updateseq(largerIP, iph, tcph, thissession);
                                 tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
                             } else {
+
+                            	 updateseq(largerIP, iph, tcph, thissession);
 
                                 if (DEBUG_WORKER == true) {
                                     sprintf(message, "Worker: Not compressing packet.\n");
@@ -164,11 +167,11 @@ void *worker_thread(void *dummyPtr) {
                                 }
 
                                 if (((iph->saddr == largerIP) &&
-                                        //(thissession->smallerIPAccelerator == localID)) ||
-                                		(compare_opennopid((char*)&thissession->smallerIPAccelerator, (char*)get_opennop_id()) == 1))||
+                                        //(thissession->smaller.accelerator == localID)) ||
+                                		(compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) == 1))||
                                         ((iph->saddr == smallerIP) &&
-                                         //(thissession->largerIPAccelerator == localID))) {
-                                        (compare_opennopid((char*)&thissession->largerIPAccelerator, (char*)get_opennop_id()) == 1))) {
+                                         //(thissession->larger.accelerator == localID))) {
+                                        (compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) == 1))) {
 
                                     /*
                                      * Decompress this packet!
@@ -177,9 +180,13 @@ void *worker_thread(void *dummyPtr) {
                                         nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
                                         put_freepacket_buffer(thispacket);
                                         thispacket = NULL;
+                                    }else{
+                                    	updateseq(largerIP, iph, tcph, thissession); // Only update the sequence after decompression.
                                     }
                                 }
-                            }
+                            }else{
+                            	updateseq(largerIP, iph, tcph, thissession); // Also update sequences if packet is not optimized.
+                    		}
                             /*
                              * End of what should be the deoptimize function.
                              */

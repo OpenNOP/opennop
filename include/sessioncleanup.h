@@ -11,9 +11,7 @@ void sendkeepalive
 __u32 daddr, __u16 dest, __u32 ack_seq
 );
 
-void cleanuplist
-(struct session_head *currentlist);
-
-void *cleanup_function(void *data);
+void start_dead_session_detection();
+void rejoin_dead_session_detection();
 
 #endif /*SESSIONCLEANUP_H_*/
