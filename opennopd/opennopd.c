@@ -39,7 +39,6 @@ static __u32 localID = 0; // Variable to store eth0 IP address used as the devic
 int isdaemon = true; // Determines how to log the messages and errors.
 
 int main(int argc, char *argv[]) {
-    pthread_t t_cleanup; // thread for cleaning up dead sessions.
     pthread_t t_healthagent; // thread for health agent.
     pthread_t t_cli; // thread for cli.
     pthread_t t_counters; // thread for performance counters.
@@ -201,7 +200,7 @@ int main(int argc, char *argv[]) {
      * IP packets from the Netfilter Queue.
      */
     create_fetcher();
-    pthread_create(&t_cleanup, NULL, cleanup_function, (void *) NULL);
+    start_dead_session_detection();
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *) NULL);
     start_ipc();
     pthread_create(&t_cli, NULL, cli_manager_init, (void *) NULL);
@@ -228,7 +227,7 @@ int main(int argc, char *argv[]) {
      */
     //pthread_join(t_fetcher, NULL);
     rejoin_fetcher();
-    pthread_join(t_cleanup, NULL);
+    rejoin_dead_session_detection();
     pthread_join(t_healthagent, NULL);
     rejoin_ipc();
     pthread_join(t_cli, NULL);
