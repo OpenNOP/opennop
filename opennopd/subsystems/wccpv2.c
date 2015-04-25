@@ -4,7 +4,21 @@
  * http://www.ciscopress.com/articles/article.asp?p=1192686&seqNum=2
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <strings.h>
+#include <errno.h>
+#include <pthread.h> // for multi-threading
+
+#include <linux/types.h>
+
+#include <sys/unistd.h>
+
 #include "wccpv2.h"
+#include "clicommands.h"
+#include "logger.h"
 #include "list.h"
 
 /**
@@ -120,7 +134,7 @@ struct wccp_service_info {
 	__u8  service_id;
 	__u8  priority;
 	__u8  protocol;
-	__32  service_flags;
+	__u32  service_flags;
 	__u8  ports[8];
 };
 
@@ -142,6 +156,45 @@ struct wccp_webcache_id_info{
 };
 
 static pthread_t t_wccp; // thread for wccp.
+static struct command_head cli_wccp_mode; // list of wccp commands.
+
+/** @brief Put CLI into WCCP configuration mode.
+ *
+ * Puts the CLI into WCCP configuration mode if a valid service group was provided.
+ *
+ * @client_fd [in] The CLI socket that send the command.
+ * @param parameters [in] Should be single integer 0-254.
+ * @param numparameters [in] Should be 1.
+ */
+struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int numparameters, void *data) {
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	struct commandresult result = { 0 };
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    /*
+     *
+     */
+    if(numparameters == 1){
+    	result.mode = &cli_wccp_mode;
+    }
+
+    return result;
+}
+
+struct commandresult cli_exit_wccp_mode(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+    /*
+     * Received a quit command so return 1 to shutdown this cli session.
+     */
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
 
 void *wccp_thread(void *dummyPtr) {
 
@@ -149,8 +202,16 @@ void *wccp_thread(void *dummyPtr) {
 	return EXIT_SUCCESS;
 }
 
+void init_wccp(){
+	sprintf(&cli_wccp_mode.prompt, "opennopd->wccp# ");
+    register_command(NULL, "wccp", cli_enter_wccp_mode, true, true);
+    register_command(&cli_wccp_mode, "exit", cli_exit_wccp_mode, false, false);
+}
+
 void start_wccp(){
-	 pthread_create(&t_wccp, NULL, wccp_thread, (void *) NULL);
+	init_wccp();
+
+	pthread_create(&t_wccp, NULL, wccp_thread, (void *) NULL);
 }
 
 void stop_wccp(){

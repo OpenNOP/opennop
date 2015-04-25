@@ -144,6 +144,7 @@ struct commandresult cli_quit(int client_fd, char **parameters, int numparameter
 }
 
 void *cli_manager_init(void *dummyPtr) {
+	init_cli_global_mode();
     register_command(NULL, "quit", cli_quit, false, false);
     register_command(NULL, "exit", cli_quit, false, true);
     register_command(NULL, "end", cli_quit, false, true);

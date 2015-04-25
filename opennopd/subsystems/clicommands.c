@@ -15,6 +15,10 @@ static struct command_head globalmode;
 static struct command_head testmode;
 static const char delimiters[] = " ";
 
+void init_cli_global_mode(){
+	sprintf(&globalmode.prompt, "opennopd# ");
+}
+
 int cli_help(int client_fd, struct command_head *currentnode) {
     char msg[MAX_BUFFER_SIZE] = { 0 };
     struct command *currentcommand = NULL;
@@ -285,7 +289,8 @@ struct commandresult execute_commands(struct command_head *mode, void *data, int
     }
 
     if(result.finished != 1) { // Don't show the last prompt if we are done.
-        cli_prompt(client_fd);
+        //cli_prompt(client_fd);
+    	cli_mode_prompt(client_fd, result.mode);
     }
 
     return result;
@@ -407,6 +412,26 @@ int cli_prompt(int client_fd) {
     char msg[MAX_BUFFER_SIZE] = { 0 };
     sprintf(msg, "opennopd# ");
     cli_send_feedback(client_fd, msg);
+    return 0;
+}
+
+/*
+ * Show the opennop->mode# prompt.
+ */
+int cli_mode_prompt(int client_fd, struct command_head *mode) {
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+    char message[LOGSZ];
+
+    sprintf(message, "Entering cli_mode_prompt().\n");
+    logger(LOG_INFO, message);
+
+    if(mode != NULL){
+    	sprintf(msg, mode->prompt);
+    	cli_send_feedback(client_fd, msg);
+    }else{
+    	cli_prompt(client_fd);
+    }
+
     return 0;
 }
 
