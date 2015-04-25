@@ -158,6 +158,16 @@ struct wccp_webcache_id_info{
 static pthread_t t_wccp; // thread for wccp.
 static struct command_head cli_wccp_mode; // list of wccp commands.
 
+
+int cli_enter_wccp_help(int client_fd) {
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+
+    sprintf(msg,"Usage: wccp <service group (0-254)>\n");
+    cli_send_feedback(client_fd, msg);
+
+    return 0;
+}
+
 /** @brief Put CLI into WCCP configuration mode.
  *
  * Puts the CLI into WCCP configuration mode if a valid service group was provided.
@@ -179,6 +189,8 @@ struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int n
      */
     if(numparameters == 1){
     	result.mode = &cli_wccp_mode;
+    }else{
+    	cli_enter_wccp_help(client_fd);
     }
 
     return result;
