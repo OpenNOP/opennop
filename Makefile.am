@@ -3,7 +3,7 @@
 GIT_VERSION := $(shell git describe --abbrev=6 --dirty --always)
 AM_CPPFLAGS = ${libnfnetlink_CFLAGS} ${libnetfilter_queue_CFLAGS} \
               ${libnl_CPPFLAGS} -Iinclude -Ilib
-AM_CFLAGS   = -Wall -Wcast-align -Wcast-qual -DVERSION=\"$(GIT_VERSION)\"
+AM_CFLAGS   = -Wall -Wextra -Wcast-align -Wcast-qual -DVERSION=\"$(GIT_VERSION)\"
 
 bin_PROGRAMS = opennop/opennop
 sbin_PROGRAMS = opennopd/opennopd
