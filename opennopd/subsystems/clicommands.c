@@ -16,7 +16,7 @@ static struct command_head testmode;
 static const char delimiters[] = " ";
 
 void init_cli_global_mode(){
-	sprintf(&globalmode.prompt, "opennopd# ");
+	sprintf(globalmode.prompt, "opennopd# ");
 }
 
 int cli_help(int client_fd, struct command_head *currentnode) {
