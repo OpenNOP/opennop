@@ -196,6 +196,30 @@ struct commandresult cli_exit_wccp_mode(int client_fd, char **parameters, int nu
     return result;
 }
 
+struct commandresult cli_wccp_server(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+    /*
+     * Received a quit command so return 1 to shutdown this cli session.
+     */
+    result.finished = 0;
+    result.mode = &cli_wccp_mode;;
+    result.data = NULL;
+
+    return result;
+}
+
+struct commandresult cli_wccp_password(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+    /*
+     * Received a quit command so return 1 to shutdown this cli session.
+     */
+    result.finished = 0;
+    result.mode = &cli_wccp_mode;;
+    result.data = NULL;
+
+    return result;
+}
+
 void *wccp_thread(void *dummyPtr) {
 
 
@@ -205,6 +229,8 @@ void *wccp_thread(void *dummyPtr) {
 void init_wccp(){
 	sprintf(&cli_wccp_mode.prompt, "opennopd->wccp# ");
     register_command(NULL, "wccp", cli_enter_wccp_mode, true, true);
+    register_command(&cli_wccp_mode, "server", cli_wccp_server, true, false);
+    register_command(&cli_wccp_mode, "password", cli_wccp_password, true, false);
     register_command(&cli_wccp_mode, "exit", cli_exit_wccp_mode, false, false);
 }
 

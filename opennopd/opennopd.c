@@ -29,6 +29,7 @@
 #include "compression.h"
 #include "version.h"
 #include "ipc.h"
+#include "wccpv2.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
