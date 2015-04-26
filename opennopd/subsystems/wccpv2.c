@@ -11,6 +11,7 @@
 #include <strings.h>
 #include <errno.h>
 #include <pthread.h> // for multi-threading
+#include <ctype.h>
 
 #include <linux/types.h>
 
@@ -168,6 +169,25 @@ int cli_enter_wccp_help(int client_fd) {
     return 0;
 }
 
+/** @brief Test a string if its all numeric.
+ *
+ * Tests each member of a string to make sure its all digits.
+ *
+ * @string [in] Pointer to a string array.
+ * @todo This should probably be part of the CLI module so it can be used to verify user input.
+ */
+int isstringdigits(char *string){
+	int i;
+
+	for(i=0;i < strlen(string);i++){
+
+		if(isdigit(string[i]) == 0){
+			return false;
+		}
+	}
+	return true;
+}
+
 /** @brief Put CLI into WCCP configuration mode.
  *
  * Puts the CLI into WCCP configuration mode if a valid service group was provided.
@@ -179,6 +199,7 @@ int cli_enter_wccp_help(int client_fd) {
 struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int numparameters, void *data) {
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	struct commandresult result = { 0 };
+	int servicegroup = 0;
 
     result.finished = 0;
     result.mode = NULL;
@@ -188,7 +209,20 @@ struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int n
      *
      */
     if(numparameters == 1){
-    	result.mode = &cli_wccp_mode;
+
+    	if(isstringdigits(parameters[0]) == true){
+
+    		servicegroup = atoi(parameters[0]);
+
+    		if((servicegroup >= 0) && (servicegroup <= 254)){
+    			result.mode = &cli_wccp_mode;
+    		}else{
+    			cli_enter_wccp_help(client_fd);
+    		}
+
+    	}else{
+    		cli_enter_wccp_help(client_fd);
+    	}
     }else{
     	cli_enter_wccp_help(client_fd);
     }
