@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <string.h>
 #include <strings.h>
 #include <errno.h>
 #include <pthread.h> // for multi-threading
@@ -160,8 +161,8 @@ struct wccp_webcache_id_info{
 
 struct wccp_service_group{
 	struct list_item groups; // Links to other service groups.
-	struct list_head servers; // List of WCCP servers in this group.
 	__u8 group_id;
+	struct list_head servers; // List of WCCP servers in this group.
 	char password[WCCP_PASSWORD_LENGTH]; // Limited to 8 characters.
 
 };
@@ -175,6 +176,7 @@ struct wccp_server{
 static pthread_t t_wccp; // thread for wccp.
 static struct list_head wccp_service_groups;
 static struct command_head cli_wccp_mode; // list of wccp commands.
+static int DEBUG_WCCP = LOGGING_DEBUG;
 
 
 int cli_enter_wccp_help(int client_fd) {
@@ -205,6 +207,39 @@ int isstringdigits(char *string){
 	return true;
 }
 
+struct wccp_service_group *allocate_wccp_service_group(__u8 servicegroup){
+	struct wccp_service_group *new_wccp_service_group = NULL;
+	new_wccp_service_group = (struct wccp_service_group*) malloc(sizeof(struct wccp_service_group));
+
+	if(new_wccp_service_group != NULL){
+		new_wccp_service_group->groups.next = NULL;
+		new_wccp_service_group->groups.prev = NULL;
+		new_wccp_service_group->group_id = servicegroup;
+		new_wccp_service_group->servers.next = NULL;
+		new_wccp_service_group->servers.prev = NULL;
+		new_wccp_service_group->servers.count = 0;
+		pthread_mutex_init(&new_wccp_service_group->servers.lock, NULL);
+	}
+
+	return new_wccp_service_group;
+}
+
+struct wccp_service_group *find_wccp_service_group(__u8 servicegroup){
+
+	struct wccp_service_group *current_wccp_service_group = wccp_service_groups.next;
+
+	while(current_wccp_service_group != NULL){
+
+		if(current_wccp_service_group->group_id == servicegroup){
+			return current_wccp_service_group;
+		}
+		current_wccp_service_group = current_wccp_service_group->groups.next;
+	}
+
+	return NULL;
+}
+
+
 /** @brief Put CLI into WCCP configuration mode.
  *
  * Puts the CLI into WCCP configuration mode if a valid service group was provided.
@@ -216,7 +251,9 @@ int isstringdigits(char *string){
 struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int numparameters, void *data) {
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	struct commandresult result = { 0 };
-	int servicegroup = 0;
+	struct wccp_service_group *current_wccp_service_group = NULL;
+	int temp = 0;
+	__u8 servicegroup = 0;
 
     result.finished = 0;
     result.mode = NULL;
@@ -229,14 +266,22 @@ struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int n
 
     	if(isstringdigits(parameters[0]) == true){
 
-    		servicegroup = atoi(parameters[0]);
+    		temp = atoi(parameters[0]);
 
-    		if((servicegroup >= 0) && (servicegroup <= 254)){
+    		if((temp >= 0) && (temp <= 254)){
+    			servicegroup = (__u8)temp;
     			/*
     			 * @todo Should look for the WCCP group structure.
     			 * If it exists set result.data to this structure.
     			 * If it does not exist we need to create it and set result.data to this structure.
     			 */
+    			current_wccp_service_group = find_wccp_service_group(servicegroup);
+
+    			if(current_wccp_service_group == NULL){
+    			    sprintf(msg,"No service group.\n");
+    			    cli_send_feedback(client_fd, msg);
+    			}
+
     			result.mode = &cli_wccp_mode;
     		}else{
     			cli_enter_wccp_help(client_fd);
@@ -289,13 +334,29 @@ struct commandresult cli_wccp_password(int client_fd, char **parameters, int num
 }
 
 void *wccp_thread(void *dummyPtr) {
+	char message[LOGSZ];
+
+	sprintf(message, "Starting WCCP Thread.\n");
+	logger2(LOGGING_DEBUG,DEBUG_WCCP,message);
 
 
+	sprintf(message, "Exiting WCCP Thread.\n");
+	logger2(LOGGING_DEBUG,DEBUG_WCCP,message);
 	return EXIT_SUCCESS;
+}
+
+void initialize_wccp_service_groups(){
+	wccp_service_groups.next = NULL;
+	wccp_service_groups.prev = NULL;
+	wccp_service_groups.count = 0;
+	pthread_mutex_init(&wccp_service_groups.lock, NULL);
+
+
 }
 
 void init_wccp(){
 	sprintf(cli_wccp_mode.prompt, "opennopd->wccp# ");
+	initialize_wccp_service_groups();
     register_command(NULL, "wccp", cli_enter_wccp_mode, true, true);
     register_command(&cli_wccp_mode, "server", cli_wccp_server, true, false);
     register_command(&cli_wccp_mode, "password", cli_wccp_password, true, false);
