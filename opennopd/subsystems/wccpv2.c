@@ -27,6 +27,8 @@
  * but I will define everything here as described in the RFC draft.
  */
 
+#define WCCP_PASSWORD_LENGTH					8
+
 // Section 4.1
 #define HERE_I_AM_T								10
 
@@ -156,7 +158,22 @@ struct wccp_webcache_id_info{
 	// Web Cache Identity Element 5.7.2
 };
 
+struct wccp_service_group{
+	struct list_item groups; // Links to other service groups.
+	struct list_head servers; // List of WCCP servers in this group.
+	__u8 group_id;
+	char password[WCCP_PASSWORD_LENGTH]; // Limited to 8 characters.
+
+};
+
+struct wccp_server{
+	struct list_item servers; // Links to other wccp servers in this group.
+	__u32 ipaddres; // IP address of this server.
+	int sock; // fd used to communicate with this wccp server.
+};
+
 static pthread_t t_wccp; // thread for wccp.
+static struct list_head wccp_service_groups;
 static struct command_head cli_wccp_mode; // list of wccp commands.
 
 
@@ -215,6 +232,11 @@ struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int n
     		servicegroup = atoi(parameters[0]);
 
     		if((servicegroup >= 0) && (servicegroup <= 254)){
+    			/*
+    			 * @todo Should look for the WCCP group structure.
+    			 * If it exists set result.data to this structure.
+    			 * If it does not exist we need to create it and set result.data to this structure.
+    			 */
     			result.mode = &cli_wccp_mode;
     		}else{
     			cli_enter_wccp_help(client_fd);
