@@ -16,6 +16,7 @@
 
 #include <linux/types.h>
 
+#include <sys/socket.h>
 #include <sys/unistd.h>
 
 #include "wccpv2.h"
@@ -169,7 +170,7 @@ struct wccp_service_group{
 
 struct wccp_server{
 	struct list_item servers; // Links to other wccp servers in this group.
-	__u32 ipaddres; // IP address of this server.
+	__u32 ipaddress; // IP address of this server.
 	int sock; // fd used to communicate with this wccp server.
 };
 
@@ -280,9 +281,13 @@ struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int n
     			if(current_wccp_service_group == NULL){
     			    sprintf(msg,"No service group.\n");
     			    cli_send_feedback(client_fd, msg);
+
+    			    current_wccp_service_group = allocate_wccp_service_group(servicegroup);
+    			    insert_list_item(&wccp_service_groups, current_wccp_service_group);
     			}
 
     			result.mode = &cli_wccp_mode;
+    			result.data = current_wccp_service_group;
     		}else{
     			cli_enter_wccp_help(client_fd);
     		}
@@ -299,9 +304,7 @@ struct commandresult cli_enter_wccp_mode(int client_fd, char **parameters, int n
 
 struct commandresult cli_exit_wccp_mode(int client_fd, char **parameters, int numparameters, void *data) {
 	struct commandresult result = { 0 };
-    /*
-     * Received a quit command so return 1 to shutdown this cli session.
-     */
+
     result.finished = 0;
     result.mode = NULL;
     result.data = NULL;
@@ -309,25 +312,107 @@ struct commandresult cli_exit_wccp_mode(int client_fd, char **parameters, int nu
     return result;
 }
 
+struct wccp_server *find_wccp_server(struct wccp_service_group *service_group, __u32 serverip){
+
+	struct wccp_server *current_wccp_server = service_group->servers.next;
+
+	while(current_wccp_server != NULL){
+
+		if(current_wccp_server->ipaddress == serverip){
+			return current_wccp_server;
+		}
+		current_wccp_server = current_wccp_server->servers.next;
+	}
+
+	return NULL;
+}
+
+struct wccp_server *allocate_wccp_server(__u32 serverip){
+	struct wccp_server *new_wccp_server = NULL;
+	new_wccp_server = (struct wccp_server*) malloc(sizeof(struct wccp_server));
+
+	if(new_wccp_server != NULL){
+		new_wccp_server->servers.head = NULL;
+		new_wccp_server->servers.next = NULL;
+		new_wccp_server->servers.prev = NULL;
+		new_wccp_server->ipaddress = serverip;
+	}
+
+	return new_wccp_server;
+}
+
+int cli_wccp_server_help(int client_fd) {
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+
+    sprintf(msg,"Usage: server <ip address>\n");
+    cli_send_feedback(client_fd, msg);
+
+    return 0;
+}
+
 struct commandresult cli_wccp_server(int client_fd, char **parameters, int numparameters, void *data) {
+	char msg[MAX_BUFFER_SIZE] = { 0 };
 	struct commandresult result = { 0 };
-    /*
-     * Received a quit command so return 1 to shutdown this cli session.
-     */
-    result.finished = 0;
-    result.mode = &cli_wccp_mode;;
+	int ERROR = 0;
+	__u32 serverIP = 0;
+	struct wccp_server *current_wccp_server = NULL;
+
+
+	result.finished = 0;
+    result.mode = &cli_wccp_mode;
     result.data = NULL;
+
+    /*
+     * There must be data passed from the cli mode.
+     * This should point to the WCCP Service Group data structure.
+     * If this data is not passed in by the wccp mode we need to exit.
+     */
+    if (data != NULL){
+    	result.data = data;
+    }else{
+    	result.mode = NULL;
+    	return result;
+    }
+
+    /*
+     * First check for the correct number of parameters.
+     */
+    if(numparameters == 1){
+
+    	/*
+    	 * Next we check to make sure its a valid IP.
+    	 * We dont need to check if its actually a WCCP server
+    	 * just assume the admin knows what they are doing.
+    	 */
+        ERROR = inet_pton(AF_INET, parameters[0], &serverIP); //Should return 1.
+
+        if(ERROR != 1) {
+            cli_wccp_server_help(client_fd);
+            return result;
+        }
+
+        current_wccp_server = find_wccp_server((struct wccp_service_group *)data, serverIP);
+
+        if(current_wccp_server == NULL){
+        	 sprintf(msg,"No server found.\n");
+        	 cli_send_feedback(client_fd, msg);
+
+        	 current_wccp_server = allocate_wccp_server(serverIP);
+        	 insert_list_item(&((struct wccp_service_group *)data)->servers, current_wccp_server);
+        }
+
+    }else{
+    	cli_wccp_server_help(client_fd);
+    }
 
     return result;
 }
 
 struct commandresult cli_wccp_password(int client_fd, char **parameters, int numparameters, void *data) {
 	struct commandresult result = { 0 };
-    /*
-     * Received a quit command so return 1 to shutdown this cli session.
-     */
+
     result.finished = 0;
-    result.mode = &cli_wccp_mode;;
+    result.mode = &cli_wccp_mode;
     result.data = NULL;
 
     return result;
@@ -337,11 +422,11 @@ void *wccp_thread(void *dummyPtr) {
 	char message[LOGSZ];
 
 	sprintf(message, "Starting WCCP Thread.\n");
-	logger2(LOGGING_DEBUG,DEBUG_WCCP,message);
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,message);
 
 
 	sprintf(message, "Exiting WCCP Thread.\n");
-	logger2(LOGGING_DEBUG,DEBUG_WCCP,message);
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,message);
 	return EXIT_SUCCESS;
 }
 
@@ -350,8 +435,6 @@ void initialize_wccp_service_groups(){
 	wccp_service_groups.prev = NULL;
 	wccp_service_groups.count = 0;
 	pthread_mutex_init(&wccp_service_groups.lock, NULL);
-
-
 }
 
 void init_wccp(){
