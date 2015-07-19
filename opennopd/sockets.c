@@ -24,6 +24,37 @@
 
 static int DEBUG_SOCKETS = LOGGING_OFF;
 
+int new_udp_client(__u32 serverip ,int port) {
+    int client_socket = 0;
+    int error = 0;
+    struct sockaddr_in client = {
+                                    0
+                                };
+    char message[LOGSZ];
+
+    client_socket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (client_socket < 0 ) {
+        logger2(LOGGING_FATAL, DEBUG_SOCKETS , "IPC: Failed to create socket.\n");
+        exit(1);
+    }
+
+    client.sin_family = AF_INET;
+    client.sin_port = htons(port);
+    client.sin_addr.s_addr = serverip;
+
+    error = connect(client_socket, (struct sockaddr *)&client, sizeof(client));
+
+    if (error < 0) {
+        sprintf(message, "IPC: Failed to connect to remote host.\n");
+        logger2(LOGGING_WARN, DEBUG_SOCKETS, message);
+        close(client_socket);
+        return -1;
+    }
+
+    return client_socket;
+}
+
 int new_ip_client(__u32 serverip ,int port) {
     int client_socket = 0;
     int error = 0;
@@ -550,11 +581,15 @@ int new_ip_epoll_server(struct epoller *server, t_epoll_callback secure, t_epoll
      * This accepts connections from the remote neighbors.
      */
 
-    server->socket = new_ip_server(port);
+    if(port != 0){
+    	server->socket = new_ip_server(port);
+    }
     server->timeoutfunction = timeoutfunction;
     server->timeout = timeout;
 
-    register_socket(server->socket, server->epoll_fd, &server->event);
+    if(server->socket != NULL){
+    	register_socket(server->socket, server->epoll_fd, &server->event);
+    }
 
     server->secure = secure;
     server->callback = callback;
