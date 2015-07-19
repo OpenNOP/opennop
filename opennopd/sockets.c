@@ -546,9 +546,9 @@ int epoll_handler(struct epoller *server) {
          * If the epoll instance has a timeout and a timeout callback function it is executed.
          * This also is executed each time the epoll instance returns.
          */
-        if(server->timeoutfunction != NULL) {
-            (server->timeoutfunction(server));
-        }
+        //if(server->timeoutfunction != NULL) {
+        //    (server->timeoutfunction(server));
+        //}
 
     }
     return 0;
