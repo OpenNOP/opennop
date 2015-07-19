@@ -554,7 +554,17 @@ int epoll_handler(struct epoller *server) {
     return 0;
 }
 
-/**
+/** @brief Create a new epoller instance.
+ *
+ * Creates a new IP based epoller instance.
+ *
+ * @param epoller [in] pinter to the epoller.
+ * @param secure [in] function pointer that will validate source.
+ * @param callback [in] function pointer that will process client messages.
+ * @param port [in] port to server on.
+ * @param timeoutfunction [in] function that will run when epoller instance timeout is reached.
+ * @param timeout [in] number of seconds before epoller instance will timeout.
+ *
  * @toto:
  * A new epoll server should include a max length for the messages it is expected to receive.
  * If it receives a message larger than this is should shutdown that socket right away.
