@@ -19,6 +19,7 @@
 #include <sys/socket.h>
 #include <sys/unistd.h>
 
+#include "sockets.h"
 #include "wccpv2.h"
 #include "clicommands.h"
 #include "logger.h"
@@ -336,6 +337,7 @@ struct wccp_server *allocate_wccp_server(__u32 serverip){
 		new_wccp_server->servers.next = NULL;
 		new_wccp_server->servers.prev = NULL;
 		new_wccp_server->ipaddress = serverip;
+		new_wccp_server->sock = 0;
 	}
 
 	return new_wccp_server;
@@ -418,15 +420,90 @@ struct commandresult cli_wccp_password(int client_fd, char **parameters, int num
     return result;
 }
 
+/** @brief Processes WCCP messages sent by WCCP servers.
+ *
+ * Processes WCCP messages sent by WCCP servers to this client.
+ *
+ * @param this_epoller [in] poller structure receiving the messages.
+ * @param fd [in] socket that the message was received on.
+ * @param buf [in] the message.
+ * @return int 0 = sucessful 1 = failed
+ */
+int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
+
+	return 0;
+}
+/** @brief Processes a WCCP server of a group.
+ *
+ * Check connection to server.  Open a new one or close if dead.
+ * Send WCCP hello messages and login to WCCP group.
+ *
+ * @param this_epoller [in] wccp server being processed.
+ */
+int wccp_process_server(struct wccp_server *this_wccp_server){
+	char message[LOGSZ] = {0};
+	int client = 0;
+
+	if(this_wccp_server->sock == 0){ //Need to open a socket to this server.
+		client = new_udp_client(this_wccp_server->ipaddress, WCCP_PORT);
+
+		if(client > 0){
+			this_wccp_server->sock = client;
+			logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Connected to server.\n");
+		}
+	}else{
+		logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Sending WCCP Hello to server.\n");
+	}
+
+
+
+	return 0;
+}
+
+int wccp_main(){
+	char message[LOGSZ] = {0};
+	struct wccp_service_group *current_wccp_service_group = (struct wccp_service_group *)wccp_service_groups.next;
+	struct wccp_server *current_wccp_server = NULL;
+
+	/*
+	 * Send a WCCP_HELLO message to each server of each service group.
+	 */
+
+	// Loop through each service group.
+	while(current_wccp_service_group != NULL){
+
+		current_wccp_server = current_wccp_service_group->servers.next;
+
+		// Send WCCP_HELLO to each server in the group.
+		while(current_wccp_server != NULL){
+			logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Processing a server.\n");
+			wccp_process_server(current_wccp_server);
+			current_wccp_server = current_wccp_server->servers.next;
+		}
+
+		current_wccp_service_group = current_wccp_service_group->groups.next;
+	}
+
+
+
+	return 0;
+}
+
 void *wccp_thread(void *dummyPtr) {
+    int error = 0;
+    struct epoller wccp_server = { 0 };
 	char message[LOGSZ];
 
-	sprintf(message, "Starting WCCP Thread.\n");
-	logger2(LOGGING_DEBUG, DEBUG_WCCP,message);
+	logger2(LOGGING_DEBUG, DEBUG_WCCP, "Starting WCCP Thread.\n");
 
+	error = new_ip_epoll_server(&wccp_server, NULL, wccp_handler, 0, wccp_main, (HERE_I_AM_T - 1));
 
-	sprintf(message, "Exiting WCCP Thread.\n");
-	logger2(LOGGING_DEBUG, DEBUG_WCCP,message);
+	epoll_handler(&wccp_server);
+
+	logger2(LOGGING_DEBUG, DEBUG_WCCP, "Exiting WCCP Thread.\n");
+
+	shutdown_epoll_server(&wccp_server);
+
 	return EXIT_SUCCESS;
 }
 
