@@ -724,7 +724,7 @@ int hello_neighbors(struct epoller *this_epoller) {
             if(currentneighbor->sock == 0) {
                 newsocket = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
 
-                if(newsocket > 0) {
+                if(newsocket >= 0) {
                     currentneighbor->sock = newsocket;
                     currentneighbor->state = ATTEMPT;
                     /*
