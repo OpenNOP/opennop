@@ -423,10 +423,51 @@ struct commandresult cli_wccp_password(int client_fd, char **parameters, int num
     return result;
 }
 
+int get_wccp_message_length(struct wccp2_message_header *wccp2_msg_header){
+
+	return (ntohs(wccp2_msg_header->length) + 8);
+}
+
+int update_wccp_message_length(struct wccp2_message_header *wccp2_msg_header, __u16 length){
+	wccp2_msg_header->length = htons(ntohs(wccp2_msg_header->length) + ntohs(length) + 4);
+
+	return 0;
+}
+
 int wccp_add_here_i_am_header(struct wccp2_message_header *wccp2_msg_header){
-	wccp2_msg_header->type = WCCP2_HERE_I_AM;
-	wccp2_msg_header->version = WCCP2_VERSION;
-	wccp2_msg_header->length = 0;
+	wccp2_msg_header->type = htonl(WCCP2_HERE_I_AM);
+	wccp2_msg_header->version = htons(WCCP2_VERSION);
+	wccp2_msg_header->length = htons(0);
+	return 0;
+}
+
+int wccp_add_security_component(struct wccp2_message_header *wccp2_msg_header){
+	struct wccp_security_info *wccp2_security_component;
+
+	wccp2_security_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
+
+	wccp2_security_component->type = htons(WCCP2_SECURITY_INFO);
+	wccp2_security_component->length = htons(4);
+	wccp2_security_component->security_option = htonl(WCCP2_NO_SECURITY);
+
+	update_wccp_message_length(wccp2_msg_header, wccp2_security_component->length);
+
+	return 0;
+}
+
+int wccp_add_service_component(struct wccp2_message_header *wccp2_msg_header){
+	struct wccp_service_info *wccp2_service_component;
+	wccp2_service_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
+
+	wccp2_service_component->type = htons(WCCP2_SERVICE_INFO);
+	wccp2_service_component->length = htons(24);
+	wccp2_service_component->service_type = WCCP2_SERVICE_STANDARD;
+	wccp2_service_component->service_id = 0x00;
+	wccp2_service_component->priority = 0;
+	wccp2_service_component->protocol = 0;
+
+	update_wccp_message_length(wccp2_msg_header, wccp2_service_component->length);
+
 	return 0;
 }
 
@@ -439,7 +480,9 @@ int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messa
     switch(messagetype) {
     case WCCP2_HERE_I_AM:
     	wccp_add_here_i_am_header(wccp2_msg_header);
-    	send(this_wccp_server->sock, wccp2_msg_header, wccp2_msg_header->length, MSG_NOSIGNAL);
+    	wccp_add_security_component(wccp2_msg_header);
+    	wccp_add_service_component(wccp2_msg_header);
+    	send(this_wccp_server->sock, wccp2_msg_header, ntohs(wccp2_msg_header->length) + 8, MSG_NOSIGNAL);
         break;
     default:
         logger2(LOGGING_DEBUG,DEBUG_WCCP,"[WCCP] Cannot send unknown type!\n");
