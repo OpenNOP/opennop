@@ -33,16 +33,19 @@
 #define WCCP_PASSWORD_LENGTH					8
 
 // Section 4.1
-#define HERE_I_AM_T								10
+#define HERE_I_AM_T								10000
 
 // Section 5
 #define WCCP_PORT								2048
 
 // Section 5.5
-#define WCCP2_HERE_I_AM							10
-#define WCCP2_I_SEE_YOU							11
-#define WCCP2_REDIRECT_ASSIGN					12
-#define WCCP2_REMOVAL_QUERY						13
+typedef enum {
+	WCCP2_HERE_I_AM			= 10,
+	WCCP2_I_SEE_YOU			= 11,
+	WCCP2_REDIRECT_ASSIGN	= 12,
+	WCCP2_REMOVAL_QUERY		= 13
+} WCCP2_MSG_TYPE;
+
 #define WCCP2_VERSION							0x200
 
 // Section 5.6.1
@@ -420,6 +423,31 @@ struct commandresult cli_wccp_password(int client_fd, char **parameters, int num
     return result;
 }
 
+int wccp_add_here_i_am_header(struct wccp2_message_header *wccp2_msg_header){
+	wccp2_msg_header->type = WCCP2_HERE_I_AM;
+	wccp2_msg_header->version = WCCP2_VERSION;
+	wccp2_msg_header->length = 0;
+	return 0;
+}
+
+int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messagetype){
+	char buf[1024] = {0};
+	struct wccp2_message_header *wccp2_msg_header;
+
+	wccp2_msg_header = (struct wccp2_message_header *)&buf;
+
+    switch(messagetype) {
+    case WCCP2_HERE_I_AM:
+    	wccp_add_here_i_am_header(wccp2_msg_header);
+    	send(this_wccp_server->sock, wccp2_msg_header, wccp2_msg_header->length, MSG_NOSIGNAL);
+        break;
+    default:
+        logger2(LOGGING_DEBUG,DEBUG_WCCP,"[WCCP] Cannot send unknown type!\n");
+    }
+
+	return 0;
+}
+
 /** @brief Processes WCCP messages sent by WCCP servers.
  *
  * Processes WCCP messages sent by WCCP servers to this client.
@@ -430,7 +458,9 @@ struct commandresult cli_wccp_password(int client_fd, char **parameters, int num
  * @return int 0 = sucessful 1 = failed
  */
 int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_handler().\n");
 
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_handler().\n");
 	return 0;
 }
 /** @brief Processes a WCCP server of a group.
@@ -440,19 +470,22 @@ int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
  *
  * @param this_epoller [in] wccp server being processed.
  */
-int wccp_process_server(struct wccp_server *this_wccp_server){
+int wccp_process_server(struct epoller *wccp_epoller, struct wccp_server *this_wccp_server){
 	char message[LOGSZ] = {0};
-	int client = 0;
+	int client = -1;
 
 	if(this_wccp_server->sock == 0){ //Need to open a socket to this server.
 		client = new_udp_client(this_wccp_server->ipaddress, WCCP_PORT);
 
-		if(client > 0){
+		if(client >= 0){
 			this_wccp_server->sock = client;
+			register_socket(client, wccp_epoller->epoll_fd, &wccp_epoller->event);
 			logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Connected to server.\n");
 		}
 	}else{
 		logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Sending WCCP Hello to server.\n");
+		wccp_send_message(this_wccp_server, WCCP2_HERE_I_AM);
+
 	}
 
 
@@ -460,10 +493,12 @@ int wccp_process_server(struct wccp_server *this_wccp_server){
 	return 0;
 }
 
-int wccp_main(){
+int wccp_epoller_timeout(struct epoller *wccp_epoller){
 	char message[LOGSZ] = {0};
 	struct wccp_service_group *current_wccp_service_group = (struct wccp_service_group *)wccp_service_groups.next;
 	struct wccp_server *current_wccp_server = NULL;
+
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_main().\n");
 
 	/*
 	 * Send a WCCP_HELLO message to each server of each service group.
@@ -477,32 +512,32 @@ int wccp_main(){
 		// Send WCCP_HELLO to each server in the group.
 		while(current_wccp_server != NULL){
 			logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Processing a server.\n");
-			wccp_process_server(current_wccp_server);
+			wccp_process_server(wccp_epoller, current_wccp_server);
 			current_wccp_server = current_wccp_server->servers.next;
 		}
 
 		current_wccp_service_group = current_wccp_service_group->groups.next;
 	}
 
-
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting wccp_main().\n");
 
 	return 0;
 }
 
 void *wccp_thread(void *dummyPtr) {
     int error = 0;
-    struct epoller wccp_server = { 0 };
+    struct epoller wccp_epoller = { 0 };
 	char message[LOGSZ];
 
 	logger2(LOGGING_DEBUG, DEBUG_WCCP, "Starting WCCP Thread.\n");
 
-	error = new_ip_epoll_server(&wccp_server, NULL, wccp_handler, 0, wccp_main, (HERE_I_AM_T - 1));
+	error = new_ip_epoll_server(&wccp_epoller, NULL, wccp_handler, 0, wccp_epoller_timeout, (HERE_I_AM_T - 1000));
 
-	epoll_handler(&wccp_server);
+	epoll_handler(&wccp_epoller);
 
 	logger2(LOGGING_DEBUG, DEBUG_WCCP, "Exiting WCCP Thread.\n");
 
-	shutdown_epoll_server(&wccp_server);
+	shutdown_epoll_server(&wccp_epoller);
 
 	return EXIT_SUCCESS;
 }
