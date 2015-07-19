@@ -151,6 +151,7 @@ struct wccp_service_info {
 struct wccp_router_id_info{
 	__u16 type;
 	__u16 length;
+	__u32 router_ip;
 	__u32 router_id;
 	__u32 send_to;
 	__u32 num_received_from;
@@ -161,6 +162,13 @@ struct wccp_router_id_info{
 struct wccp_webcache_id_info{
 	__u16 type;
 	__u16 length;
+	__u32 cache_ip;
+	__u16 hash_revision;
+	__u16 reserved;
+	__u32 bucket[8];
+	__u16 weight;
+	__u16 status;
+
 	// Web Cache Identity Element 5.7.2
 };
 
@@ -461,12 +469,48 @@ int wccp_add_service_component(struct wccp2_message_header *wccp2_msg_header){
 
 	wccp2_service_component->type = htons(WCCP2_SERVICE_INFO);
 	wccp2_service_component->length = htons(24);
-	wccp2_service_component->service_type = WCCP2_SERVICE_STANDARD;
-	wccp2_service_component->service_id = 0x00;
-	wccp2_service_component->priority = 0;
+	wccp2_service_component->service_type = WCCP2_SERVICE_DYNAMIC ;
+	wccp2_service_component->service_id = 0;
+	wccp2_service_component->priority = 200;
 	wccp2_service_component->protocol = 0;
+	wccp2_service_component->service_flags = htonl(15);
 
 	update_wccp_message_length(wccp2_msg_header, wccp2_service_component->length);
+
+	return 0;
+}
+
+int wccp_add_router_id_component(struct wccp2_message_header *wccp2_msg_header, __u32 routerip){
+	struct wccp_router_id_info *wccp2_router_id_component;
+	wccp2_router_id_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
+
+	wccp2_router_id_component->type = htons(WCCP2_ROUTER_ID_INFO);
+	wccp2_router_id_component->length = htons(16);
+	wccp2_router_id_component->router_ip = routerip;
+	wccp2_router_id_component->send_to = 0;
+
+	update_wccp_message_length(wccp2_msg_header, wccp2_router_id_component->length);
+
+	return 0;
+}
+
+int wccp_add_webcache_id_component(struct wccp2_message_header *wccp2_msg_header){
+	struct wccp_webcache_id_info *wccp2_webcache_id_component;
+	wccp2_webcache_id_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
+
+	wccp2_webcache_id_component->type = htons(WCCP2_WC_ID_INFO);
+	wccp2_webcache_id_component->length = htons(44);
+	wccp2_webcache_id_component->cache_ip = 0;
+	wccp2_webcache_id_component->hash_revision = htons(0x00);
+	wccp2_webcache_id_component->weight = 0;
+	wccp2_webcache_id_component->status = 0;
+
+	update_wccp_message_length(wccp2_msg_header, wccp2_webcache_id_component->length);
+
+	return 0;
+}
+
+int wccp_add_webcache_view_component(struct wccp2_message_header *wccp2_msg_header){
 
 	return 0;
 }
@@ -479,9 +523,26 @@ int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messa
 
     switch(messagetype) {
     case WCCP2_HERE_I_AM:
+
+    	/*
+    	 * 5.1 'Here I Am' Message
+    	 *    +--------------------------------------+
+    	 *    |         WCCP Message Header          |
+    	 *    +--------------------------------------+
+    	 *    |       Security Info Component        |
+    	 *    +--------------------------------------+
+    	 *    |        Service Info Component        |
+    	 *    +--------------------------------------+
+    	 *    |  Web-Cache Identity Info Component   |
+    	 *    +--------------------------------------+
+    	 *    |    Web-Cache View Info Component     |
+    	 *    +--------------------------------------+
+    	 */
     	wccp_add_here_i_am_header(wccp2_msg_header);
     	wccp_add_security_component(wccp2_msg_header);
     	wccp_add_service_component(wccp2_msg_header);
+    	wccp_add_webcache_id_component(wccp2_msg_header);
+
     	send(this_wccp_server->sock, wccp2_msg_header, ntohs(wccp2_msg_header->length) + 8, MSG_NOSIGNAL);
         break;
     default:
