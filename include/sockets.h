@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
+#include <sys/epoll.h>
 
 struct epoller;
 
@@ -29,6 +30,7 @@ struct epoller {
 	int timeout;					/** Measure of time (ms) before epoll instance times out.#timeout */
 };
 
+int new_udp_client(__u32 serverip ,int port);
 int new_ip_client(__u32 serverip ,int port);
 int new_ip_server(int port);
 int accept_ip_client(int server_socket);
