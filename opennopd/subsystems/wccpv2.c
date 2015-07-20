@@ -562,7 +562,26 @@ int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messa
  * @return int 0 = sucessful 1 = failed
  */
 int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
+	struct wccp2_message_header *wccp2_msg_header;
+	wccp2_msg_header = (struct wccp2_message_header *)&buf;
+
 	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_handler().\n");
+
+	switch(wccp2_msg_header->type){
+		case WCCP2_HERE_I_AM:
+			break;
+		case WCCP2_I_SEE_YOU:
+			break;
+		case WCCP2_REDIRECT_ASSIGN:
+			break;
+		case WCCP2_REMOVAL_QUERY:
+			break;
+		default:
+			logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Unknown message type in wccp_handler().\n");
+			break;
+	}
+
+
 
 	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_handler().\n");
 	return 0;
