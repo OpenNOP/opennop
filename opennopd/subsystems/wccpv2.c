@@ -24,6 +24,8 @@
 #include "clicommands.h"
 #include "logger.h"
 #include "list.h"
+#include "opennopd.h"
+#include "utility.h"
 
 /**
  * Do be honest I am not sure what ones of these I am actually going to need
@@ -512,7 +514,7 @@ int wccp_add_webcache_id_component(struct wccp2_message_header *wccp2_msg_header
 
 	wccp2_webcache_id_component->type = htons(WCCP2_WC_ID_INFO);
 	wccp2_webcache_id_component->length = htons(44);
-	wccp2_webcache_id_component->cache_ip = 0;
+	wccp2_webcache_id_component->cache_ip = get_local_ip();
 	wccp2_webcache_id_component->hash_revision = htons(0x00);
 	wccp2_webcache_id_component->weight = 0;
 	wccp2_webcache_id_component->status = 0;
@@ -583,21 +585,26 @@ int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messa
  */
 int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
 	struct wccp2_message_header *wccp2_msg_header;
-	wccp2_msg_header = (struct wccp2_message_header *)&buf;
+	char message[LOGSZ] = {0};
+	wccp2_msg_header = (struct wccp2_message_header *)buf;
 
 	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_handler().\n");
 
-	switch(wccp2_msg_header->type){
+	//binary_dump("[WCCP]", buf, 4);
+
+	switch(ntohl(wccp2_msg_header->type)){
 		case WCCP2_HERE_I_AM:
 			break;
 		case WCCP2_I_SEE_YOU:
+			logger2(LOGGING_DEBUG, DEBUG_WCCP, "[WCCP] WCCP2_I_SEE_YOU Received.");
 			break;
 		case WCCP2_REDIRECT_ASSIGN:
 			break;
 		case WCCP2_REMOVAL_QUERY:
 			break;
 		default:
-			logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Unknown message type in wccp_handler().\n");
+			sprintf(message,"[WCCP] Unknown message type %i in wccp_handler().\n", ntohl(wccp2_msg_header->type));
+			logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
 			break;
 	}
 
