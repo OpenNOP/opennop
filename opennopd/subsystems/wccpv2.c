@@ -172,6 +172,18 @@ struct wccp_webcache_id_info{
 	// Web Cache Identity Element 5.7.2
 };
 
+struct wccp_webcache_view_info{
+	__u16 type;
+	__u16 length;
+	__u32 change_number;
+	/* __u32 number_of_routers */
+	/* [n]__u32 router_id */
+	/* __u32 number_of_webcaches */
+	/* [n]__u32 webcache_address */
+};
+
+
+
 struct wccp_service_group{
 	struct list_item groups; // Links to other service groups.
 	__u8 group_id;
@@ -511,6 +523,13 @@ int wccp_add_webcache_id_component(struct wccp2_message_header *wccp2_msg_header
 }
 
 int wccp_add_webcache_view_component(struct wccp2_message_header *wccp2_msg_header){
+	struct wccp_webcache_view_info *wccp2_webcache_view_component;
+	wccp2_webcache_view_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
+
+	wccp2_webcache_view_component->type = htons(WCCP2_WC_VIEW_INFO);
+	wccp2_webcache_view_component->length = htons(2);
+
+	update_wccp_message_length(wccp2_msg_header, wccp2_webcache_view_component->length);
 
 	return 0;
 }
@@ -542,6 +561,7 @@ int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messa
     	wccp_add_security_component(wccp2_msg_header);
     	wccp_add_service_component(wccp2_msg_header);
     	wccp_add_webcache_id_component(wccp2_msg_header);
+    	wccp_add_webcache_view_component(wccp2_msg_header);
 
     	send(this_wccp_server->sock, wccp2_msg_header, ntohs(wccp2_msg_header->length) + 8, MSG_NOSIGNAL);
         break;
