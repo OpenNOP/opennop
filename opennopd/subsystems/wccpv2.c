@@ -599,8 +599,10 @@ int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
 			logger2(LOGGING_DEBUG, DEBUG_WCCP, "[WCCP] WCCP2_I_SEE_YOU Received.");
 			break;
 		case WCCP2_REDIRECT_ASSIGN:
+			logger2(LOGGING_DEBUG, DEBUG_WCCP, "[WCCP] WCCP2_REDIRECT_ASSIGN Received.");
 			break;
 		case WCCP2_REMOVAL_QUERY:
+			logger2(LOGGING_DEBUG, DEBUG_WCCP, "[WCCP] WCCP2_REMOVAL_QUERY Received.");
 			break;
 		default:
 			sprintf(message,"[WCCP] Unknown message type %i in wccp_handler().\n", ntohl(wccp2_msg_header->type));
