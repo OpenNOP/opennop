@@ -26,6 +26,7 @@ opennopd_opennopd_SOURCES = \
 	opennopd/sessionmanager.c \
 	opennopd/signals.c \
 	opennopd/tcpoptions.c \
+	opennopd/utility.c \
 	opennopd/subsystems/fetcher.c \
 	opennopd/subsystems/healthagent.c \
 	opennopd/subsystems/sessioncleanup.c \
