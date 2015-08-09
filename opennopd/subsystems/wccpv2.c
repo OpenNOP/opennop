@@ -14,10 +14,13 @@
 #include <pthread.h> // for multi-threading
 #include <ctype.h>
 
+#include <arpa/inet.h>
+
 #include <linux/types.h>
 
 #include <sys/socket.h>
 #include <sys/unistd.h>
+#include <sys/time.h>
 
 #include "sockets.h"
 #include "wccpv2.h"
@@ -149,6 +152,11 @@ struct wccp_service_info {
 	__u8  ports[8];
 };
 
+struct wccp_router_id_element{
+	__u32 router_id;
+	__u32 receive_id;
+};
+
 // Section 5.6.3
 struct wccp_router_id_info{
 	__u16 type;
@@ -189,6 +197,7 @@ struct wccp_webcache_view_info{
 struct wccp_service_group{
 	struct list_item groups; // Links to other service groups.
 	__u8 group_id;
+	__u32 change_number;
 	struct list_head servers; // List of WCCP servers in this group.
 	char password[WCCP_PASSWORD_LENGTH]; // Limited to 8 characters.
 
@@ -197,7 +206,9 @@ struct wccp_service_group{
 struct wccp_server{
 	struct list_item servers; // Links to other wccp servers in this group.
 	__u32 ipaddress; // IP address of this server.
+	__u32 router_id;
 	int sock; // fd used to communicate with this wccp server.
+	time_t hellotimer; // Last hello message send or attempted.
 };
 
 static pthread_t t_wccp; // thread for wccp.
@@ -239,6 +250,7 @@ struct wccp_service_group *allocate_wccp_service_group(__u8 servicegroup){
 	new_wccp_service_group = (struct wccp_service_group*) malloc(sizeof(struct wccp_service_group));
 
 	if(new_wccp_service_group != NULL){
+		new_wccp_service_group->change_number = 0;
 		new_wccp_service_group->groups.next = NULL;
 		new_wccp_service_group->groups.prev = NULL;
 		new_wccp_service_group->group_id = servicegroup;
@@ -362,7 +374,9 @@ struct wccp_server *allocate_wccp_server(__u32 serverip){
 		new_wccp_server->servers.next = NULL;
 		new_wccp_server->servers.prev = NULL;
 		new_wccp_server->ipaddress = serverip;
+		new_wccp_server->router_id = 0;
 		new_wccp_server->sock = 0;
+		time(&new_wccp_server->hellotimer);
 	}
 
 	return new_wccp_server;
@@ -477,14 +491,14 @@ int wccp_add_security_component(struct wccp2_message_header *wccp2_msg_header){
 	return 0;
 }
 
-int wccp_add_service_component(struct wccp2_message_header *wccp2_msg_header){
+int wccp_add_service_component(struct wccp_service_group *this_wccp_service_group, struct wccp2_message_header *wccp2_msg_header){
 	struct wccp_service_info *wccp2_service_component;
 	wccp2_service_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
 
 	wccp2_service_component->type = htons(WCCP2_SERVICE_INFO);
 	wccp2_service_component->length = htons(24);
 	wccp2_service_component->service_type = WCCP2_SERVICE_DYNAMIC ;
-	wccp2_service_component->service_id = 0;
+	wccp2_service_component->service_id = htons(this_wccp_service_group->group_id);
 	wccp2_service_component->priority = 200;
 	wccp2_service_component->protocol = 0;
 	wccp2_service_component->service_flags = htonl(15);
@@ -524,19 +538,48 @@ int wccp_add_webcache_id_component(struct wccp2_message_header *wccp2_msg_header
 	return 0;
 }
 
-int wccp_add_webcache_view_component(struct wccp2_message_header *wccp2_msg_header){
+int wccp_add_webcache_view_component(struct wccp_service_group *this_wccp_service_group, struct wccp2_message_header *wccp2_msg_header){
 	struct wccp_webcache_view_info *wccp2_webcache_view_component;
+	struct wccp_server *this_wccp_server = NULL;
+	struct wccp_router_id_element *router_id = NULL;
+	__u32 *num_routers = NULL;
+	__u32 *num_webcaches = NULL;
+	char message[LOGSZ] = {0};
 	wccp2_webcache_view_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
 
 	wccp2_webcache_view_component->type = htons(WCCP2_WC_VIEW_INFO);
-	wccp2_webcache_view_component->length = htons(2);
+	wccp2_webcache_view_component->length = htons(4);
+	wccp2_webcache_view_component->change_number = htonl(this_wccp_service_group->change_number);
+
+	num_routers = (char*)wccp2_webcache_view_component + 8;
+	sprintf(message,"[WCCP] Number of Routers: %u.\n", this_wccp_service_group->servers.count);
+	logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+
+	*num_routers = htonl(this_wccp_service_group->servers.count);
+	wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + 4);
+
+	this_wccp_server = this_wccp_service_group->servers.next;
+	while(this_wccp_server != NULL){
+		router_id = (char*)num_routers + 4;
+
+		router_id->router_id = this_wccp_server->ipaddress;
+		router_id->receive_id = htonl(this_wccp_server->router_id);
+		wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + sizeof(struct wccp_router_id_element));
+
+		router_id = router_id + 1;
+		this_wccp_server = this_wccp_server->servers.next;
+	}
+	num_webcaches = (char*)router_id + sizeof(struct wccp_router_id_element);
+
+	*num_webcaches = 0;
+	wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + 4);
 
 	update_wccp_message_length(wccp2_msg_header, wccp2_webcache_view_component->length);
 
 	return 0;
 }
 
-int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messagetype){
+int wccp_send_message(struct wccp_service_group *this_wccp_service_group, struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messagetype){
 	char buf[1024] = {0};
 	struct wccp2_message_header *wccp2_msg_header;
 
@@ -561,9 +604,9 @@ int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messa
     	 */
     	wccp_add_here_i_am_header(wccp2_msg_header);
     	wccp_add_security_component(wccp2_msg_header);
-    	wccp_add_service_component(wccp2_msg_header);
+    	wccp_add_service_component(this_wccp_service_group, wccp2_msg_header);
     	wccp_add_webcache_id_component(wccp2_msg_header);
-    	wccp_add_webcache_view_component(wccp2_msg_header);
+    	wccp_add_webcache_view_component(this_wccp_service_group, wccp2_msg_header);
 
     	send(this_wccp_server->sock, wccp2_msg_header, ntohs(wccp2_msg_header->length) + 8, MSG_NOSIGNAL);
         break;
@@ -571,6 +614,65 @@ int wccp_send_message(struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messa
         logger2(LOGGING_DEBUG,DEBUG_WCCP,"[WCCP] Cannot send unknown type!\n");
     }
 
+	return 0;
+}
+
+int process_wccp_router_id_component(int fd, struct wccp_service_group *this_wccp_service_group, struct wccp_router_id_info *wccp2_router_id_component){
+	struct wccp_server *this_wccp_server = NULL;
+	char message[LOGSZ] = {0};
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering process_wccp_router_id_component().\n");
+
+	this_wccp_server = find_wccp_server(this_wccp_service_group, wccp2_router_id_component->router_ip);
+
+	if(this_wccp_server != NULL){
+		this_wccp_server->router_id = ntohl(wccp2_router_id_component->router_id);
+
+		//binary_dump("[WCCP] Router ID", wccp2_router_id_component, ntohs(wccp2_router_id_component->length) + 4);
+
+		//sprintf(message,"[WCCP] Component type: %u in process_wccp_router_id_component().\n", ntohs(wccp2_router_id_component->type));
+		//logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+
+		//sprintf(message,"[WCCP] Router IP %u in process_wccp_router_id_component().\n", ntohl(wccp2_router_id_component->router_ip));
+		//logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+
+		//sprintf(message,"[WCCP] Router ID %u in process_wccp_router_id_component().\n", ntohl(wccp2_router_id_component->router_id));
+		//logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+	}
+
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting process_wccp_router_id_component().\n");
+	return 0;
+}
+
+int process_wccp_service_component(int fd, struct wccp_service_info *wccp2_service_component){
+	struct wccp_router_id_info *wccp2_router_id_component;
+	struct wccp_service_group *this_wccp_service_group = NULL;
+	char message[LOGSZ] = {0};
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering process_wccp_service_component().\n");
+
+	this_wccp_service_group = find_wccp_service_group(ntohs(wccp2_service_component->service_id));
+
+	if(this_wccp_service_group != NULL){
+		wccp2_router_id_component = (char *)wccp2_service_component + ntohs(wccp2_service_component->length) + 4;
+		process_wccp_router_id_component(fd, this_wccp_service_group, wccp2_router_id_component);
+	}
+
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting process_wccp_service_component().\n");
+	return 0;
+}
+
+int process_wccp_security_component(int fd, struct wccp_security_info *wccp2_security_component){
+	struct wccp_service_info *wccp2_service_component;
+	char message[LOGSZ] = {0};
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering process_wccp_security_component().\n");
+
+	wccp2_service_component = (char *)wccp2_security_component + ntohs(wccp2_security_component->length) + 4;
+
+	sprintf(message,"[WCCP] Security option %i in process_wccp_i_see_you().\n", ntohl(wccp2_security_component->security_option));
+	logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+
+	process_wccp_service_component(fd, wccp2_service_component);
+
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting process_wccp_security_component().\n");
 	return 0;
 }
 
@@ -587,8 +689,11 @@ int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
 	struct wccp2_message_header *wccp2_msg_header;
 	char message[LOGSZ] = {0};
 	wccp2_msg_header = (struct wccp2_message_header *)buf;
+	struct wccp_security_info *wccp2_security_component;
 
 	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_handler().\n");
+
+	wccp2_security_component = (char *)wccp2_msg_header + sizeof(struct wccp2_message_header);
 
 	//binary_dump("[WCCP]", buf, 4);
 
@@ -597,6 +702,7 @@ int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
 			break;
 		case WCCP2_I_SEE_YOU:
 			logger2(LOGGING_DEBUG, DEBUG_WCCP, "[WCCP] WCCP2_I_SEE_YOU Received.");
+			process_wccp_security_component(fd, wccp2_security_component);
 			break;
 		case WCCP2_REDIRECT_ASSIGN:
 			logger2(LOGGING_DEBUG, DEBUG_WCCP, "[WCCP] WCCP2_REDIRECT_ASSIGN Received.");
@@ -612,7 +718,7 @@ int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
 
 
 
-	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_handler().\n");
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting wccp_handler().\n");
 	return 0;
 }
 /** @brief Processes a WCCP server of a group.
@@ -622,7 +728,7 @@ int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
  *
  * @param this_epoller [in] wccp server being processed.
  */
-int wccp_process_server(struct epoller *wccp_epoller, struct wccp_server *this_wccp_server){
+int wccp_process_server(struct epoller *wccp_epoller, struct wccp_service_group *this_wccp_service_group, struct wccp_server *this_wccp_server){
 	char message[LOGSZ] = {0};
 	int client = -1;
 
@@ -636,7 +742,7 @@ int wccp_process_server(struct epoller *wccp_epoller, struct wccp_server *this_w
 		}
 	}else{
 		logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Sending WCCP Hello to server.\n");
-		wccp_send_message(this_wccp_server, WCCP2_HERE_I_AM);
+		wccp_send_message(this_wccp_service_group, this_wccp_server, WCCP2_HERE_I_AM);
 
 	}
 
@@ -646,11 +752,13 @@ int wccp_process_server(struct epoller *wccp_epoller, struct wccp_server *this_w
 }
 
 int wccp_epoller_timeout(struct epoller *wccp_epoller){
+	time_t currenttime;
 	char message[LOGSZ] = {0};
 	struct wccp_service_group *current_wccp_service_group = (struct wccp_service_group *)wccp_service_groups.next;
 	struct wccp_server *current_wccp_server = NULL;
 
-	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_main().\n");
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering wccp_epoller_timeout().\n");
+	time(&currenttime);
 
 	/*
 	 * Send a WCCP_HELLO message to each server of each service group.
@@ -663,15 +771,19 @@ int wccp_epoller_timeout(struct epoller *wccp_epoller){
 
 		// Send WCCP_HELLO to each server in the group.
 		while(current_wccp_server != NULL){
-			logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Processing a server.\n");
-			wccp_process_server(wccp_epoller, current_wccp_server);
+
+			if((difftime(currenttime, current_wccp_server->hellotimer) >= 9)){
+				logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Processing a server.\n");
+				time(&current_wccp_server->hellotimer);
+				wccp_process_server(wccp_epoller, current_wccp_service_group, current_wccp_server);
+			}
 			current_wccp_server = current_wccp_server->servers.next;
 		}
 
 		current_wccp_service_group = current_wccp_service_group->groups.next;
 	}
 
-	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting wccp_main().\n");
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting wccp_epoller_timeout().\n");
 
 	return 0;
 }
