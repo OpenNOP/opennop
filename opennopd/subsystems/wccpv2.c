@@ -97,7 +97,7 @@ typedef enum {
 #define WCCP2_QUERY_INFO						7
 
 // Section 5.6.9 (optional)
-#define WCCP2_CAPABILTIY_INFO					8
+#define WCCP2_CAPABILITY_INFO					8
 
 // Section 5.6.10
 #define WCCP2_ALT_ASSIGNMENT					13
@@ -114,9 +114,15 @@ typedef enum {
 #define WCCP2_COMMAND_TYPE_SHUTDOWN_RESPONSE	02
 
 // Section 5.7.4
-#define	WCCP2_FORWARDING_METHOD					0x01
-#define WCCP2_ASSIGNMENT_METHOD					0x02
-#define WCCP2_PACKET_RETURN_METHOD				0x03
+//#define	WCCP2_FORWARDING_METHOD					0x01
+//#define WCCP2_ASSIGNMENT_METHOD					0x02
+//#define WCCP2_PACKET_RETURN_METHOD				0x03
+
+typedef enum {
+	WCCP2_FORWARDING_METHOD = 0x01,
+	WCCP2_ASSIGNMENT_METHOD = 0x02,
+	WCCP2_PACKET_RETURN_METHOD = 0x03
+} WCCP2_CAPABILITY_TYPE;
 
 // Section 5.7.5
 #define	WCCP2_FORWARDING_METHOD_GRE     		0x00000001
@@ -190,6 +196,17 @@ struct wccp_webcache_view_info{
 	/* [n]__u32 router_id */
 	/* __u32 number_of_webcaches */
 	/* [n]__u32 webcache_address */
+};
+
+struct wccp_capability_info{
+	__u16 type;
+	__u16 length;
+};
+
+struct wccp_capability_element{
+	__u16 type;
+	__u16 length;
+	__u32 value;
 };
 
 
@@ -579,6 +596,32 @@ int wccp_add_webcache_view_component(struct wccp_service_group *this_wccp_servic
 	return 0;
 }
 
+int wccp_add_capability_element(struct wccp_capability_info *wccp_capability_info_component, WCCP2_CAPABILITY_TYPE capability_type, __u32 value){
+	struct wccp_capability_element *this_wccp_capability = NULL;
+	this_wccp_capability = (char*)wccp_capability_info_component + ntohs(wccp_capability_info_component->length) + 4;
+	this_wccp_capability->type = htons(capability_type);
+	this_wccp_capability->length = htons(4);
+	this_wccp_capability->value = htonl(value);
+	wccp_capability_info_component->length = htons(ntohs(wccp_capability_info_component->length) + 8);
+
+	return 0;
+}
+
+int wccp_add_capability_info(struct wccp2_message_header *wccp2_msg_header){
+	struct wccp_capability_info *wccp_capability_info_component = NULL;
+
+	wccp_capability_info_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
+	wccp_capability_info_component->type = htons(WCCP2_CAPABILITY_INFO);
+	wccp_capability_info_component->length = htons(0);
+
+	wccp_add_capability_element(wccp_capability_info_component,WCCP2_FORWARDING_METHOD, WCCP2_FORWARDING_METHOD_L2);
+	wccp_add_capability_element(wccp_capability_info_component,WCCP2_PACKET_RETURN_METHOD, WCCP2_PACKET_RETURN_METHOD_L2);
+
+	update_wccp_message_length(wccp2_msg_header, wccp_capability_info_component->length);
+
+	return 0;
+}
+
 int wccp_send_message(struct wccp_service_group *this_wccp_service_group, struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messagetype){
 	char buf[1024] = {0};
 	struct wccp2_message_header *wccp2_msg_header;
@@ -607,6 +650,7 @@ int wccp_send_message(struct wccp_service_group *this_wccp_service_group, struct
     	wccp_add_service_component(this_wccp_service_group, wccp2_msg_header);
     	wccp_add_webcache_id_component(wccp2_msg_header);
     	wccp_add_webcache_view_component(this_wccp_service_group, wccp2_msg_header);
+    	wccp_add_capability_info(wccp2_msg_header);
 
     	send(this_wccp_server->sock, wccp2_msg_header, ntohs(wccp2_msg_header->length) + 8, MSG_NOSIGNAL);
         break;
