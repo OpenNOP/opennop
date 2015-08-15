@@ -371,9 +371,9 @@ struct commandresult cli_show_sessionss(int client_fd, char **parameters, int nu
 	int i;
 	char temp[20];
 	char col1[10];
-	char col2[17];
+	char col2[18];
 	char col3[14];
-	char col4[17];
+	char col4[18];
 	char col5[14];
 	char col6[14];
 	char end[3];

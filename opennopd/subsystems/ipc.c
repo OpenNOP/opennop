@@ -754,9 +754,9 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
                                        0
                                    };
     char temp[20];
-    char col1[17];
+    char col1[19];
     char col2[33];
-    char col3[66];
+    char col3[68];
     char end[3];
     char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
 
