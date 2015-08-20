@@ -163,6 +163,15 @@ struct wccp_router_id_element{
 	__u32 receive_id;
 };
 
+struct wccp_webcache_id_element{
+	__u32 cache_ip;
+	__u16 hash_revision;
+	__u16 reserved;
+	__u32 bucket[8];
+	__u16 weight;
+	__u16 status;
+};
+
 // Section 5.6.3
 struct wccp_router_id_info{
 	__u16 type;
@@ -198,6 +207,22 @@ struct wccp_webcache_view_info{
 	/* [n]__u32 webcache_address */
 };
 
+struct wccp_assignment_key_element{
+	__u32 key_ip_address;
+	__u32 key_change_number;
+};
+
+struct wccp_router_view_info{
+	__u16 type;
+	__u16 length;
+	__u32 change_number;
+	struct wccp_assignment_key_element assignment_key;
+	/* __u32 number_of_routers */
+	/* [n]__u32 router_id */
+	/* __u32 number_of_webcaches */
+	/* [n]__u32 webcache_address */
+};
+
 struct wccp_capability_info{
 	__u16 type;
 	__u16 length;
@@ -209,13 +234,30 @@ struct wccp_capability_element{
 	__u32 value;
 };
 
+struct wccp_router_assignment_element{
+	__u32 router_id;	//Router's identifying IP address.
+	__u32 receive_id;	//Last Receive ID received from the router identified by Router ID.
+	__u32 change_number;//Last Member Change Number received from the router identified by Router ID.
+};
+
+struct wccp_assignment_info{
+	__u16 type;
+	__u16 length;
+	struct wccp_assignment_key_element assignment_key
+	/* __u32 number_of_routers */
+	/* [n] wccp_router_assignment_element */
+	/* __u32 number_of_webcaches */
+	/* [n]__u32 webcache_address */
+	/* [255] bucket */
+};
 
 
 struct wccp_service_group{
 	struct list_item groups; // Links to other service groups.
 	__u8 group_id;
 	__u32 change_number;
-	struct list_head servers; // List of WCCP servers in this group.
+	struct list_head servers; // List of WCCP servers|routers in this group.
+	struct list_head webcaches;
 	char password[WCCP_PASSWORD_LENGTH]; // Limited to 8 characters.
 
 };
@@ -228,12 +270,22 @@ struct wccp_server{
 	time_t hellotimer; // Last hello message send or attempted.
 };
 
+struct wccp_webcache{
+	struct list_item webcaches; // Links to other wccp servers in this group.
+	__u32 ipaddress; // IP address of this server.
+};
+
 static pthread_t t_wccp; // thread for wccp.
 static struct list_head wccp_service_groups;
 static struct command_head cli_wccp_mode; // list of wccp commands.
 static int DEBUG_WCCP = LOGGING_DEBUG;
 
-
+/** @brief Display WCCP CLI help message.
+ *
+ * Displays the WCCP CLI help message.
+ *
+ * @client_fd [in] CLI socket that help message will be displayed to.
+ */
 int cli_enter_wccp_help(int client_fd) {
     char msg[MAX_BUFFER_SIZE] = { 0 };
 
@@ -271,10 +323,16 @@ struct wccp_service_group *allocate_wccp_service_group(__u8 servicegroup){
 		new_wccp_service_group->groups.next = NULL;
 		new_wccp_service_group->groups.prev = NULL;
 		new_wccp_service_group->group_id = servicegroup;
+
 		new_wccp_service_group->servers.next = NULL;
 		new_wccp_service_group->servers.prev = NULL;
 		new_wccp_service_group->servers.count = 0;
 		pthread_mutex_init(&new_wccp_service_group->servers.lock, NULL);
+
+		new_wccp_service_group->webcaches.next = NULL;
+		new_wccp_service_group->webcaches.prev = NULL;
+		new_wccp_service_group->webcaches.count = 0;
+		pthread_mutex_init(&new_wccp_service_group->webcaches.lock, NULL);
 	}
 
 	return new_wccp_service_group;
@@ -295,6 +353,66 @@ struct wccp_service_group *find_wccp_service_group(__u8 servicegroup){
 	return NULL;
 }
 
+struct wccp_server *find_wccp_server(struct wccp_service_group *service_group, __u32 serverip){
+
+	struct wccp_server *current_wccp_server = service_group->servers.next;
+
+	while(current_wccp_server != NULL){
+
+		if(current_wccp_server->ipaddress == serverip){
+			return current_wccp_server;
+		}
+		current_wccp_server = current_wccp_server->servers.next;
+	}
+
+	return NULL;
+}
+
+struct wccp_server *allocate_wccp_server(__u32 serverip){
+	struct wccp_server *new_wccp_server = NULL;
+	new_wccp_server = (struct wccp_server*) malloc(sizeof(struct wccp_server));
+
+	if(new_wccp_server != NULL){
+		new_wccp_server->servers.head = NULL;
+		new_wccp_server->servers.next = NULL;
+		new_wccp_server->servers.prev = NULL;
+		new_wccp_server->ipaddress = serverip;
+		new_wccp_server->router_id = 0;
+		new_wccp_server->sock = 0;
+		time(&new_wccp_server->hellotimer);
+	}
+
+	return new_wccp_server;
+}
+
+struct wccp_webcache *find_wccp_webcache(struct wccp_service_group *service_group, __u32 webcacheip){
+
+	struct wccp_webcache *current_wccp_webcache = service_group->webcaches.next;
+
+	while(current_wccp_webcache != NULL){
+
+		if(current_wccp_webcache->ipaddress == webcacheip){
+			return current_wccp_webcache;
+		}
+		current_wccp_webcache = current_wccp_webcache->webcaches.next;
+	}
+
+	return NULL;
+}
+
+struct wccp_webcache *allocate_wccp_webcache(__u32 webcacheip){
+	struct wccp_webcache *new_wccp_webcache = NULL;
+	new_wccp_webcache = (struct wccp_webcache*) malloc(sizeof(struct wccp_webcache));
+
+	if(new_wccp_webcache != NULL){
+		new_wccp_webcache->webcaches.head = NULL;
+		new_wccp_webcache->webcaches.next = NULL;
+		new_wccp_webcache->webcaches.prev = NULL;
+		new_wccp_webcache->ipaddress = webcacheip;
+	}
+
+	return new_wccp_webcache;
+}
 
 /** @brief Put CLI into WCCP configuration mode.
  *
@@ -365,38 +483,6 @@ struct commandresult cli_exit_wccp_mode(int client_fd, char **parameters, int nu
     result.data = NULL;
 
     return result;
-}
-
-struct wccp_server *find_wccp_server(struct wccp_service_group *service_group, __u32 serverip){
-
-	struct wccp_server *current_wccp_server = service_group->servers.next;
-
-	while(current_wccp_server != NULL){
-
-		if(current_wccp_server->ipaddress == serverip){
-			return current_wccp_server;
-		}
-		current_wccp_server = current_wccp_server->servers.next;
-	}
-
-	return NULL;
-}
-
-struct wccp_server *allocate_wccp_server(__u32 serverip){
-	struct wccp_server *new_wccp_server = NULL;
-	new_wccp_server = (struct wccp_server*) malloc(sizeof(struct wccp_server));
-
-	if(new_wccp_server != NULL){
-		new_wccp_server->servers.head = NULL;
-		new_wccp_server->servers.next = NULL;
-		new_wccp_server->servers.prev = NULL;
-		new_wccp_server->ipaddress = serverip;
-		new_wccp_server->router_id = 0;
-		new_wccp_server->sock = 0;
-		time(&new_wccp_server->hellotimer);
-	}
-
-	return new_wccp_server;
 }
 
 int cli_wccp_server_help(int client_fd) {
@@ -494,6 +580,13 @@ int wccp_add_here_i_am_header(struct wccp2_message_header *wccp2_msg_header){
 	return 0;
 }
 
+int wccp_add_redirect_assign_header(struct wccp2_message_header *wccp2_msg_header){
+	wccp2_msg_header->type = htonl(WCCP2_REDIRECT_ASSIGN);
+	wccp2_msg_header->version = htons(WCCP2_VERSION);
+	wccp2_msg_header->length = htons(0);
+	return 0;
+}
+
 int wccp_add_security_component(struct wccp2_message_header *wccp2_msg_header){
 	struct wccp_security_info *wccp2_security_component;
 
@@ -558,9 +651,11 @@ int wccp_add_webcache_id_component(struct wccp2_message_header *wccp2_msg_header
 int wccp_add_webcache_view_component(struct wccp_service_group *this_wccp_service_group, struct wccp2_message_header *wccp2_msg_header){
 	struct wccp_webcache_view_info *wccp2_webcache_view_component;
 	struct wccp_server *this_wccp_server = NULL;
+	struct wccp_webcache *this_wccp_webcache = NULL;
 	struct wccp_router_id_element *router_id = NULL;
 	__u32 *num_routers = NULL;
 	__u32 *num_webcaches = NULL;
+	__u32 *webcacheip = NULL;
 	char message[LOGSZ] = {0};
 	wccp2_webcache_view_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
 
@@ -576,9 +671,10 @@ int wccp_add_webcache_view_component(struct wccp_service_group *this_wccp_servic
 	wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + 4);
 
 	this_wccp_server = this_wccp_service_group->servers.next;
-	while(this_wccp_server != NULL){
-		router_id = (char*)num_routers + 4;
 
+	router_id = (char*)num_routers + 4;
+
+	while(this_wccp_server != NULL){
 		router_id->router_id = this_wccp_server->ipaddress;
 		router_id->receive_id = htonl(this_wccp_server->router_id);
 		wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + sizeof(struct wccp_router_id_element));
@@ -586,10 +682,28 @@ int wccp_add_webcache_view_component(struct wccp_service_group *this_wccp_servic
 		router_id = router_id + 1;
 		this_wccp_server = this_wccp_server->servers.next;
 	}
-	num_webcaches = (char*)router_id + sizeof(struct wccp_router_id_element);
 
-	*num_webcaches = 0;
+
+	if(this_wccp_service_group->servers.count > 0){
+		num_webcaches = (char*)num_routers + 4 + (this_wccp_service_group->servers.count * sizeof(struct wccp_router_id_element));
+	}else{
+		num_webcaches = (char*)num_routers + 4;
+	}
+
+	*num_webcaches = htonl(this_wccp_service_group->webcaches.count);
 	wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + 4);
+
+	this_wccp_webcache = this_wccp_service_group->webcaches.next;
+
+	while(this_wccp_webcache != NULL){
+		webcacheip = (char*)num_webcaches + 4;
+
+		*webcacheip = this_wccp_webcache->ipaddress;
+		wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + 4);
+
+		webcacheip = webcacheip + 1;
+		this_wccp_webcache = this_wccp_webcache->webcaches.next;
+	}
 
 	update_wccp_message_length(wccp2_msg_header, wccp2_webcache_view_component->length);
 
@@ -622,6 +736,88 @@ int wccp_add_capability_info(struct wccp2_message_header *wccp2_msg_header){
 	return 0;
 }
 
+int wccp_add_assignment_info_component(struct wccp_service_group *this_wccp_service_group, struct wccp2_message_header *wccp2_msg_header){
+	struct wccp_assignment_info *wccp_wccp_assignment_info_component = NULL;
+	struct wccp_router_assignment_element *wccp_router_assignment = NULL;
+	struct wccp_server *this_wccp_server = NULL;
+	struct wccp_webcache *this_wccp_webcache = NULL;
+	int i = 0;
+	__u32 *num_routers = NULL;
+	__u32 *num_webcaches = NULL;
+	__u32 *webcacheip = NULL;
+	char *buckets = NULL;
+
+	wccp_wccp_assignment_info_component = (char *)wccp2_msg_header + get_wccp_message_length(wccp2_msg_header);
+	wccp_wccp_assignment_info_component->type = htons(WCCP2_REDIRECT_ASSIGNMENT);
+	wccp_wccp_assignment_info_component->assignment_key.key_ip_address = get_local_ip();
+	wccp_wccp_assignment_info_component->assignment_key.key_change_number = htonl(this_wccp_service_group->change_number);
+	wccp_wccp_assignment_info_component->length = htons(8);
+
+	/*
+	 * Next we list how many routers are in the service group and create their assignment elements.
+	 */
+	num_routers = (char *)wccp_wccp_assignment_info_component + 12;
+	*num_routers = htonl(this_wccp_service_group->servers.count);
+	wccp_wccp_assignment_info_component->length = htons(ntohs(wccp_wccp_assignment_info_component->length) + 4);
+
+	wccp_router_assignment = (char *)num_routers + 4;
+	this_wccp_server = this_wccp_service_group->servers.next;
+
+	while(this_wccp_server != NULL){
+		wccp_router_assignment->router_id = this_wccp_server->ipaddress;
+		wccp_router_assignment->receive_id = htonl(this_wccp_server->router_id + 1);
+		wccp_router_assignment->change_number = htonl(this_wccp_service_group->change_number);
+
+		wccp_wccp_assignment_info_component->length = htons(ntohs(wccp_wccp_assignment_info_component->length) + sizeof(struct wccp_router_assignment_element));
+
+		wccp_router_assignment = wccp_router_assignment + 1;
+		this_wccp_server = this_wccp_server->servers.next;
+	}
+
+	/**
+	 * Next we enter the number of web-caches in the service group and list them by IP address.
+	 */
+
+	if(this_wccp_service_group->servers.count > 0){
+		num_webcaches = (char*)num_routers + 4 + (this_wccp_service_group->servers.count * sizeof(struct wccp_router_assignment_element));
+	}else{
+		num_webcaches = (char*)num_routers + 4;
+	}
+
+	*num_webcaches = htonl(this_wccp_service_group->webcaches.count);
+	wccp_wccp_assignment_info_component->length = htons(ntohs(wccp_wccp_assignment_info_component->length) + 4);
+
+	this_wccp_webcache = this_wccp_service_group->webcaches.next;
+	webcacheip = (char*)num_webcaches + 4;
+
+	while(this_wccp_webcache != NULL){
+
+		*webcacheip = this_wccp_webcache->ipaddress;
+		wccp_wccp_assignment_info_component->length = htons(ntohs(wccp_wccp_assignment_info_component->length) + 4);
+
+		webcacheip = webcacheip + 1;
+		this_wccp_webcache = this_wccp_webcache->webcaches.next;
+	}
+
+	/*
+ 	 * Last we assign individual buckets to each web-cache.
+ 	 */
+	if(this_wccp_service_group->webcaches.count > 0){
+		buckets = (char *)num_webcaches + 4 + (this_wccp_service_group->webcaches.count * sizeof(__u32));
+	}else{
+		buckets = (char *)num_webcaches + 4;
+	}
+
+	for(i=0;i<256;i++){
+		buckets[i] = htons(0); //Just assign everything to web-cache 0 for now.
+	}
+
+	wccp_wccp_assignment_info_component->length = htons(ntohs(wccp_wccp_assignment_info_component->length) + 256);
+	update_wccp_message_length(wccp2_msg_header, wccp_wccp_assignment_info_component->length);
+
+	return 0;
+}
+
 int wccp_send_message(struct wccp_service_group *this_wccp_service_group, struct wccp_server *this_wccp_server, WCCP2_MSG_TYPE messagetype){
 	char buf[1024] = {0};
 	struct wccp2_message_header *wccp2_msg_header;
@@ -630,20 +826,19 @@ int wccp_send_message(struct wccp_service_group *this_wccp_service_group, struct
 
     switch(messagetype) {
     case WCCP2_HERE_I_AM:
-
     	/*
     	 * 5.1 'Here I Am' Message
-    	 *    +--------------------------------------+
-    	 *    |         WCCP Message Header          |
-    	 *    +--------------------------------------+
-    	 *    |       Security Info Component        |
-    	 *    +--------------------------------------+
-    	 *    |        Service Info Component        |
-    	 *    +--------------------------------------+
-    	 *    |  Web-Cache Identity Info Component   |
-    	 *    +--------------------------------------+
-    	 *    |    Web-Cache View Info Component     |
-    	 *    +--------------------------------------+
+    	 *	+--------------------------------------+
+    	 *	|         WCCP Message Header          |
+    	 *  +--------------------------------------+
+    	 *  |       Security Info Component        |
+    	 *  +--------------------------------------+
+    	 *  |        Service Info Component        |
+    	 *  +--------------------------------------+
+    	 *  |  Web-Cache Identity Info Component   |
+    	 *  +--------------------------------------+
+    	 *  |    Web-Cache View Info Component     |
+    	 *  +--------------------------------------+
     	 */
     	wccp_add_here_i_am_header(wccp2_msg_header);
     	wccp_add_security_component(wccp2_msg_header);
@@ -654,6 +849,30 @@ int wccp_send_message(struct wccp_service_group *this_wccp_service_group, struct
 
     	send(this_wccp_server->sock, wccp2_msg_header, ntohs(wccp2_msg_header->length) + 8, MSG_NOSIGNAL);
         break;
+
+    case WCCP2_REDIRECT_ASSIGN:
+    	/*
+    	 * 5.3 'Redirect Assign' Message
+    	 *	+--------------------------------------+
+    	 *	|         WCCP Message Header          |
+    	 *	+--------------------------------------+
+    	 *	|       Security Info Component        |
+    	 *	+--------------------------------------+
+    	 *	|        Service Info Component        |
+    	 *	+--------------------------------------+
+    	 *	|      Assignment Info Component       |
+    	 *	|                OR                    |
+    	 *	|    Alternate Assignment Component    |
+    	 *	+--------------------------------------+
+    	 */
+    	wccp_add_redirect_assign_header(wccp2_msg_header);
+    	wccp_add_security_component(wccp2_msg_header);
+    	wccp_add_service_component(this_wccp_service_group, wccp2_msg_header);
+    	wccp_add_assignment_info_component(this_wccp_service_group, wccp2_msg_header);
+
+    	send(this_wccp_server->sock, wccp2_msg_header, ntohs(wccp2_msg_header->length) + 8, MSG_NOSIGNAL);
+    	break;
+
     default:
         logger2(LOGGING_DEBUG,DEBUG_WCCP,"[WCCP] Cannot send unknown type!\n");
     }
@@ -661,8 +880,105 @@ int wccp_send_message(struct wccp_service_group *this_wccp_service_group, struct
 	return 0;
 }
 
+int process_wccp_router_view_component(int fd, struct wccp_service_group *this_wccp_service_group, struct wccp_router_view_info *wccp2_router_view_component){
+	char message[LOGSZ] = {0};
+	__u32 *num_routers = NULL;
+	__u32 *num_webcaches = NULL;
+	struct wccp_webcache_id_element *webcache = NULL;
+	struct wccp_webcache *this_wccp_webcache = NULL;
+	int i = 0;
+	int webcachefound = 0;
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering process_wccp_router_view_component().\n");
+
+	if(ntohl(wccp2_router_view_component->change_number) != this_wccp_service_group->change_number){
+
+		this_wccp_service_group->change_number = ntohl(wccp2_router_view_component->change_number);
+		logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Change number updated.\n");
+		num_routers = (char *)wccp2_router_view_component + sizeof(struct wccp_router_view_info);
+
+		/**
+		 * @todo:
+		 * After a change should wait 1.5 HERE_I_AM_T before generating the message.
+		 * Move this to timer based on main epoll loop.
+		 * For now lets just send an assignment for each change.
+		 */
+
+		sprintf(message,"[WCCP] There are %u routers.\n", ntohl(*num_routers));
+		logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+
+		num_webcaches = (__u32 *)num_routers + ntohl(*num_routers) + 1;
+
+		sprintf(message,"[WCCP] There are %u web-caches.\n", ntohl(*num_webcaches));
+		logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+
+		/*
+		 * First we make sure each web-cache in this message exists in the service view.
+		 */
+		if(ntohl(*num_webcaches) > 0){
+			webcache = (char *)num_webcaches + 4;
+
+			for(i=0;i<ntohl(*num_webcaches);i++){
+
+				if(find_wccp_webcache(this_wccp_service_group, webcache->cache_ip) == NULL){
+					logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] No web-cache found!\n");
+					this_wccp_webcache = allocate_wccp_webcache(webcache->cache_ip);
+					insert_list_item(&this_wccp_service_group->webcaches, this_wccp_webcache);
+				}
+			}
+
+			webcache+=1;
+		}
+
+		/**
+		 * @todo:
+		 * Next we need to remove any web-cache this is not in this view.
+		 * or at least mark them as missing?
+		 * Buckets should only be assigned to web-caches that are visible to all routers.
+		 * Not sure how to handle this right now.
+		 */
+
+		this_wccp_webcache = this_wccp_service_group->webcaches.next;
+
+		if(ntohl(*num_webcaches) > 0){
+			webcache = (char *)num_webcaches + 4;
+
+			while(this_wccp_webcache != NULL){
+				webcachefound = 0;
+
+				for(i=0;i<ntohl(*num_webcaches);i++){
+
+					if(webcache[i].cache_ip == this_wccp_webcache->ipaddress){
+						/*
+						 * If we find the web-cache lets set a flag as true so it wont get removed.
+						 */
+						webcachefound = 1;
+						logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Web-cache was in list.\n");
+					}
+				}
+
+				/**
+				 * @todo
+				 * If its not found we need to remove it from the webcaches list and free the memory.
+				 */
+				if(webcachefound == 0){
+					logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Web-cache was not in list.\n");
+				}
+
+				this_wccp_webcache = this_wccp_webcache->webcaches.next;
+			}
+		}
+	}
+
+	//sprintf(message,"[WCCP] Change number: %u in process_wccp_router_view_component().\n", ntohl(wccp2_router_view_component->change_number));
+	//logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+
+	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting process_wccp_router_view_component().\n");
+	return 0;
+}
+
 int process_wccp_router_id_component(int fd, struct wccp_service_group *this_wccp_service_group, struct wccp_router_id_info *wccp2_router_id_component){
 	struct wccp_server *this_wccp_server = NULL;
+	struct wccp_router_view_info *wccp2_router_view_component = NULL;
 	char message[LOGSZ] = {0};
 	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Entering process_wccp_router_id_component().\n");
 
@@ -672,15 +988,15 @@ int process_wccp_router_id_component(int fd, struct wccp_service_group *this_wcc
 		this_wccp_server->router_id = ntohl(wccp2_router_id_component->router_id);
 
 		//binary_dump("[WCCP] Router ID", wccp2_router_id_component, ntohs(wccp2_router_id_component->length) + 4);
-
 		//sprintf(message,"[WCCP] Component type: %u in process_wccp_router_id_component().\n", ntohs(wccp2_router_id_component->type));
 		//logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
-
 		//sprintf(message,"[WCCP] Router IP %u in process_wccp_router_id_component().\n", ntohl(wccp2_router_id_component->router_ip));
 		//logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
-
 		//sprintf(message,"[WCCP] Router ID %u in process_wccp_router_id_component().\n", ntohl(wccp2_router_id_component->router_id));
 		//logger2(LOGGING_DEBUG, DEBUG_WCCP, message);
+
+		wccp2_router_view_component = (char*)wccp2_router_id_component + ntohs(wccp2_router_id_component->length) + 4;
+		process_wccp_router_view_component(fd, this_wccp_service_group, wccp2_router_view_component);
 	}
 
 	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting process_wccp_router_id_component().\n");
@@ -760,8 +1076,6 @@ int wccp_handler(struct epoller *this_epoller, int fd, void *buf) {
 			break;
 	}
 
-
-
 	logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Exiting wccp_handler().\n");
 	return 0;
 }
@@ -787,10 +1101,8 @@ int wccp_process_server(struct epoller *wccp_epoller, struct wccp_service_group 
 	}else{
 		logger2(LOGGING_DEBUG, DEBUG_WCCP,"[WCCP] Sending WCCP Hello to server.\n");
 		wccp_send_message(this_wccp_service_group, this_wccp_server, WCCP2_HERE_I_AM);
-
+		wccp_send_message(this_wccp_service_group, this_wccp_server, WCCP2_REDIRECT_ASSIGN);
 	}
-
-
 
 	return 0;
 }
@@ -875,7 +1187,3 @@ void start_wccp(){
 void stop_wccp(){
 	pthread_join(t_wccp, NULL);
 }
-
-
-
-
