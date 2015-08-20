@@ -24,6 +24,37 @@
 
 static int DEBUG_SOCKETS = LOGGING_OFF;
 
+int new_udp_client(__u32 serverip ,int port) {
+    int client_socket = 0;
+    int error = 0;
+    struct sockaddr_in client = {
+                                    0
+                                };
+    char message[LOGSZ];
+
+    client_socket = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (client_socket < 0 ) {
+        logger2(LOGGING_FATAL, DEBUG_SOCKETS , "IPC: Failed to create socket.\n");
+        exit(1);
+    }
+
+    client.sin_family = AF_INET;
+    client.sin_port = htons(port);
+    client.sin_addr.s_addr = serverip;
+
+    error = connect(client_socket, (struct sockaddr *)&client, sizeof(client));
+
+    if (error < 0) {
+        sprintf(message, "IPC: Failed to connect to remote host.\n");
+        logger2(LOGGING_WARN, DEBUG_SOCKETS, message);
+        close(client_socket);
+        return -1;
+    }
+
+    return client_socket;
+}
+
 int new_ip_client(__u32 serverip ,int port) {
     int client_socket = 0;
     int error = 0;
@@ -347,7 +378,7 @@ int register_socket(int listener_socket, int epoll_fd, struct epoll_event *event
 }
 
 
-int epoll_handler(struct epoll_server *server) {
+int epoll_handler(struct epoller *server) {
     int client_socket;
     int error = 0;
     int numevents = 0;
@@ -404,7 +435,7 @@ int epoll_handler(struct epoll_server *server) {
                 while (1) {
                     /**
                      *@todo: Here we need to detect if the "server" was UNIX or IP.
-                     *@todo: We might use the family type and add it to "struct epoll_server"
+                     *@todo: We might use the family type and add it to "struct epoller"
                      *@todo: and set it when we create the new epoll server.
                      *@todo: It would probably be better to check the server->socket.
                      */
@@ -515,20 +546,30 @@ int epoll_handler(struct epoll_server *server) {
          * If the epoll instance has a timeout and a timeout callback function it is executed.
          * This also is executed each time the epoll instance returns.
          */
-        if(server->timeoutfunction != NULL) {
-            (server->timeoutfunction(server));
-        }
+        //if(server->timeoutfunction != NULL) {
+        //    (server->timeoutfunction(server));
+        //}
 
     }
     return 0;
 }
 
-/**
+/** @brief Create a new epoller instance.
+ *
+ * Creates a new IP based epoller instance.
+ *
+ * @param epoller [in] pinter to the epoller.
+ * @param secure [in] function pointer that will validate source.
+ * @param callback [in] function pointer that will process client messages.
+ * @param port [in] port to server on.
+ * @param timeoutfunction [in] function that will run when epoller instance timeout is reached.
+ * @param timeout [in] number of seconds before epoller instance will timeout.
+ *
  * @toto:
  * A new epoll server should include a max length for the messages it is expected to receive.
  * If it receives a message larger than this is should shutdown that socket right away.
  */
-int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_epoll_callback callback, int port, t_epoll_timeout timeoutfunction, int timeout) {
+int new_ip_epoll_server(struct epoller *server, t_epoll_callback secure, t_epoll_callback callback, int port, t_epoll_timeout timeoutfunction, int timeout) {
     char message[LOGSZ] = {0};
 
     server->events = calloc (MAXEVENTS, sizeof server->event);
@@ -550,11 +591,15 @@ int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_
      * This accepts connections from the remote neighbors.
      */
 
-    server->socket = new_ip_server(port);
+    if(port != 0){
+    	server->socket = new_ip_server(port);
+    }
     server->timeoutfunction = timeoutfunction;
     server->timeout = timeout;
 
-    register_socket(server->socket, server->epoll_fd, &server->event);
+    if(server->socket != NULL){
+    	register_socket(server->socket, server->epoll_fd, &server->event);
+    }
 
     server->secure = secure;
     server->callback = callback;
@@ -563,7 +608,7 @@ int new_ip_epoll_server(struct epoll_server *server, t_epoll_callback secure, t_
 }
 
 
-int shutdown_epoll_server(struct epoll_server *server) {
+int shutdown_epoll_server(struct epoller *server) {
     free(server->events);
     close(server->socket);
     return 0;
