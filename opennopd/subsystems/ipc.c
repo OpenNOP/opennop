@@ -205,77 +205,6 @@ int encrypt_data(char *data, char *key){
 	return 0;
 }
 
-/** @brief Dumps section of memory to screen.
- *
- * Dumps a particular number of bytes to the log/screen.
- *
- * @param header [in] Text string that will be written before the data.
- * @param data [in] First byte of memory that will be dumped.
- * @param bytes [in] Number of bytes that will be dumped.
- *
- * @see http://moritzmolch.com/1136
- * @todo: Please check if double casting is OK?
- * 		(unsigned int)(intptr_t)data
- * @bug: bytes [in] should be pretty small so not to overrun the message[LOGSZ].
- */
-void binary_dump(const char *header, char *data, unsigned int bytes) {
-	unsigned int i = 0;
-	char line[17] = {0};
-	char temp[33] = {0};
-	char message[LOGSZ] = {0};
-
-	logger2(LOGGING_ALL, LOGGING_ALL, header);
-	sprintf(message,"Binary Dump:\n");
-    sprintf(temp, "%.8X | ", (unsigned int)(intptr_t)data);
-    strcat(message,temp);
-    while (i < bytes){
-    	line[i%16] = *(data+i);
-
-    	if((line[i%16] < 32) || (line[i%16] > 126)){
-    		line[i%16] = '.';
-    	}
-    	sprintf(temp,"%.2X",(unsigned char)*(data+i));
-    	strcat(message,temp);
-    	i++;
-
-    	if(i%4 == 0){
-
-    		if (i%16 == 0){
-
-    			if(i < bytes-1){
-    				sprintf(temp," | %s\n%.8X | ", line, (unsigned int)(intptr_t)data+i);
-    				strcat(message,temp);
-    			}
-    		}else{
-    			sprintf(temp, " ");
-    			strcat(message,temp);
-    		}
-    	}
-    }
-    while(i%16 > 0){
-
-    	if(i%4 == 0){
-    		sprintf(temp,"   ");
-    		strcat(message,temp);
-    	}else{
-    		sprintf(temp,"  ");
-    		strcat(message,temp);
-
-    	}
-    	i++;
-    }
-    sprintf(temp," | %s\n", line);
-    strcat(message,temp);
-    logger2(LOGGING_ALL, LOGGING_ALL, message);
-
-    /*
-	for(i=0; i < datalength && i < strlen(message); i++){
-		buf_ptr += sprintf(buf_ptr, "%02X",data[i]);
-	}
-	logger2(LOGGING_WARN,DEBUG_IPC,message);
-	*/
-}
-
 int ipc_set_neighbor_state(int fd, neighborstate state) {
     struct neighbor *thisneighbor = NULL;
     thisneighbor = find_neighbor_by_socket(fd);
@@ -574,7 +503,7 @@ int update_neighbor_timer(struct neighbor *thisneighbor) {
  * @todo:
  * This could overwrite a valid connection if someone were to spoof a new connection from the same IP address.
  */
-int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
+int ipc_check_neighbor(struct epoller *this_epoller, int fd, void *buf) {
     struct neighbor *thisneighbor = NULL;
 
     char message[LOGSZ] = {0};
@@ -605,7 +534,7 @@ int ipc_check_neighbor(struct epoll_server *epoller, int fd, void *buf) {
  * Returns 0 on successful completion.
  * Return -1 on failure. (should close socket)
  */
-int ipc_handler(struct epoll_server *epoller, int fd, void *buf) {
+int ipc_handler(struct epoller *this_epoller, int fd, void *buf) {
     struct opennop_ipc_header *opennop_msg_header = NULL;
     char message[LOGSZ] = {0};
     /**
@@ -684,7 +613,7 @@ int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype) {
 
 }
 
-int hello_neighbors(struct epoll_server *epoller) {
+int hello_neighbors(struct epoller *this_epoller) {
     struct neighbor *currentneighbor = NULL;
     time_t currenttime;
     int error = 0;
@@ -724,13 +653,13 @@ int hello_neighbors(struct epoll_server *epoller) {
             if(currentneighbor->sock == 0) {
                 newsocket = new_ip_client(currentneighbor->NeighborIP,OPENNOPD_IPC_PORT);
 
-                if(newsocket > 0) {
+                if(newsocket >= 0) {
                     currentneighbor->sock = newsocket;
                     currentneighbor->state = ATTEMPT;
                     /*
                      * This socket has to be registered with the epoll server.
                      */
-                    register_socket(newsocket, epoller->epoll_fd, &epoller->event);
+                    register_socket(newsocket, this_epoller->epoll_fd, &this_epoller->event);
                 }
             }else{ // If we already have a socket lets move to the next state.
             	currentneighbor->state = ATTEMPT;
@@ -789,7 +718,7 @@ int hello_neighbors(struct epoll_server *epoller) {
  */
 void *ipc_thread(void *dummyPtr) {
     int error = 0;
-    struct epoll_server ipc_server = {
+    struct epoller ipc_server = {
                                          0
                                      };
     char message[LOGSZ] = {0};
@@ -825,9 +754,9 @@ struct commandresult cli_show_neighbors(int client_fd, char **parameters, int nu
                                        0
                                    };
     char temp[20];
-    char col1[17];
+    char col1[19];
     char col2[33];
-    char col3[66];
+    char col3[68];
     char end[3];
     char msg[IPC_MAX_MESSAGE_SIZE] = { 0 };
 

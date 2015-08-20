@@ -29,6 +29,7 @@
 #include "compression.h"
 #include "version.h"
 #include "ipc.h"
+#include "wccpv2.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -203,10 +204,12 @@ int main(int argc, char *argv[]) {
     start_dead_session_detection();
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *) NULL);
     start_ipc();
+    start_wccp();
     pthread_create(&t_cli, NULL, cli_manager_init, (void *) NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *) NULL);
     pthread_create(&t_memorymanager, NULL, memorymanager_function,
                    (void *) NULL);
+
 
     sprintf(message, "[OpenNOP]: Started all threads.\n");
     logger(LOG_INFO, message);
@@ -230,6 +233,7 @@ int main(int argc, char *argv[]) {
     rejoin_dead_session_detection();
     pthread_join(t_healthagent, NULL);
     rejoin_ipc();
+    stop_wccp();
     pthread_join(t_cli, NULL);
     pthread_join(t_counters, NULL);
     pthread_join(t_memorymanager, NULL);
