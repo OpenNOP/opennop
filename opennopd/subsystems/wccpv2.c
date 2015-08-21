@@ -694,10 +694,9 @@ int wccp_add_webcache_view_component(struct wccp_service_group *this_wccp_servic
 	wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + 4);
 
 	this_wccp_webcache = this_wccp_service_group->webcaches.next;
+	webcacheip = (char*)num_webcaches + 4;
 
 	while(this_wccp_webcache != NULL){
-		webcacheip = (char*)num_webcaches + 4;
-
 		*webcacheip = this_wccp_webcache->ipaddress;
 		wccp2_webcache_view_component->length = htons(ntohs(wccp2_webcache_view_component->length) + 4);
 
@@ -791,7 +790,6 @@ int wccp_add_assignment_info_component(struct wccp_service_group *this_wccp_serv
 	webcacheip = (char*)num_webcaches + 4;
 
 	while(this_wccp_webcache != NULL){
-
 		*webcacheip = this_wccp_webcache->ipaddress;
 		wccp_wccp_assignment_info_component->length = htons(ntohs(wccp_wccp_assignment_info_component->length) + 4);
 
