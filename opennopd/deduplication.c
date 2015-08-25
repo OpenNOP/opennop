@@ -89,9 +89,13 @@ int deduplicate(__u8 *ippacket){
 							memcpy(&data.data, &blockdata[i].data, sizeof(struct block));
 							data.size = sizeof(struct block);
 
-							if ((ret = dbp->put(dbp, NULL, &key, &data, DB_NOOVERWRITE)) == 0){
+							switch ((ret = dbp->put(dbp, NULL, &key, &data, DB_NOOVERWRITE)) == 0){
 
-							}else{
+							case 0:
+								break;
+							case DB_KEYEXIST:
+								break;
+							default:
 								exit(1);
 							}
 						}
