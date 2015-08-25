@@ -16,6 +16,7 @@ opennop_opennop_LDADD = -lpthread -lreadline
 opennopd_opennopd_SOURCES = \
 	lib/quicklz.c \
 	opennopd/compression.c \
+	opennopd/deduplication.c \
 	opennopd/csum.c \
 	opennopd/sockets.c \
 	opennopd/help.c \

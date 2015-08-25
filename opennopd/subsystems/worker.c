@@ -12,6 +12,7 @@
 #include "opennopd.h"
 #include "packet.h"
 #include "compression.h"
+#include "deduplication.h"
 #include "csum.h"
 #include "sessionmanager.h"
 #include "tcpoptions.h"
@@ -138,6 +139,12 @@ void *worker_thread(void *dummyPtr) {
                                     logger(LOG_INFO, message);
                                 }
                                 updateseq(largerIP, iph, tcph, thissession);
+
+                                /**
+                                 * @todo
+                                 * Testing hashing performance impact.
+                                 */
+                                deduplicate((__u8 *)iph);
                                 tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
                             } else {
 
