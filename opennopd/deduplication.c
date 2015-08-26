@@ -48,11 +48,13 @@ int deduplicate(__u8 *ippacket){
 	int ret = 0;
 
 	if ((ret = db_create(&dbp, NULL, 0)) != 0) {
+		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Error creating database pointer.\n");
 		exit (1);
 	}
 
 	if ((ret = dbp->open(dbp, NULL, DATABASE, BLOCKS, DB_BTREE, DB_CREATE, 0664)) != 0) {
 		dbp->err(dbp, ret, "%s", DATABASE);
+		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Error opening database.\n");
 		exit (1);
 	}
 
@@ -96,8 +98,10 @@ int deduplicate(__u8 *ippacket){
 							case DB_KEYEXIST:
 								break;
 							default:
+								logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
 								exit(1);
 							}
+
 						}
 					}
 		}
