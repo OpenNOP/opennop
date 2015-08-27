@@ -73,10 +73,10 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					memset(&key, 0, sizeof(key));
 					memset(&data, 0, sizeof(data));
 
-					memcpy(&key.data, &hashes[i], sizeof(struct hash));
+					key.data = &hashes[i];
 					key.size = sizeof(struct hash);
 
-					memcpy(&data.data, &tcpdatablock[i].data, sizeof(struct block));
+					data.data = tcpdatablock[i].data;
 					data.size = sizeof(struct block);
 
 					switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
