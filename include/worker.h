@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <pthread.h>
+#include <db.h>
 
 #include <sys/types.h>
 
@@ -61,6 +62,7 @@ struct processor {
     struct workercounters metrics;
     struct packet_head queue;
     __u8 *lzbuffer; // Buffer used for QuickLZ.
+	DB *blocks; // DEDUP "block" database pointer.
 };
 
 /* Structure contains the worker threads, queue, and status. */

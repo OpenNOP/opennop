@@ -22,6 +22,7 @@
 #include "counters.h"
 #include "climanager.h"
 #include "ipc.h"
+#include "deduplication.h"
 
 struct worker workers[MAXWORKERS]; // setup slots for the max number of workers.
 unsigned char numworkers = 0; // sets number of worker threads. 0 = auto detect.
@@ -144,7 +145,7 @@ void *worker_thread(void *dummyPtr) {
                                  * @todo
                                  * Testing hashing performance impact.
                                  */
-                                deduplicate((__u8 *)iph);
+                                deduplicate((__u8 *)iph, me->blocks);
                                 tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
                             } else {
 
@@ -313,6 +314,8 @@ void initialize_worker_processor(struct processor *thisprocessor) {
     thisprocessor->queue.next = NULL; // Initialize the queue.
     thisprocessor->queue.prev = NULL;
     thisprocessor->queue.qlen = 0;
+    thisprocessor->blocks = NULL;
+    dbp_initialize(thisprocessor->blocks);
     pthread_mutex_unlock(&thisprocessor->queue.lock);
 }
 

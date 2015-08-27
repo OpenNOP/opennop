@@ -33,7 +33,7 @@ struct hash{
  * @param *ippacket [in] The IP packet containing data to be hashed.
  * @return int 0 = success -1 = failed
  */
-int deduplicate(__u8 *ippacket){
+int deduplicate(__u8 *ippacket, DB **dbp){
 	//* @todo Don't copy the data here.  No point.
 	//struct block blocks[12] = {0}; // 12 * 128 byte blocks = 1536 large enough for any standard size IP packet.
 	struct hash hashes[12]; // hash values for each block
@@ -43,22 +43,8 @@ int deduplicate(__u8 *ippacket){
 	__u16 datasize = 0;
 	__u8  numblocks = 0;
 	int i = 0;
-	DB *dbp;
 	DBT key, data;
 	int ret = 0;
-
-	if ((ret = db_create(&dbp, NULL, 0)) != 0) {
-		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Error creating database pointer.\n");
-		exit (1);
-	}
-
-	if ((ret = dbp->open(dbp, NULL, DATABASE, BLOCKS, DB_BTREE, DB_CREATE, 0664)) != 0) {
-		dbp->err(dbp, ret, "%s", DATABASE);
-		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Error opening database.\n");
-		exit (1);
-	}
-
-
 
 	if (ippacket != NULL) {
 		iph = (struct iphdr *) ippacket; // Access ip header.
@@ -91,7 +77,7 @@ int deduplicate(__u8 *ippacket){
 							memcpy(&data.data, &blockdata[i].data, sizeof(struct block));
 							data.size = sizeof(struct block);
 
-							switch ((ret = dbp->put(dbp, NULL, &key, &data, DB_NOOVERWRITE)) == 0){
+							switch ((ret = (*dbp)->put(dbp, NULL, &key, &data, DB_NOOVERWRITE)) == 0){
 
 							case 0:
 								break;
@@ -106,6 +92,23 @@ int deduplicate(__u8 *ippacket){
 					}
 		}
 
+	}
+
+	return 0;
+}
+
+int dbp_initialize(DB **dbp){
+	int ret = 0;
+
+	if ((ret = db_create(dbp, NULL, 0)) != 0) {
+		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Error creating database pointer.\n");
+		exit (1);
+	}
+
+	if ((ret = (*dbp)->open(*dbp, NULL, DATABASE, BLOCKS, DB_BTREE, DB_CREATE | DB_THREAD, 0664)) != 0) {
+		(*dbp)->err(*dbp, ret, "%s", DATABASE);
+		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Error opening database.\n");
+		exit (1);
 	}
 
 	return 0;
