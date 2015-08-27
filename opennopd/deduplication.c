@@ -83,7 +83,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						case 0:
 							break;
 						case DB_KEYEXIST:
-							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
+							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
 							break;
 						case EINVAL:
 							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid record.\n");
