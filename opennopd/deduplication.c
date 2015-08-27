@@ -78,11 +78,14 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					memcpy(&data.data, &tcpdatablock[i].data, sizeof(struct block));
 					data.size = sizeof(struct block);
 
-					switch (ret = (*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
+					switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
 						case 0:
 							break;
 						case DB_KEYEXIST:
 							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
+							break;
+						case EINVAL:
+							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid record.\n");
 							break;
 						default:
 							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
