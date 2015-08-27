@@ -77,7 +77,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							memcpy(&data.data, &blockdata[i].data, sizeof(struct block));
 							data.size = sizeof(struct block);
 
-							switch ((ret = (*dbp)->put(dbp, NULL, &key, &data, DB_NOOVERWRITE)) == 0){
+							switch ((ret = (*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)) == 0){
 
 							case 0:
 								break;
@@ -107,9 +107,10 @@ int dbp_initialize(DB **dbp){
 
 	if ((ret = (*dbp)->open(*dbp, NULL, DATABASE, BLOCKS, DB_BTREE, DB_CREATE | DB_THREAD, 0664)) != 0) {
 		(*dbp)->err(*dbp, ret, "%s", DATABASE);
-		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Error opening database.\n");
+		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Opening database failed.\n");
 		exit (1);
 	}
+	logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Opening database success.\n");
 
 	return 0;
 }
