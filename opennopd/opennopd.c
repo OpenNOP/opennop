@@ -30,6 +30,7 @@
 #include "version.h"
 #include "ipc.h"
 #include "wccpv2.h"
+#include "deduplication.h"
 
 #define DAEMON_NAME "opennopd"
 #define PID_FILE "/var/run/opennopd.pid"
@@ -205,6 +206,7 @@ int main(int argc, char *argv[]) {
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *) NULL);
     start_ipc();
     start_wccp();
+    init_deduplication();
     pthread_create(&t_cli, NULL, cli_manager_init, (void *) NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *) NULL);
     pthread_create(&t_memorymanager, NULL, memorymanager_function,
