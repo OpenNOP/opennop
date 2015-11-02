@@ -48,6 +48,13 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 	DBT key, data;
 	int ret = 0;
 
+	/**
+	 * @todo Check file path for free space.
+	 *  There needs to be state counter that gets the % available space for /var/opennop.
+	 *  	If > 80% free then deduplication will create new blocks.
+	 *  	If < 80% free it will only lookup existing blocks.
+	 */
+
 	if (ippacket != NULL) {
 		iph = (struct iphdr *) ippacket; // Access ip header.
 
@@ -81,6 +88,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 
 					switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
 						case 0:
+							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
 							break;
 						case DB_KEYEXIST:
 							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
