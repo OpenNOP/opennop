@@ -150,6 +150,10 @@ int dbp_initialize(DB **dbp){
 	}
 	logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Opening database success.\n");
 
+	return 0;
+}
+
+int init_deduplication(){
 	/**
 	 * Initialize dedup metrics
 	 */
@@ -157,7 +161,6 @@ int dbp_initialize(DB **dbp){
 	metrics.misses = 0;
 
 	register_command(NULL, "show dedup stats", cli_show_dedup_stats, false, false);
-
 
 	return 0;
 }
