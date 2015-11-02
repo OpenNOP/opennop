@@ -14,6 +14,7 @@
 
 #include <db.h>
 
+#include "climanager.h"
 #include "logger.h"
 
 struct block{
@@ -24,9 +25,16 @@ struct hash{
 	char hash[64];
 };
 
+struct dedup_metrics{
+	int hits;
+	int misses;
+};
+
 #define	DATABASE "/var/opennop/dedup.db"
 #define BLOCKS "blocks"
 #define MAXBLOCKS 16
+
+static struct dedup_metrics metrics;
 
 /** @brief Calculate hash values
  *
@@ -88,9 +96,11 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 
 					switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
 						case 0:
+							metrics.misses++;
 							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
 							break;
 						case DB_KEYEXIST:
+							metrics.hits++;
 							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
 							break;
 						case EINVAL:
@@ -108,6 +118,23 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 	return 0;
 }
 
+struct commandresult cli_show_dedup_stats(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result  = { 0 };
+    char msg[MAX_BUFFER_SIZE] = { 0 };
+    char message[LOGSZ];
+
+    sprintf(msg,"Dedup Hits: %i\n",metrics.hits);
+    cli_send_feedback(client_fd, msg);
+    sprintf(msg,"Dedup Misses: %i\n",metrics.misses);
+    cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
 int dbp_initialize(DB **dbp){
 	int ret = 0;
 
@@ -122,6 +149,15 @@ int dbp_initialize(DB **dbp){
 		exit (1);
 	}
 	logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Opening database success.\n");
+
+	/**
+	 * Initialize dedup metrics
+	 */
+	metrics.hits = 0;
+	metrics.misses = 0;
+
+	register_command(NULL, "show dedup stats", cli_show_dedup_stats, false, false);
+
 
 	return 0;
 }
