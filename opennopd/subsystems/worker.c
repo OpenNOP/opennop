@@ -195,6 +195,10 @@ void *worker_thread(void *dummyPtr) {
                             }else{
                             	updateseq(largerIP, iph, tcph, thissession); // Also update sequences if packet is not optimized.
                     		}
+
+                            if(thispacket != NULL){
+                            	deduplicate((__u8 *)iph, &me->blocks);
+                            }
                             /*
                              * End of what should be the deoptimize function.
                              */
