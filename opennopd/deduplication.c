@@ -92,15 +92,15 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					key.data = &hashes[i];
 					key.size = sizeof(struct hash);
 
-					data.data = tcpdatablock[i].data;
+					data.data = &tcpdatablock[i].data;
 					data.size = sizeof(struct block);
 
 					// Check if key & data exist in the database.
-					switch ((*dbp)->get(*dbp, NULL, &key, &data, DB_GET_BOTH)){
+					//switch ((*dbp)->get(*dbp, NULL, &key, &data, DB_GET_BOTH)){
 
 						// Key and data don't exist or doesn't match.
-						case DB_NOTFOUND:
-							metrics.misses++;
+						//case DB_NOTFOUND:
+							//metrics.misses++;
 
 							// Try inserting the key & data into the database.
 							switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
@@ -114,8 +114,9 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 								// An existing key exists with different date! (Collision needs resolved!)
 								// We hope this never happens!
 								case DB_KEYEXIST:
+									metrics.hits++;
 									/**
-									 * todo: Need to write a process for block collision resolution.
+									 * @todo: Need to write a process for block collision resolution.
 									 */
 									//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
 									break;
@@ -130,23 +131,23 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
 									exit(1);
 							}
-							break;
+							//break;
 
 						// Key and data pair found in database.
-						case 0:
-							metrics.hits++;
-							break;
+						//case 0:
+							//metrics.hits++;
+							//break;
 
 						// Invalid query?
-						case EINVAL:
-							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
-							break;
+						//case EINVAL:
+							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
+							//break;
 
 						// Unknown error in query.
-						default:
-						logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
-						exit(1);
-					}
+						//default:
+						//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
+						//exit(1);
+					//}
 				}
 			}
 		}
