@@ -84,7 +84,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 			if(numblocks < MAXBLOCKS){
 
 				for(i=0;i<numblocks;i++){
-					SHA512((unsigned char*)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
+					SHA512((unsigned char*)&tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
 
 					memset(&key, 0, sizeof(key));
 					memset(&data, 0, sizeof(data));
