@@ -28,6 +28,7 @@ struct hash{
 struct dedup_metrics{
 	int hits;
 	int misses;
+	int newblocks;
 };
 
 #define	DATABASE "/var/opennop/dedup.db"
@@ -94,21 +95,45 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					data.data = tcpdatablock[i].data;
 					data.size = sizeof(struct block);
 
-					switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
+					// Check if key & data exist in the database.
+					switch ((*dbp)->get(*dbp, NULL, &key, &data, DB_GET_BOTH)){
+
+						// Key and data don't exist or doesn't match.
 						case 0:
 							metrics.misses++;
-							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
-							break;
-						case DB_KEYEXIST:
+
+							// Try inserting the key & data into the database.
+							switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
+
+								// New key & data saved.
+								case 0:
+									metrics.newblocks++;
+									//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
+									break;
+
+								// An existing key exists with different date! (Collision needs resolved!)
+								// We hope this never happens!
+								case DB_KEYEXIST:
+									/**
+									 * todo: Need to write a process for block collision resolution.
+									 */
+									//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
+									break;
+
+								// Failed to create key & data record in database.
+								case EINVAL:
+									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid record.\n");
+									break;
+
+								// Something bad happened.
+								default:
+									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
+									exit(1);
+							}
+
+						// Key and data pair found in database.
+						case 1:
 							metrics.hits++;
-							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
-							break;
-						case EINVAL:
-							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid record.\n");
-							break;
-						default:
-							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
-							exit(1);
 					}
 				}
 			}
@@ -127,6 +152,8 @@ struct commandresult cli_show_dedup_stats(int client_fd, char **parameters, int 
     cli_send_feedback(client_fd, msg);
     sprintf(msg,"Dedup Misses: %i\n",metrics.misses);
     cli_send_feedback(client_fd, msg);
+    sprintf(msg,"Dedup New Blocks: %i\n",metrics.newblocks);
+       cli_send_feedback(client_fd, msg);
 
     result.finished = 0;
     result.mode = NULL;
@@ -159,6 +186,7 @@ int init_deduplication(){
 	 */
 	metrics.hits = 0;
 	metrics.misses = 0;
+	metrics.newblocks = 0;
 
 	register_command(NULL, "show dedup stats", cli_show_dedup_stats, false, false);
 
