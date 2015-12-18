@@ -92,7 +92,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					key.data = &hashes[i];
 					key.size = sizeof(struct hash);
 
-					data.data = &tcpdatablock[i].data;
+					data.data = (unsigned char*)tcpdatablock[i].data;
 					data.size = sizeof(struct block);
 
 					// Check if key & data exist in the database.
