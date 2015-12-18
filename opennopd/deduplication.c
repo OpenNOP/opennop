@@ -126,6 +126,10 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid record.\n");
 									break;
 
+								case ENOSPC:
+									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Btree depth exceeded.\n");
+									break;
+
 								// Something bad happened.
 								default:
 									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
