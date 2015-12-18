@@ -278,7 +278,7 @@ struct wccp_webcache{
 static pthread_t t_wccp; // thread for wccp.
 static struct list_head wccp_service_groups;
 static struct command_head cli_wccp_mode; // list of wccp commands.
-static int DEBUG_WCCP = LOGGING_ERROR;
+static int DEBUG_WCCP = LOGGING_WARN;
 
 /** @brief Display WCCP CLI help message.
  *
