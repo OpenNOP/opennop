@@ -99,7 +99,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					switch ((*dbp)->get(*dbp, NULL, &key, &data, DB_GET_BOTH)){
 
 						// Key and data don't exist or doesn't match.
-						case 0:
+						case DB_NOTFOUND:
 							metrics.misses++;
 
 							// Try inserting the key & data into the database.
@@ -133,7 +133,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							break;
 
 						// Key and data pair found in database.
-						case 1:
+						case 0:
 							metrics.hits++;
 							break;
 
