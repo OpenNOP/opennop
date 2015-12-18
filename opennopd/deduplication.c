@@ -130,10 +130,22 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
 									exit(1);
 							}
+							break;
 
 						// Key and data pair found in database.
 						case 1:
 							metrics.hits++;
+							break;
+
+						// Invalid query?
+						case EINVAL:
+							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
+							break;
+
+						// Unknown error in query.
+						default:
+						logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
+						exit(1);
 					}
 				}
 			}
@@ -153,7 +165,7 @@ struct commandresult cli_show_dedup_stats(int client_fd, char **parameters, int 
     sprintf(msg,"Dedup Misses: %i\n",metrics.misses);
     cli_send_feedback(client_fd, msg);
     sprintf(msg,"Dedup New Blocks: %i\n",metrics.newblocks);
-       cli_send_feedback(client_fd, msg);
+    cli_send_feedback(client_fd, msg);
 
     result.finished = 0;
     result.mode = NULL;
