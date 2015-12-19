@@ -37,6 +37,19 @@ struct dedup_metrics{
 
 static struct dedup_metrics metrics;
 
+int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
+	SHA512_CTX ctx;
+
+	ENGINE_load_builtin_engines();
+	ENGINE_register_all_complete();
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, (unsigned char*)data, length);
+	SHA512_Final(result, &ctx);
+
+	return 0;
+}
+
+
 /** @brief Calculate hash values
  *
  * This function is just a test to determine performance impact of deduplication by hashing each block of data in a packet.
@@ -84,7 +97,8 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 			if(numblocks < MAXBLOCKS){
 
 				for(i=0;i<numblocks;i++){
-					SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
+					//SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
+					calculate_sha512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
 					binary_dump("[DEDUP HASH]", (unsigned char *)&hashes[i], sizeof(struct hash));
 					binary_dump("[DEDUP DATA]", (unsigned char *)tcpdatablock[i].data, 128);
 
