@@ -97,11 +97,11 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 			if(numblocks < MAXBLOCKS){
 
 				for(i=0;i<numblocks;i++){
-					SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)(struct hash *)&hashes[i]);
+					SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
 					// This method works but the above is simpler.
 					// It might be better to allocate one permanent CTX for each worker.
 					//calculate_sha512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
-					binary_dump("[DEDUP HASH]", (unsigned char *)(struct hash *)&hashes[i], sizeof(struct hash));
+					binary_dump("[DEDUP HASH]", (unsigned char *)&hashes[i], sizeof(struct hash));
 					binary_dump("[DEDUP DATA]", (unsigned char *)tcpdatablock[i].data, 128);
 
 					memset(&key, 0, sizeof(key));
