@@ -85,6 +85,8 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 
 				for(i=0;i<numblocks;i++){
 					SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
+					binary_dump("[DEDUP HASH]", (unsigned char *)&hashes[i], sizeof(struct hash));
+					binary_dump("[DEDUP DATA]", (unsigned char *)tcpdatablock[i].data, 128);
 
 					memset(&key, 0, sizeof(key));
 					memset(&data, 0, sizeof(data));
