@@ -29,6 +29,7 @@ struct dedup_metrics{
 	int hits;
 	int misses;
 	int newblocks;
+	int collisions;
 };
 
 
@@ -117,11 +118,11 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					data.size = sizeof(struct block);
 
 					// Check if key & data exist in the database.
-					//switch ((*dbp)->get(*dbp, NULL, &key, &data, DB_GET_BOTH)){
+					switch ((*dbp)->get(*dbp, NULL, &key, &data, DB_GET_BOTH)){
 
 						// Key and data don't exist or doesn't match.
-						//case DB_NOTFOUND:
-							//metrics.misses++;
+						case DB_NOTFOUND:
+							metrics.misses++;
 
 							// Try inserting the key & data into the database.
 							switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
@@ -135,7 +136,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 								// An existing key exists with different data! (Collision needs resolved!)
 								// We hope this never happens!
 								case DB_KEYEXIST:
-									metrics.hits++;
+									metrics.collisions++;
 									/**
 									 * @todo: Need to write a process for block collision resolution.
 									 */
@@ -156,23 +157,23 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
 									exit(1);
 							}
-							//break;
+							break;
 
 						// Key and data pair found in database.
-						//case 0:
-							//metrics.hits++;
-							//break;
+						case 0:
+							metrics.hits++;
+							break;
 
 						// Invalid query?
-						//case EINVAL:
-							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
-							//break;
+						case EINVAL:
+							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
+							break;
 
 						// Unknown error in query.
-						//default:
-						//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
-						//exit(1);
-					//}
+						default:
+							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
+							exit(1);
+					}
 				}
 			}
 		}
@@ -191,6 +192,8 @@ struct commandresult cli_show_dedup_stats(int client_fd, char **parameters, int 
     sprintf(msg,"Dedup Misses: %i\n",metrics.misses);
     cli_send_feedback(client_fd, msg);
     sprintf(msg,"Dedup New Blocks: %i\n",metrics.newblocks);
+    cli_send_feedback(client_fd, msg);
+    sprintf(msg,"Dedup Collisions: %i\n",metrics.collisions);
     cli_send_feedback(client_fd, msg);
 
     result.finished = 0;
