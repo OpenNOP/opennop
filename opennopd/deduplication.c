@@ -254,7 +254,7 @@ int dbp_initialize(DB **dbp){
 		exit (1);
 	}
 
-	if ((ret = (*dbp)->open(*dbp, NULL, DEDUP_BLOCKS, NULL, DB_BTREE, DB_CREATE | DB_THREAD, 0664)) != 0) {
+	if ((ret = (*dbp)->open(*dbp, NULL, DEDUP_BLOCKS, NULL, DB_BTREE, DB_CREATE, 0664)) != 0) {
 		(*dbp)->err(*dbp, ret, "%s", DEDUP_BLOCKS);
 		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Opening database failed.\n");
 		exit (1);
