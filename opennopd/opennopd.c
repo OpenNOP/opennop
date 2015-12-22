@@ -188,6 +188,7 @@ int main(int argc, char *argv[]) {
      */
 
     initialize_sessiontable();
+    init_deduplication();
 
     if (get_workers() == 0) {
         set_workers(sysconf(_SC_NPROCESSORS_ONLN) * 2);
@@ -206,7 +207,6 @@ int main(int argc, char *argv[]) {
     pthread_create(&t_healthagent, NULL, healthagent_function, (void *) NULL);
     start_ipc();
     start_wccp();
-    init_deduplication();
     pthread_create(&t_cli, NULL, cli_manager_init, (void *) NULL);
     pthread_create(&t_counters, NULL, counters_function, (void *) NULL);
     pthread_create(&t_memorymanager, NULL, memorymanager_function,
