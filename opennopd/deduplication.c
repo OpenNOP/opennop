@@ -35,6 +35,7 @@ struct dedup_metrics{
 #define BLOCKS "blocks"
 #define MAXBLOCKS 16
 
+static int deduplication = true;
 static struct dedup_metrics metrics;
 
 int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
@@ -77,7 +78,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 	 *  	If < 80% free it will only lookup existing blocks.
 	 */
 
-	if (ippacket != NULL) {
+	if ((ippacket != NULL) && (deduplication == true)) {
 		iph = (struct iphdr *) ippacket; // Access ip header.
 
 		if (iph->protocol == IPPROTO_TCP) { // If this is not a TCP segment abort compression.
@@ -129,7 +130,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 									//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
 									break;
 
-								// An existing key exists with different date! (Collision needs resolved!)
+								// An existing key exists with different data! (Collision needs resolved!)
 								// We hope this never happens!
 								case DB_KEYEXIST:
 									metrics.hits++;
@@ -215,6 +216,52 @@ int dbp_initialize(DB **dbp){
 	return 0;
 }
 
+struct commandresult cli_deduplication_enable(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	deduplication = true;
+	sprintf(msg, "deduplication enabled\n");
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+struct commandresult cli_deduplication_disable(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	deduplication = false;
+	sprintf(msg, "deduplication disabled\n");
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+struct commandresult cli_show_deduplication(int client_fd, char **parameters, int numparameters, void *data) {
+	struct commandresult result  = { 0 };
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+
+	if (deduplication == true) {
+		sprintf(msg, "deduplication enabled\n");
+	} else {
+		sprintf(msg, "deduplication disabled\n");
+	}
+	cli_send_feedback(client_fd, msg);
+
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
 int init_deduplication(){
 	/**
 	 * Initialize dedup metrics
@@ -223,11 +270,11 @@ int init_deduplication(){
 	metrics.misses = 0;
 	metrics.newblocks = 0;
 
+    register_command(NULL, "deduplication enable", cli_deduplication_enable, false, false);
+    register_command(NULL, "deduplication disable", cli_deduplication_disable, false, false);
+    register_command(NULL, "show deduplication", cli_show_deduplication, false, false);
 	register_command(NULL, "show dedup stats", cli_show_dedup_stats, false, false);
 
 	return 0;
 }
-
-
-
 
