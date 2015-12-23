@@ -285,7 +285,7 @@ int init_deduplication(){
 		exit(1);
 	}
 
-	if(dedup_db_environment->open(dedup_db_environment, DEDUP_ENVPATH, DB_CREATE | DB_INIT_MPOOL, 0) != 0 ){
+	if(dedup_db_environment->open(dedup_db_environment, DEDUP_ENVPATH, DB_CREATE | DB_INIT_MPOOL | DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN | DB_RECOVER, 0) != 0 ){
 		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[BDB] Failed opening environment.\n");
 		exit(1);
 	}
