@@ -18,6 +18,8 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 
+#include <db.h>
+
 #define IPC_MAX_MESSAGE_SIZE	1024				/** Largest size the IPC messages can be */
 #define OPENNOPD_IPC_PORT 		5000				/** Random number for now */
 #define	OPENNOPD_IPC_SOCK		"\0opennopd.ipc"	/** '\0' makes this sock hidden */
@@ -53,6 +55,7 @@ struct neighbor {
     char id[OPENNOP_IPC_ID_LENGTH]; // Detected ID of this neighbor.
     int sock; // Socket FD used to communicate to this neighbor.
     char key[OPENNOP_IPC_KEY_LENGTH]; // Encryption key used by this neighbor.
+    DB *blocks; // Blocks
     time_t hellotimer; // Last hello message send or attempted.
     time_t timer; // Remote timer.
 };

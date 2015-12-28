@@ -167,37 +167,37 @@ void *worker_thread(void *dummyPtr) {
 
                             saveacceleratorid(largerIP, remoteID, iph, thissession);
 
-                            if (__get_tcp_option((__u8 *)iph,31) != 0) { // Packet is flagged as compressed.
+                            if (((iph->saddr == largerIP) &&
+                                    //(thissession->smaller.accelerator == localID)) ||
+                            		(compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) == 1))||
+                                    ((iph->saddr == smallerIP) &&
+                                    //(thissession->larger.accelerator == localID))) {
+                                    (compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) == 1))) {
 
-                                if (DEBUG_WORKER == true) {
-                                    sprintf(message, "Worker: Packet is compressed.\n");
-                                    logger(LOG_INFO, message);
-                                }
+                                if (__get_tcp_option((__u8 *)iph,31) != 0) { // Packet is flagged as compressed.
 
-                                if (((iph->saddr == largerIP) &&
-                                        //(thissession->smaller.accelerator == localID)) ||
-                                		(compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) == 1))||
-                                        ((iph->saddr == smallerIP) &&
-                                         //(thissession->larger.accelerator == localID))) {
-                                        (compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) == 1))) {
-
-                                    /*
-                                     * Decompress this packet!
-                                     */
-                                    if (tcp_decompress((__u8 *)iph, me->lzbuffer, state_decompress) == 0) { // Decompression failed if 0.
-                                        nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
-                                        put_freepacket_buffer(thispacket);
-                                        thispacket = NULL;
-                                    }else{
-                                    	updateseq(largerIP, iph, tcph, thissession); // Only update the sequence after decompression.
+                                	if (DEBUG_WORKER == true) {
+                                    	sprintf(message, "Worker: Packet is compressed.\n");
+                                        logger(LOG_INFO, message);
                                     }
+
+                                	/*
+                                	 * Decompress this packet!
+                                	 */
+                                	if (tcp_decompress((__u8 *)iph, me->lzbuffer, state_decompress) == 0) { // Decompression failed if 0.
+                                		nfq_set_verdict(thispacket->hq, thispacket->id, NF_DROP, 0, NULL); // Decompression failed drop.
+                                		put_freepacket_buffer(thispacket);
+                                		thispacket = NULL;
+                                	}else{
+                                		updateseq(largerIP, iph, tcph, thissession); // Only update the sequence after decompression.
+                                	}
                                 }
                             }else{
                             	updateseq(largerIP, iph, tcph, thissession); // Also update sequences if packet is not optimized.
                     		}
 
                             if(thispacket != NULL){
-                            	deduplicate((__u8 *)iph, &me->blocks);
+                            	rehydration((__u8 *)iph, &me->blocks);
                             }
                             /*
                              * End of what should be the deoptimize function.
@@ -319,7 +319,7 @@ void initialize_worker_processor(struct processor *thisprocessor) {
     thisprocessor->queue.prev = NULL;
     thisprocessor->queue.qlen = 0;
     thisprocessor->blocks = NULL;
-    dbp_initialize(&thisprocessor->blocks);
+    dbp_initialize(&thisprocessor->blocks, DEDUP_BLOCKS);
     pthread_mutex_unlock(&thisprocessor->queue.lock);
 }
 

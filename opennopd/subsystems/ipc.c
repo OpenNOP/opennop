@@ -928,6 +928,7 @@ int set_neighbor_key(struct neighbor *currentneighbor, char *key) {
 
 struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
     struct neighbor *newneighbor = (struct neighbor *) malloc (sizeof (struct neighbor));
+    char strIP[20];
 
     if(newneighbor == NULL) {
         fprintf(stdout, "Could not allocate memory... \n");
@@ -940,11 +941,15 @@ struct neighbor* allocate_neighbor(__u32 neighborIP, char *key) {
     newneighbor->id[0] = '\0';
     newneighbor->sock = 0;
     newneighbor->key[0] = '\0';
+    newneighbor->blocks = NULL;
     time(&newneighbor->timer);
     time(&newneighbor->hellotimer);
 
     if (neighborIP != 0) {
         newneighbor->NeighborIP = neighborIP;
+        inet_ntop(AF_INET, &neighborIP, strIP, INET_ADDRSTRLEN);
+        strcat(strIP,".db");
+        dbp_initialize(&newneighbor->blocks, strIP);
     }
 
     if (key != NULL) {

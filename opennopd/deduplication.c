@@ -16,6 +16,7 @@
 
 #include "climanager.h"
 #include "logger.h"
+#include "deduplication.h"
 
 struct block{
 	char data[128];
@@ -34,7 +35,6 @@ struct dedup_metrics{
 
 
 #define	DEDUP_ENVPATH "/var/opennop/db"
-#define DEDUP_BLOCKS "blocks.db"
 #define DEDUP_MAXBLOCKS 16
 
 static int deduplication = true;
@@ -182,6 +182,11 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 	return 0;
 }
 
+int rehydration(__u8 *ippacket, DB **dbp){
+
+	return 0;
+}
+
 struct commandresult cli_show_dedup_stats(int client_fd, char **parameters, int numparameters, void *data) {
 	struct commandresult result  = { 0 };
     char msg[MAX_BUFFER_SIZE] = { 0 };
@@ -249,7 +254,7 @@ struct commandresult cli_show_deduplication(int client_fd, char **parameters, in
     return result;
 }
 
-int dbp_initialize(DB **dbp){
+int dbp_initialize(DB **dbp, char *database){
 	int ret = 0;
 
 	if ((ret = db_create(dbp, dedup_db_environment, 0)) != 0) {
@@ -257,8 +262,8 @@ int dbp_initialize(DB **dbp){
 		exit (1);
 	}
 
-	if ((ret = (*dbp)->open(*dbp, NULL, DEDUP_BLOCKS, NULL, DB_BTREE, DB_CREATE, 0664)) != 0) {
-		(*dbp)->err(*dbp, ret, "%s", DEDUP_BLOCKS);
+	if ((ret = (*dbp)->open(*dbp, NULL, database, NULL, DB_BTREE, DB_CREATE, 0664)) != 0) {
+		(*dbp)->err(*dbp, ret, "%s", database);
 		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Opening database failed.\n");
 		exit (1);
 	}
