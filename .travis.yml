@@ -8,7 +8,7 @@ before_install:
  - sudo apt-get install -qq libnfnetlink-dev 
  - sudo apt-get install -qq libnetfilter-queue-dev 
  - sudo apt-get install -qq libnl-dev 
- - sudo apt-get install -qq openssl-devel 
+ - sudo apt-get install -qq libssl-dev
  - sudo apt-get install -qq pkg-config
 
 build_command_prepend: ./autogen.sh	
