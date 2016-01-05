@@ -1,3 +1,18 @@
+env:
+  global:
+    - secure: "E5CEizpVNAfPmCC_aOBaQg"
+
+addons:
+  coverity_scan:
+    # GitHub project metadata
+    # ** specific to your project **
+    project:
+      name: OpenNOP/opennop
+    build_command_prepend: ./autogen.sh
+    build_command_prepend: ./configure
+    build_command: make
+    branch_pattern: coverity_scan
+
 language: c
 before_install:
  - sudo apt-get update -qq 
@@ -12,4 +27,4 @@ before_install:
  - sudo apt-get install -qq pkg-config
  - sudo apt-get install -qq uuid-dev
 
-script: ./autogen.sh && ./configure && make
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make ; fi
