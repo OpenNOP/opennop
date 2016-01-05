@@ -10,5 +10,6 @@ before_install:
  - sudo apt-get install -qq libnl-dev 
  - sudo apt-get install -qq libssl-dev
  - sudo apt-get install -qq pkg-config
+ - sudo apt-get install -qq uuid-dev
 
 script: ./autogen.sh && ./configure && make
