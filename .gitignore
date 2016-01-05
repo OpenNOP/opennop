@@ -11,3 +11,6 @@ Makefile.in
 /config.*
 /configure
 /stamp-h1
+/cov-int/
+/opennopd.tgz
+/doxygen

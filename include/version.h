@@ -1,6 +1,6 @@
 #ifndef VERSION_H_
 #define VERSION_H_
 
-int cli_show_version(int client_fd, char **parameters, int numparameters);
+struct commandresult cli_show_version(int client_fd, char **parameters, int numparameters, void *data);
 
 #endif /*VERSION_H_*/

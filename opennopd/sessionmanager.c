@@ -14,12 +14,14 @@
 #include "worker.h"
 #include "session.h"
 #include "clicommands.h"
+#include "ipc.h"
 
 struct session_head sessiontable[SESSIONBUCKETS]; // Setup the session hashtable.
 
 int DEBUG_SESSIONMANAGER_INSERT = false;
 int DEBUG_SESSIONMANAGER_GET = false;
 int DEBUG_SESSIONMANAGER_REMOVE = false;
+static int DEBUG_SESSION_TRACKING = LOGGING_WARN;
 
 /*
  * Calculates the hash of a session provided the IP addresses, and ports.
@@ -34,6 +36,24 @@ __u16 sessionhash(__u32 largerIP, __u16 largerIPPort, __u32 smallerIP,
 	hash4 = largerIPPort ^ smallerIPPort;
 	hash = hash3 ^ hash4;
 	return hash;
+}
+
+int session_accelerated(struct session *currentsession){
+
+	//if ((((currentsession->larger.accelerator == localID)
+	if (((( compare_opennopid((char*)&currentsession->larger.accelerator, (char*)get_opennop_id()) == 1)
+			//|| (currentsession->smaller.accelerator == localID))
+			|| (compare_opennopid((char*)&currentsession->smaller.accelerator, (char*)get_opennop_id()) == 1))
+			//&& ((currentsession->larger.accelerator != 0)
+			&& ((check_opennopid((char*)&currentsession->larger.accelerator) == 1)
+			//&& (currentsession->smaller.accelerator != 0))
+			&& (check_opennopid((char*)&currentsession->smaller.accelerator) == 1))
+			//&& (currentsession->larger.accelerator  != currentsession->smaller.accelerator))) {
+			&& (compare_opennopid((char*)&currentsession->larger.accelerator, (char*)&currentsession->smaller.accelerator) == 0))) {
+		return 1;
+	}
+
+	return 0;
 }
 
 /* 
@@ -117,14 +137,14 @@ struct session *insertsession(__u32 largerIP, __u16 largerIPPort,
 		newsession->client = NULL;
 		newsession->server = NULL;
 		newsession->queue = queuenum;
-		newsession->largerIP = largerIP; // Assign values and initialize this session.
-		newsession->largerIPPort = largerIPPort;
-		newsession->largerIPAccelerator = 0;
-		newsession->largerIPseq = 0;
-		newsession->smallerIP = smallerIP;
-		newsession->smallerIPPort = smallerIPPort;
-		newsession->smallerIPseq = 0;
-		newsession->smallerIPAccelerator = 0;
+		newsession->larger.address = largerIP; // Assign values and initialize this session.
+		newsession->larger.port = largerIPPort;
+		//newsession->larger.accelerator = 0;
+		newsession->larger.sequence = 0;
+		newsession->smaller.address = smallerIP;
+		newsession->smaller.port = smallerIPPort;
+		newsession->smaller.sequence = 0;
+		//newsession->smaller.accelerator = 0;
 		newsession->deadcounter = 0;
 		newsession->state = 0;
 
@@ -203,10 +223,10 @@ struct session *getsession(__u32 largerIP, __u16 largerIPPort, __u32 smallerIP,
 
 	while (currentsession != NULL) { // Looking for session.
 
-		if ((currentsession->largerIP == largerIP) && // Check if session matches.
-				(currentsession->largerIPPort == largerIPPort)
-				&& (currentsession->smallerIP == smallerIP)
-				&& (currentsession->smallerIPPort == smallerIPPort)) {
+		if ((currentsession->larger.address == largerIP) && // Check if session matches.
+				(currentsession->larger.port == largerIPPort)
+				&& (currentsession->smaller.address == smallerIP)
+				&& (currentsession->smaller.port == smallerIPPort)) {
 
 			if (DEBUG_SESSIONMANAGER_GET == true) {
 				sprintf(message, "Session Manager: A session was found.\n");
@@ -239,16 +259,16 @@ struct session *getsession(__u32 largerIP, __u16 largerIPPort, __u32 smallerIP,
 /*
  * Resets the sessionindex, and session. 
  */
-void clearsession(struct session *currentsession) {
+struct session *clearsession(struct session *currentsession) {
 	__u16 hash = 0;
 	char message[LOGSZ];
 
 	if (currentsession != NULL) { // Make sure session is not NULL.
 
 		if (DEBUG_SESSIONMANAGER_REMOVE == true) {
-			hash = sessionhash(currentsession->largerIP,
-					currentsession->smallerIP, currentsession->largerIPPort,
-					currentsession->smallerIPPort);
+			hash = sessionhash(currentsession->larger.address,
+					currentsession->smaller.address, currentsession->larger.port,
+					currentsession->smaller.port);
 			sprintf(message,
 					"Session Manager: Removing session from bucket #: %u!\n",
 					hash);
@@ -294,8 +314,9 @@ void clearsession(struct session *currentsession) {
 		 */
 		decrement_worker_sessions(currentsession->queue);
 		free(currentsession);
+		currentsession = NULL;
 	}
-	return;
+	return currentsession;
 }
 
 /*
@@ -343,17 +364,18 @@ struct session_head *getsessionhead(int i) {
 	return &sessiontable[i];
 }
 
-int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
+struct commandresult cli_show_sessionss(int client_fd, char **parameters, int numparameters, void *data) {
 	struct session *currentsession = NULL;
+	struct commandresult result = { 0 };
 	char msg[MAX_BUFFER_SIZE] = { 0 };
 	int i;
 	char temp[20];
 	char col1[10];
-	char col2[17];
+	char col2[18];
 	char col3[14];
-	char col4[17];
+	char col4[18];
 	char col5[14];
-	char col6[13];
+	char col6[14];
 	char end[3];
 
 	sprintf(
@@ -385,8 +407,8 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 			 */
 			while (currentsession != NULL) {
 
-				/*
-				 * TODO:
+				/**
+				 * @todo:
 				 * This will only show the session if we know what IPs are client & server.
 				 * Its possible we wont know that if a session opening is not witnessed
 				 * by OpenNOP.  OpenNOP has a "recover" mechanism that allows the session
@@ -403,23 +425,26 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 					sprintf(col2, "| %-15s", temp);
 					strcat(msg, col2);
 					sprintf(col3, "|   %-10i", ntohs(
-							currentsession->largerIPPort));
+							currentsession->larger.port));
 					strcat(msg, col3);
 					inet_ntop(AF_INET, currentsession->server, temp,
 							INET_ADDRSTRLEN);
 					sprintf(col4, "| %-15s", temp);
 					strcat(msg, col4);
 					sprintf(col5, "|   %-10i", ntohs(
-							currentsession->smallerIPPort));
+							currentsession->smaller.port));
 					strcat(msg, col5);
 
-					if ((((currentsession->largerIPAccelerator == localID)
-							|| (currentsession->smallerIPAccelerator == localID))
-							&& ((currentsession->largerIPAccelerator != 0)
-									&& (currentsession->smallerIPAccelerator
+					/*
+					if ((((currentsession->larger.accelerator == localID)
+							|| (currentsession->smaller.accelerator == localID))
+							&& ((currentsession->larger.accelerator != 0)
+									&& (currentsession->smaller.accelerator
 											!= 0))
-							&& (currentsession->largerIPAccelerator
-									!= currentsession->smallerIPAccelerator))) {
+							&& (currentsession->larger.accelerator
+									!= currentsession->smaller.accelerator))) {
+					*/
+					if(session_accelerated(currentsession)== 1){
 						sprintf(col6, "|     Yes    ");
 					} else {
 						sprintf(col6, "|     No     ");
@@ -429,6 +454,9 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 					strcat(msg, end);
 					cli_send_feedback(client_fd, msg);
 
+					binary_dump("sessionmanager.c Larger ID: ", (char*)&currentsession->larger.accelerator, OPENNOP_IPC_ID_LENGTH);
+					binary_dump("sessionmanager.c Smaller ID: ", (char*)&currentsession->smaller.accelerator, OPENNOP_IPC_ID_LENGTH);
+
 					currentsession = currentsession->next;
 				}
 			}
@@ -436,24 +464,50 @@ int cli_show_sessionss(int client_fd, char **parameters, int numparameters) {
 
 	}
 
+    result.finished = 0;
+    result.mode = NULL;
+    result.data = NULL;
+
+    return result;
+}
+
+int __updateseq(struct iphdr *iph, struct tcphdr *tcph, struct session *thissession, struct endpoint *source){
+	char message[LOGSZ];
+
+	if(ntohl(tcph->seq) == source->nextsequence){
+		sprintf(message, "Received Expected Packet.\n");
+		logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
+	}else if(ntohl(tcph->seq) == (source->sequence - 1)){
+		sprintf(message, "Packet was keepalive.\n");
+		logger2(LOGGING_DEBUG,DEBUG_SESSION_TRACKING,message);
+		return 0;
+	}else if(source->sequence != 0){
+		sprintf(message, "Expected Packet Sequence Wrong.\n  Expected: %u\n  Received: %u\n", source->nextsequence, ntohl(tcph->seq));
+		logger2(LOGGING_WARN,DEBUG_SESSION_TRACKING,message);
+	}
+
+	source->sequence = ntohl(tcph->seq);
+
+	if(tcph->syn == 1){
+		source->nextsequence = ntohl(tcph->seq) + 1;
+	}else{
+		source->nextsequence = ntohl(tcph->seq) + (((ntohs(iph->tot_len) - (iph->ihl * 4))) - (tcph->doff * 4));
+	}
+
+	thissession->deadcounter = 0;
+
 	return 0;
 }
 
-int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph,
-		struct session *thissession) {
+int updateseq(__u32 largerIP, struct iphdr *iph, struct tcphdr *tcph, struct session *thissession) {
 
 	if ((largerIP != 0) && (iph != NULL) && (tcph != NULL) && (thissession != NULL)) {
 
 		if (iph->saddr == largerIP) { // See what IP this is coming from.
+			return __updateseq(iph, tcph, thissession, &thissession->larger);
 
-			if (ntohl(tcph->seq) != (thissession->largerIPseq - 1)) {
-				thissession->largerIPStartSEQ = ntohl(tcph->seq);
-			}
 		} else {
-
-			if (ntohl(tcph->seq) != (thissession->smallerIPseq - 1)) {
-				thissession->smallerIPStartSEQ = ntohl(tcph->seq);
-			}
+			return __updateseq(iph, tcph, thissession, &thissession->smaller);
 		}
 		return 0; // Everything OK.
 	}
@@ -466,28 +520,45 @@ int sourceisclient(__u32 largerIP, struct iphdr *iph, struct session *thissessio
 	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)) {
 
 		if (iph->saddr == largerIP) { // See what IP this is coming from.
-			thissession->client = &thissession->largerIP;
-			thissession->server = &thissession->smallerIP;
+			thissession->client = &thissession->larger.address;
+			thissession->server = &thissession->smaller.address;
 		} else {
-			thissession->client = &thissession->smallerIP;
-			thissession->server = &thissession->largerIP;
+			thissession->client = &thissession->smaller.address;
+			thissession->server = &thissession->larger.address;
 		}
 		return 0;// Everything  OK.
 	}
 	return -1;// Had a problem.
 }
 
+/*
 int saveacceleratorid(__u32 largerIP, __u32 acceleratorID, struct iphdr *iph, struct session *thissession) {
 
 	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)){
 
 		if (iph->saddr == largerIP)
 		{ // Set the Accelerator for this source.
-			thissession->largerIPAccelerator = acceleratorID;
+			thissession->larger.accelerator = acceleratorID;
 		}
 		else
 		{
-			thissession->smallerIPAccelerator = acceleratorID;
+			thissession->smaller.accelerator = acceleratorID;
+		}
+		return 0;// Everything  OK.
+	}
+	return -1;// Had a problem.
+}
+*/
+
+int saveacceleratorid(__u32 largerIP, char *acceleratorID, struct iphdr *iph, struct session *thissession) {
+
+	if ((largerIP != 0) && (iph != NULL) && (thissession != NULL)){
+
+		if (iph->saddr == largerIP)
+		{ // Set the Accelerator for this source.
+			save_opennopid(acceleratorID, (char*)&thissession->larger.accelerator);
+		}else{
+			save_opennopid(acceleratorID, (char*)&thissession->smaller.accelerator);
 		}
 		return 0;// Everything  OK.
 	}

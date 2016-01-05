@@ -86,8 +86,8 @@ int register_counter(t_counterfunction handler, t_counterdata data) {
 		logger(LOG_INFO, message);
 	};
 
-	/*
-	 * TODO:
+	/**
+	 * @todo:
 	 * We might need some detection logic here to ensure the same counter is not being registered twice.
 	 * For now we will assume that it will only be registered once.
 	 */
