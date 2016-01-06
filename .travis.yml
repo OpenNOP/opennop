@@ -1,0 +1,30 @@
+env:
+  global:
+    - secure: "bqsXP5tYfoNAi/B9RfxNodaZJh8GgtY5iLlhGJH5RFXKEDqUa/rVgCrNxHoU8UUzvk42QGcXPrJPmV66B5Yby9O8NmqCBBBs9OPWTDhTfg1pMaTdKUxljCr/LoyTEFg/bEzIlUAHaW3pYU/1EcggSgCiu3HlNTN7yemR7BMmK1ZdyVTNEdyMJH8zFMm6+Cj7Vw8DT39jYX6QvayDuAhcWjkHXkyd3OQFl6vePqhYMyHdz52KeMeNKyjDbel/02ytsfUP0giq9WkYPwrzi6W18r9snhTBGs7x6QNSbJi5rUVyOJusQsvhjmXjrrunnF2/kiMrWdfiqQXWQU89NsrSCxmLyrCg4AHmtyLe3jW70kAArVQjyIb9SoQOfQWluSkrAi8KsdvwhBUZtyhPrG7NtIsCNQKsahmsv6PVoHtwhDqrVV+tnddW4dXgdR2Kbv4Z46RzB8KPIxb7L38pPiXGQVZT/xd/BvRDxK3FhSXFGY6OhzbC8SJZBsMuRlU69v5oTz7LrMhaUvwcL89s2fghUVDpJpsn6XdT5zUQGv4W0EiKNjTHQwu6kP5wp6LAQML94GM+c7IxgPFXYRCeP7rYcXuuKCqYiMLDvLi0pS5xbfMcHnqfSJ7K6GppmHW/n2A1PdDG6IueUlhyOOqIdA2K8J6VLmgnF+1N2eG+bP/FnAQ="
+
+addons:
+  coverity_scan:
+    # GitHub project metadata
+    # ** specific to your project **
+    project:
+      name: OpenNOP/opennop
+    build_command_prepend: ./autogen.sh
+    build_command_prepend: ./configure
+    build_command: make
+    branch_pattern: coverity_scan
+
+language: c
+before_install:
+ - sudo apt-get update -qq 
+ - sudo apt-get install -qq autoconf
+ - sudo apt-get install -qq automake 
+ - sudo apt-get install -qq openssl 
+ - sudo apt-get install -qq libncurses-dev 
+ - sudo apt-get install -qq libnfnetlink-dev 
+ - sudo apt-get install -qq libnetfilter-queue-dev 
+ - sudo apt-get install -qq libnl-dev 
+ - sudo apt-get install -qq libssl-dev
+ - sudo apt-get install -qq pkg-config
+ - sudo apt-get install -qq uuid-dev
+
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make ; fi
