@@ -1,0 +1,73 @@
+<services>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/opennopdrv.dsc?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">opennopdrv.dsc</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/debian.rules?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">debian.rules</param>
+  </service>
+  
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/debian.postinst?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">debian.postinst</param>
+  </service>
+  
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/debian.prerm?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">debian.prerm</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/debian.control?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">debian.control</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/debian.changelog?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">debian.changelog</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/debian.dirs?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">debian.dirs</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/opennopdrv.spec?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">opennopdrv.spec</param>
+  </service>
+  
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennopdrv/preamble?format=raw</param>
+    <param name="host">sourceforge.net</param>
+	<param name="filename">preamble</param>
+  </service>
+
+  <service name="tar_scm">
+    <param name="versionprefix">0.5.0</param>
+    <param name="url">git://git.code.sf.net/p/opennop/module</param>
+    <param name="scm">git</param>
+    <param name="filename">opennopdrv</param>
+    <param name="revision">$branch</param>
+    <param name="package-meta">yes</param>
+  </service>
+  
+  <service name="recompress">
+    <param name="file">*opennopdrv*.tar</param>
+    <param name="compression">gz</param>
+  </service>
+  
+  <service name="set_version"/>
+  
+</services>

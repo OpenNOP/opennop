@@ -1,0 +1,13 @@
+#
+#	Remove the module, rmmod can fail
+#
+if [ -x /sbin/rmmod ] ; then
+	/sbin/rmmod %{modname} >/dev/null 2>&1
+fi
+#
+#	Remove the module from dkms
+#
+set -x
+if [ -x /usr/sbin/dkms ] ; then
+	/usr/sbin/dkms remove -m %{modname} -v %{version} --all --rpm_safe_upgrade || :
+fi

@@ -1,0 +1,28 @@
+pushd /usr/src >/dev/null 2>&1
+#
+#	Install dkms sources
+#
+pushd /usr/src/opennop >/dev/null 2>&1
+tar -xf %{modname}-%{version}.tar.gz
+popd >/dev/null 2>&1
+
+#
+#	Setup dkms.conf
+#
+cat > /usr/src/opennop/%{modname}-%{version}/dkms.conf << EOF
+PACKAGE_NAME=%{modname}
+PACKAGE_VERSION=%{version}
+MAKE[0]="make -C \${kernel_source_dir} SUBDIRS=\${dkms_tree}/\${PACKAGE_NAME}/\${PACKAGE_VERSION}/build modules"
+CLEAN="make -f /usr/src/%{modname}-%{version}/Makefile -C \${kernel_source_dir} SUBDIRS=\${dkms_tree}/\${PACKAGE_NAME}/\${PACKAGE_VERSION}/build clean"
+DEST_MODULE_LOCATION[0]="/updates/"
+BUILT_MODULE_NAME[0]=%{modname}
+EOF
+#
+set -x
+if [ -x /usr/sbin/dkms ] ; then
+	/usr/sbin/dkms add -m %{modname} -v %{version} --rpm_safe_upgrade
+	/usr/sbin/dkms build -m %{modname} -v %{version}
+	/usr/sbin/dkms install -m %{modname} -v %{version}
+fi
+#
+popd >/dev/null 2>&1

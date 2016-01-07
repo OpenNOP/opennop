@@ -1,0 +1,13 @@
+Source: opennopdrv
+Section: net
+Priority: optional
+Maintainer: Justin Yaple <yaplej@gmail.>
+Standards-Version: 0.4.2.1
+Build-Depends: debhelper (>= 4.1.16), gettext, automake, autoconf, libtool
+Package: opennopdrv
+Architecture: any
+Depends: libnetfilter-queue1, libnfnetlink0, libnl1, gcc, linux-headers, make, binutils, libncurses5, opennop, dkms
+Description: OpenNOP is an open source Linux based network accelerator.
+ It's designed to optimise network traffic over point-to-point, partially-meshed and full-meshed IP networks.#s-f- Description)
+ 
+

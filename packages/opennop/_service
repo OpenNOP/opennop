@@ -1,0 +1,67 @@
+<services>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennop/opennop.dsc?format=raw</param>
+    <param name="host">sourceforge.net</param>
+    <param name="filename">opennop.dsc</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennop/debian.rules?format=raw</param>
+    <param name="host">sourceforge.net</param>
+    <param name="filename">debian.rules</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennop/debian.control?format=raw</param>
+    <param name="host">sourceforge.net</param>
+    <param name="filename">debian.control</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennop/debian.changelog?format=raw</param>
+    <param name="host">sourceforge.net</param>
+    <param name="filename">debian.changelog</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennop/debian.dirs?format=raw</param>
+    <param name="host">sourceforge.net</param>
+    <param name="filename">debian.dirs</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/packages/ci/$branch/tree/opennop/opennop.spec?format=raw</param>
+    <param name="host">sourceforge.net</param>
+    <param name="filename">opennop.spec</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/scripts/ci/$branch/tree/opennop?format=raw</param>
+    <param name="host">sourceforge.net</param>
+    <param name="filename">debian.opennop.init</param>
+  </service>
+
+  <service name="download_url">
+    <param name="path">p/opennop/scripts/ci/$branch/tree/opennop?format=raw</param>
+    <param name="host">sourceforge.net</param>
+    <param name="filename">opennop</param>
+  </service>
+
+  <service name="tar_scm">
+    <param name="versionprefix">0.5.0</param>
+    <param name="url">git://git.code.sf.net/p/opennop/daemon</param>
+    <param name="scm">git</param>
+    <param name="filename">opennop</param>
+    <param name="revision">$branch</param>
+    <param name="package-meta">yes</param>
+  </service>
+  
+  <service name="recompress">
+    <param name="file">*opennop*.tar</param>
+    <param name="compression">gz</param>
+  </service>
+  
+  <service name="set_version"/>
+  
+</services>
