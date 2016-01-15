@@ -22,6 +22,6 @@ Contributing to OpenNOP
 </a>
 
 [OpenNOP]:                                   http://www.opennop.org/
-[Sign the Contributor License Agreement]:    https://www.clahub.com/agreements/OpenNOP/opennop
+[Sign the Contributor License Agreement]:    https://cla-assistant.io/OpenNOP/opennop
 [OpenNOP Repositories]:                      https://build.opensuse.org/project/repositories/network:opennop
 [OpenNOP Development Repositories]:          https://build.opensuse.org/project/repositories/network:opennop:devel
