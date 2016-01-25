@@ -154,6 +154,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 								thisdedup_record->length = 128;
 								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
 								memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
+								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
 							}
 
 							// Try inserting the key & data into the database.
@@ -220,7 +221,9 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					if(thisdedup_record != NULL){
 						//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
 						dedup_records_size += (thisdedup_record->length + 2);
-						thisdedup_record = (char*)thisdedup_record + (thisdedup_record->length + 2);
+						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
+						thisdedup_record = (char*)thisdedup_record + ((char*)thisdedup_record->length + 2);
+						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
 					}
 
 				}
