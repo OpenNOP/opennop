@@ -148,8 +148,11 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
 
 							if(thisdedup_record != NULL){
+								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Uncompressed data.\n");
 								thisdedup_record->type = 0;
+								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] 128 byes.\n");
 								thisdedup_record->length = 128;
+								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
 								memcpy(&thisdedup_record->data, &tcpdatablock[i].data, 128);
 							}
 
