@@ -145,6 +145,8 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							metrics.misses++;
 
 							//Dedup miss.  Create record and continue.
+							logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
+
 							if(thisdedup_record != NULL){
 								thisdedup_record->type = 0;
 								thisdedup_record->length = 128;
@@ -191,6 +193,8 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							metrics.hits++;
 
 							// Dedup Hit
+							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Hit.\n");
+
 							if(thisdedup_record != NULL){
 								thisdedup_record->type = 2;
 								thisdedup_record->length = 64;
@@ -211,7 +215,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					}
 
 					if(thisdedup_record != NULL){
-						binary_dump("[DEDUP] Record", &thisdedup_record, thisdedup_record->length + 2);
+						//binary_dump("[DEDUP] Record", &thisdedup_record->type, thisdedup_record->length + 2);
 						dedup_records_size += (thisdedup_record->length + 2);
 						thisdedup_record = thisdedup_record + (thisdedup_record->length + 2);
 					}
@@ -225,7 +229,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						thisdedup_record->length = remaining_data;
 						memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 						dedup_records_size += (thisdedup_record->length + 2);
-						binary_dump("[DEDUP] Last Record", &thisdedup_record, thisdedup_record->length + 2);
+						//binary_dump("[DEDUP] Last Record", &thisdedup_record->type, thisdedup_record->length + 2);
 					}
 				}
 			}
