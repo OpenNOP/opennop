@@ -17,6 +17,7 @@
 #include "climanager.h"
 #include "logger.h"
 #include "deduplication.h"
+#include "utility.h"
 
 struct block{
 	char data[128];
@@ -26,6 +27,12 @@ struct hash{
 	char hash[64];
 };
 
+struct dedup_record{
+	char type;		// (0 = uncompressed | 1 = compressed | 2 = deduplicated)
+	char length;	// How much data is in this record.
+	char data;		// Begining of actual data.
+};
+
 struct dedup_metrics{
 	int hits;
 	int misses;
@@ -33,7 +40,12 @@ struct dedup_metrics{
 	int collisions;
 };
 
-
+/**
+ * @todo Single tier deduplication only.
+ * Version 1 deduplication will only de-duplicate as a single tier.
+ * Version 2 should use some type of tree and deduplicate multiple tiers.
+ */
+#define	DEDUP_VERSION 1
 #define	DEDUP_ENVPATH "/var/opennop/db"
 #define DEDUP_MAXBLOCKS 16
 
@@ -68,11 +80,16 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 	struct iphdr *iph = NULL;
 	struct tcphdr *tcph = NULL;
 	struct block *tcpdatablock = NULL;
+	char *dedup_records = NULL; // Memory where working deduplication records are stored.
+	struct dedup_record *thisdedup_record = NULL;
 	__u16 datasize = 0;
+	__u16 dedup_records_size = 0;
+	char remaining_data = 0;
 	__u8  numblocks = 0;
 	int i = 0;
 	DBT key, data;
 	int ret = 0;
+
 
 	/**
 	 * @todo Check file path for free space.
@@ -92,13 +109,16 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 
 			numblocks = datasize / 128;
 
-			if((datasize % 128) != 0){
-				numblocks = numblocks + 1;
-			}
+			// Allocate memory for deduplication.
+			dedup_records = calloc(numblocks, 130);
 
 			memset(&hashes, 0, sizeof(struct hash)*DEDUP_MAXBLOCKS);
 
 			if(numblocks < DEDUP_MAXBLOCKS){
+
+				if(dedup_records != NULL){
+					thisdedup_record = dedup_records;
+				}
 
 				for(i=0;i<numblocks;i++){
 					SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
@@ -123,6 +143,13 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						// Key and data don't exist or doesn't match.
 						case DB_NOTFOUND:
 							metrics.misses++;
+
+							//Dedup miss.  Create record and continue.
+							if(thisdedup_record != NULL){
+								thisdedup_record->type = 0;
+								thisdedup_record->length = 128;
+								memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, 128);
+							}
 
 							// Try inserting the key & data into the database.
 							switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
@@ -162,6 +189,14 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						// Key and data pair found in database.
 						case 0:
 							metrics.hits++;
+
+							// Dedup Hit
+							if(thisdedup_record != NULL){
+								thisdedup_record->type = 2;
+								thisdedup_record->length = 64;
+								memcpy(&thisdedup_record->data, &hashes[i], 64);
+							}
+
 							break;
 
 						// Invalid query?
@@ -174,9 +209,32 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
 							exit(1);
 					}
+
+					if(thisdedup_record != NULL){
+						binary_dump("[DEDUP] Record", &thisdedup_record, thisdedup_record->length + 2);
+						dedup_records_size += (thisdedup_record->length + 2);
+						thisdedup_record = thisdedup_record + (thisdedup_record->length + 2);
+					}
+
+				}
+
+				if(thisdedup_record != NULL){
+
+					if((datasize % 128) != 0){
+						remaining_data = datasize - (numblocks * 128);
+						thisdedup_record->length = remaining_data;
+						memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
+						dedup_records_size += (thisdedup_record->length + 2);
+						binary_dump("[DEDUP] Last Record", &thisdedup_record, thisdedup_record->length + 2);
+					}
 				}
 			}
 		}
+	}
+
+	if(dedup_records != NULL){
+		free(dedup_records);
+		dedup_records = NULL;
 	}
 
 	return 0;
