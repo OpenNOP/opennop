@@ -148,12 +148,9 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
 
 							if(thisdedup_record != NULL){
-								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Uncompressed data.\n");
 								thisdedup_record->type = 0;
-								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] 128 byes.\n");
 								thisdedup_record->length = 128;
-								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
-								memcpy(&thisdedup_record->data, &tcpdatablock[i].data, 128);
+								memcpy(thisdedup_record->data, tcpdatablock[i].data, 128);
 							}
 
 							// Try inserting the key & data into the database.
@@ -201,7 +198,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							if(thisdedup_record != NULL){
 								thisdedup_record->type = 2;
 								thisdedup_record->length = 64;
-								memcpy(&thisdedup_record->data, &hashes[i], 64);
+								memcpy(thisdedup_record->data, &hashes[i], 64);
 							}
 
 							break;
@@ -218,7 +215,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					}
 
 					if(thisdedup_record != NULL){
-						//binary_dump("[DEDUP] Record", &thisdedup_record->type, thisdedup_record->length + 2);
+						binary_dump("[DEDUP] Record", thisdedup_record->type, thisdedup_record->length + 2);
 						dedup_records_size += (thisdedup_record->length + 2);
 						thisdedup_record = thisdedup_record + (thisdedup_record->length + 2);
 					}
@@ -232,7 +229,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						thisdedup_record->length = remaining_data;
 						memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 						dedup_records_size += (thisdedup_record->length + 2);
-						//binary_dump("[DEDUP] Last Record", &thisdedup_record->type, thisdedup_record->length + 2);
+						binary_dump("[DEDUP] Last Record", thisdedup_record->type, thisdedup_record->length + 2);
 					}
 				}
 			}
