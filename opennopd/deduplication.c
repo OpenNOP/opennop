@@ -222,7 +222,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
 						dedup_records_size += (thisdedup_record->length + 2);
 						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
-						thisdedup_record = (char*)thisdedup_record + ((char*)thisdedup_record->length + 2);
+						thisdedup_record = (char*)thisdedup_record + (char)(thisdedup_record->length + 2);
 						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
 					}
 
