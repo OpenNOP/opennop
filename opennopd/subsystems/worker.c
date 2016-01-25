@@ -145,7 +145,7 @@ void *worker_thread(void *dummyPtr) {
                                  * @todo
                                  * Testing hashing performance impact.
                                  */
-                                deduplicate((__u8 *)iph, &me->blocks);
+                                create_dedup_blocks((__u8 *)iph, &me->blocks);
                                 tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
                             } else {
 

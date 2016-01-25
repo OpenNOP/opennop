@@ -65,6 +65,83 @@ int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
 	return 0;
 }
 
+int deduplicate(__u8 *data, __u32 length, DB **dbp){
+	char *dedup_records = NULL; // Memory where working deduplication records are stored.
+	struct hash hashes[DEDUP_MAXBLOCKS]; // hash values for each block
+	struct dedup_record *thisdedup_record = NULL;
+	struct block *tcpdatablock = NULL;
+	__u16 dedup_records_size = 0;
+	char remaining_data = 0;
+	__u8 numblocks = 0;
+	int i = 0;
+
+	if((data != NULL) && (length != 0)){
+		numblocks = length / 128;
+	}
+
+	// Allocate memory for deduplication.
+	if((length % 128) != 0){
+		dedup_records = calloc(numblocks + 1, 130);
+	}else{
+		dedup_records = calloc(numblocks, 130);
+	}
+
+	if(dedup_records != NULL){
+		thisdedup_record = dedup_records;
+	}
+
+	//Dedup miss.  Create record and continue.
+	logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
+
+	if(thisdedup_record != NULL){
+		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
+		thisdedup_record->type = 0;
+		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Length: 128.\n");
+		thisdedup_record->length = 128;
+		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
+		memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
+		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
+	}
+
+	// Dedup Hit
+	logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Hit.\n");
+
+	if(thisdedup_record != NULL){
+		thisdedup_record->type = 2;
+		thisdedup_record->length = 64;
+		memcpy((char*)&thisdedup_record->data, (char*)&hashes[i], 64);
+	}
+
+	if(thisdedup_record != NULL){
+		//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
+		dedup_records_size += (thisdedup_record->length + 2);
+		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
+		thisdedup_record = (char*)thisdedup_record + (char)(thisdedup_record->length + 2);
+		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
+	}
+
+
+	if(thisdedup_record != NULL){
+
+		if((length % 128) != 0){
+			remaining_data = length - (numblocks * 128);
+			thisdedup_record->length = remaining_data;
+			logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Finish remaining data.\n");
+			memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
+			dedup_records_size += (thisdedup_record->length + 2);
+			logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
+			//binary_dump("[DEDUP] Last Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
+		}
+	}
+
+	if(dedup_records != NULL){
+		free(dedup_records);
+		dedup_records = NULL;
+	}
+
+	return 0;
+}
+
 
 /** @brief Calculate hash values
  *
@@ -73,18 +150,14 @@ int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
  * @param *ippacket [in] The IP packet containing data to be hashed.
  * @return int 0 = success -1 = failed
  */
-int deduplicate(__u8 *ippacket, DB **dbp){
+int create_dedup_blocks(__u8 *ippacket, DB **dbp){
 	//* @todo Don't copy the data here.  No point.
 	//struct block blocks[12] = {0}; // 12 * 128 byte blocks = 1536 large enough for any standard size IP packet.
 	struct hash hashes[DEDUP_MAXBLOCKS]; // hash values for each block
 	struct iphdr *iph = NULL;
 	struct tcphdr *tcph = NULL;
 	struct block *tcpdatablock = NULL;
-	char *dedup_records = NULL; // Memory where working deduplication records are stored.
-	struct dedup_record *thisdedup_record = NULL;
 	__u16 datasize = 0;
-	__u16 dedup_records_size = 0;
-	char remaining_data = 0;
 	__u8  numblocks = 0;
 	int i = 0;
 	DBT key, data;
@@ -109,20 +182,9 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 
 			numblocks = datasize / 128;
 
-			// Allocate memory for deduplication.
-			if((datasize % 128) != 0){
-				dedup_records = calloc(numblocks + 1, 130);
-			}else{
-				dedup_records = calloc(numblocks, 130);
-			}
-
 			memset(&hashes, 0, sizeof(struct hash)*DEDUP_MAXBLOCKS);
 
 			if(numblocks < DEDUP_MAXBLOCKS){
-
-				if(dedup_records != NULL){
-					thisdedup_record = dedup_records;
-				}
 
 				for(i=0;i<numblocks;i++){
 					SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&hashes[i]);
@@ -147,19 +209,6 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						// Key and data don't exist or doesn't match.
 						case DB_NOTFOUND:
 							metrics.misses++;
-
-							//Dedup miss.  Create record and continue.
-							logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
-
-							if(thisdedup_record != NULL){
-								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
-								thisdedup_record->type = 0;
-								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Length: 128.\n");
-								thisdedup_record->length = 128;
-								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
-								memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
-								logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
-							}
 
 							// Try inserting the key & data into the database.
 							switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
@@ -200,15 +249,6 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						case 0:
 							metrics.hits++;
 
-							// Dedup Hit
-							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Hit.\n");
-
-							if(thisdedup_record != NULL){
-								thisdedup_record->type = 2;
-								thisdedup_record->length = 64;
-								memcpy((char*)&thisdedup_record->data, (char*)&hashes[i], 64);
-							}
-
 							break;
 
 						// Invalid query?
@@ -221,36 +261,9 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
 							exit(1);
 					}
-
-					if(thisdedup_record != NULL){
-						//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
-						dedup_records_size += (thisdedup_record->length + 2);
-						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
-						thisdedup_record = (char*)thisdedup_record + (char)(thisdedup_record->length + 2);
-						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
-					}
-
-				}
-
-				if(thisdedup_record != NULL){
-
-					if((datasize % 128) != 0){
-						remaining_data = datasize - (numblocks * 128);
-						thisdedup_record->length = remaining_data;
-						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Finish remaining data.\n");
-						memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
-						dedup_records_size += (thisdedup_record->length + 2);
-						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
-						//binary_dump("[DEDUP] Last Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
-					}
 				}
 			}
 		}
-	}
-
-	if(dedup_records != NULL){
-		free(dedup_records);
-		dedup_records = NULL;
 	}
 
 	return 0;
