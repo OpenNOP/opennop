@@ -146,6 +146,14 @@ void *worker_thread(void *dummyPtr) {
                                  * Testing hashing performance impact.
                                  */
                                 create_dedup_blocks((__u8 *)iph, &me->blocks);
+
+                                /**
+                                 * @todo
+                                 * This is just testing the deduplication function.
+                                 * It is not actually modifying any data yet.
+                                 */
+                                deduplicate((__u8 *)iph, ntohs(iph->tot_len), &me->blocks);
+
                                 tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
                             } else {
 

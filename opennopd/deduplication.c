@@ -53,6 +53,7 @@ static int deduplication = true;
 static struct dedup_metrics metrics;
 static DB_ENV	*dedup_db_environment;
 
+/*
 int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
 	SHA512_CTX ctx;
 
@@ -64,15 +65,17 @@ int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
 
 	return 0;
 }
+*/
 
 int deduplicate(__u8 *data, __u32 length, DB **dbp){
 	char *dedup_records = NULL; // Memory where working deduplication records are stored.
-	struct hash hashes[DEDUP_MAXBLOCKS]; // hash values for each block
+	struct hash thishash; // hash values for each block
 	struct dedup_record *thisdedup_record = NULL;
 	struct block *tcpdatablock = NULL;
 	__u16 dedup_records_size = 0;
 	char remaining_data = 0;
 	__u8 numblocks = 0;
+	DBT record_key, record_data;
 	int i = 0;
 
 	if((data != NULL) && (length != 0)){
@@ -90,36 +93,71 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 		thisdedup_record = dedup_records;
 	}
 
-	//Dedup miss.  Create record and continue.
-	logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
+	tcpdatablock = data;
 
-	if(thisdedup_record != NULL){
-		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
-		thisdedup_record->type = 0;
-		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Length: 128.\n");
-		thisdedup_record->length = 128;
-		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
-		memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
-		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
+	for(i=0;i<numblocks;i++){
+		SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&thishash);
+
+		memset(&record_key, 0, sizeof(record_key));
+		memset(&record_data, 0, sizeof(record_data));
+
+		record_key.data = (unsigned char *)&thishash;
+		record_key.size = sizeof(struct hash);
+
+		record_data.data = (unsigned char *)tcpdatablock[i].data;
+		record_data.size = sizeof(struct block);
+
+		switch ((*dbp)->get(*dbp, NULL, &record_key, &record_data, DB_GET_BOTH)){
+
+			// Key and data don't exist or doesn't match.
+			case DB_NOTFOUND:
+
+				//Dedup miss.  Create uncompressed record and continue.
+				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
+
+				if(thisdedup_record != NULL){
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
+					thisdedup_record->type = 0;
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Length: 128.\n");
+					thisdedup_record->length = 128;
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
+					memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
+				}
+				break;
+
+				// Key and data pair found in database.
+			case 0:
+
+				// Dedup Hit
+				logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Hit.\n");
+
+				if(thisdedup_record != NULL){
+					thisdedup_record->type = 2;
+					thisdedup_record->length = 64;
+					memcpy((char*)&thisdedup_record->data, (char*)&thishash, 64);
+				}
+				break;
+
+			// Invalid query?
+			case EINVAL:
+				logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
+				break;
+
+			// Unknown error in query.
+			default:
+				logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
+			exit(1);
+		}
+
+		if(thisdedup_record != NULL){
+			//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
+			dedup_records_size += (thisdedup_record->length + 2);
+			logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
+			thisdedup_record = (char*)thisdedup_record + (char)(thisdedup_record->length + 2);
+			logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
+		}
 	}
-
-	// Dedup Hit
-	logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Hit.\n");
-
-	if(thisdedup_record != NULL){
-		thisdedup_record->type = 2;
-		thisdedup_record->length = 64;
-		memcpy((char*)&thisdedup_record->data, (char*)&hashes[i], 64);
-	}
-
-	if(thisdedup_record != NULL){
-		//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
-		dedup_records_size += (thisdedup_record->length + 2);
-		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
-		thisdedup_record = (char*)thisdedup_record + (char)(thisdedup_record->length + 2);
-		logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
-	}
-
 
 	if(thisdedup_record != NULL){
 
