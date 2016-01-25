@@ -215,7 +215,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					}
 
 					if(thisdedup_record != NULL){
-						binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
+						//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
 						dedup_records_size += (thisdedup_record->length + 2);
 						thisdedup_record = thisdedup_record + (thisdedup_record->length + 2);
 					}
@@ -229,7 +229,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 						thisdedup_record->length = remaining_data;
 						memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 						dedup_records_size += (thisdedup_record->length + 2);
-						binary_dump("[DEDUP] Last Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
+						//binary_dump("[DEDUP] Last Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
 					}
 				}
 			}
