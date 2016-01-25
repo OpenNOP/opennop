@@ -110,7 +110,11 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 			numblocks = datasize / 128;
 
 			// Allocate memory for deduplication.
-			dedup_records = calloc(numblocks, 130);
+			if((datasize % 128) != 0){
+				dedup_records = calloc(numblocks + 1, 130);
+			}else{
+				dedup_records = calloc(numblocks, 130);
+			}
 
 			memset(&hashes, 0, sizeof(struct hash)*DEDUP_MAXBLOCKS);
 
@@ -233,8 +237,10 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 					if((datasize % 128) != 0){
 						remaining_data = datasize - (numblocks * 128);
 						thisdedup_record->length = remaining_data;
+						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Finish remaining data.\n");
 						memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 						dedup_records_size += (thisdedup_record->length + 2);
+						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
 						//binary_dump("[DEDUP] Last Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
 					}
 				}
