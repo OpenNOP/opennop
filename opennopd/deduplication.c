@@ -150,7 +150,7 @@ int deduplicate(__u8 *ippacket, DB **dbp){
 							if(thisdedup_record != NULL){
 								thisdedup_record->type = 0;
 								thisdedup_record->length = 128;
-								memcpy(&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
+								memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
 							}
 
 							// Try inserting the key & data into the database.
