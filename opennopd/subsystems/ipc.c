@@ -128,6 +128,24 @@ struct neighbor *find_neighbor_by_u32(__u32 neighborIP) {
     return NULL;
 }
 
+struct neighbor *find_neighbor_by_ID(char neighborID[OPENNOP_IPC_ID_LENGTH]){
+	struct neighbor *currentneighbor = NULL;
+
+    currentneighbor = ipchead.next;
+
+    while (currentneighbor != NULL) {
+
+        if (currentneighbor->id == neighborID) {
+
+            return currentneighbor;
+        }
+
+        currentneighbor = currentneighbor->next;
+    }
+
+	return NULL;
+}
+
 struct neighbor *find_neighbor_by_socket(int fd) {
     int error = 0;
     socklen_t len;

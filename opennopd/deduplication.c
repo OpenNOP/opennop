@@ -15,9 +15,11 @@
 #include <db.h>
 
 #include "climanager.h"
+#include "sessionmanager.h"
 #include "logger.h"
 #include "deduplication.h"
 #include "utility.h"
+#include "tcpoptions.h"
 
 struct block{
 	char data[128];
@@ -67,7 +69,7 @@ int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
 }
 */
 
-int deduplicate(__u8 *data, __u32 length, DB **dbp){
+int deduplicate_V1(__u8 *data, __u32 length, DB **dbp){
 	char *dedup_records = NULL; // Memory where working deduplication records are stored.
 	struct hash thishash; // hash values for each block
 	struct dedup_record *thisdedup_record = NULL;
@@ -190,6 +192,26 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 			dedup_records = NULL;
 		}
 	}
+	return 0;
+}
+
+int deduplicate_tcp_data_V1(struct session *thissession, __u8 *ippacket){
+	struct iphdr *iph = NULL;
+	struct tcphdr *tcph = NULL;
+	struct endpoint *remote_endpoint = NULL;
+	struct neighbor *thisneighbor = NULL;
+	/**
+	 * @todo
+	 * 1. Find neighbor from session info.
+	 * 2. Pass neighbor block db to deduplicate_V1().
+	 */
+
+	if((thissession != NULL) && ippacket != NULL){
+		remote_endpoint = get_remote_endpoint(thissession, ippacket);
+		thisneighbor = find_neighbor_by_ID(remote_endpoint->accelerator);
+		deduplicate_V1(locate_tcp_data(ippacket), get_tcp_data_length(ippacket), &thisneighbor->blocks);
+	}
+
 	return 0;
 }
 

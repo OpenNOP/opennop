@@ -25,8 +25,8 @@ __u8 optlen(const __u8 *opt, __u8 offset){
 }
 
 __u16 get_tcp_data_length(__u8 *ippacket){
-	struct tcphdr *tcph;
-	struct iphdr *iph;
+	struct iphdr *iph = NULL;
+	struct tcphdr *tcph = NULL;
 	__u16 length = 0;
 
 	if(ippacket != NULL){

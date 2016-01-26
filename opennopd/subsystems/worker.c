@@ -152,7 +152,8 @@ void *worker_thread(void *dummyPtr) {
                                  * This is just testing the deduplication function.
                                  * It is not actually modifying any data yet.
                                  */
-                                deduplicate(locate_tcp_data((__u8 *)iph), get_tcp_data_length((__u8 *)iph), &me->blocks);
+                                deduplicate_tcp_data_V1(thissession, (__u8 *)iph);
+                                //deduplicate(locate_tcp_data((__u8 *)iph), get_tcp_data_length((__u8 *)iph), &me->blocks);
 
                                 tcp_compress((__u8 *)iph, me->lzbuffer, state_compress);
                             } else {
