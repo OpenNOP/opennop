@@ -27,6 +27,7 @@
 #include "clicommands.h"
 #include "logger.h"
 #include "sockets.h"
+#include "utility.h"
 
 typedef int (*t_neighbor_command)(int, __u32, char *);
 

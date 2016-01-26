@@ -15,6 +15,7 @@
 #include "session.h"
 #include "clicommands.h"
 #include "ipc.h"
+#include "utility.h"
 
 struct session_head sessiontable[SESSIONBUCKETS]; // Setup the session hashtable.
 

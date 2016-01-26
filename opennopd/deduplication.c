@@ -20,6 +20,7 @@
 #include "deduplication.h"
 #include "utility.h"
 #include "tcpoptions.h"
+#include "ipc.h"
 
 struct block{
 	char data[128];
@@ -208,7 +209,7 @@ int deduplicate_tcp_data_V1(struct session *thissession, __u8 *ippacket){
 
 	if((thissession != NULL) && ippacket != NULL){
 		remote_endpoint = get_remote_endpoint(thissession, ippacket);
-		thisneighbor = find_neighbor_by_ID(&remote_endpoint->accelerator);
+		thisneighbor = find_neighbor_by_ID((char*)&remote_endpoint->accelerator);
 		deduplicate_V1(locate_tcp_data(ippacket), get_tcp_data_length(ippacket), &thisneighbor->blocks);
 	}
 
