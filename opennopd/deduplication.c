@@ -138,7 +138,7 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 				if(thisdedup_record != NULL){
 					thisdedup_record->type = 2;
 					thisdedup_record->length = 64;
-					memcpy((char*)&thisdedup_record->data, (char*)&thishash, 64);
+					memcpy((char*)&thisdedup_record->data, (char*)&thishash.hash, 64);
 				}
 				break;
 
@@ -166,8 +166,10 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 
 			if((length % 128) != 0){
 				remaining_data = length - (numblocks * 128);
+				sprintf(message, "[DEDUP] Remaining: %i.\n", remaining_data);
+				logger2(LOGGING_DEBUG, LOGGING_DEBUG, message);
 				thisdedup_record->length = remaining_data;
-				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Finish remaining data.\n");
+
 				memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 				dedup_records_size += (thisdedup_record->length + 2);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
