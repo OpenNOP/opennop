@@ -73,7 +73,7 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 	struct dedup_record *thisdedup_record = NULL;
 	struct block *tcpdatablock = NULL;
 	__u16 dedup_records_size = 0;
-	char remaining_data = 0;
+	__u8 remaining_data = 0;
 	__u8 numblocks = 0;
 	DBT record_key, record_data;
 	int i = 0;
@@ -168,9 +168,9 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 				remaining_data = length - (numblocks * 128);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
 				thisdedup_record->type = 0;
+				thisdedup_record->length = remaining_data;
 				sprintf(message, "[DEDUP] Remaining: %i.\n", remaining_data);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, message);
-				thisdedup_record->length = remaining_data;
 				memcpy((char*)&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 				dedup_records_size += (thisdedup_record->length + 2);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
