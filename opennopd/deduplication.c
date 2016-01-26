@@ -196,8 +196,8 @@ int deduplicate_V1(__u8 *data, __u32 length, DB **dbp){
 }
 
 int deduplicate_tcp_data_V1(struct session *thissession, __u8 *ippacket){
-	struct iphdr *iph = NULL;
-	struct tcphdr *tcph = NULL;
+	//struct iphdr *iph = NULL;
+	//struct tcphdr *tcph = NULL;
 	struct endpoint *remote_endpoint = NULL;
 	struct neighbor *thisneighbor = NULL;
 	/**
@@ -208,7 +208,7 @@ int deduplicate_tcp_data_V1(struct session *thissession, __u8 *ippacket){
 
 	if((thissession != NULL) && ippacket != NULL){
 		remote_endpoint = get_remote_endpoint(thissession, ippacket);
-		thisneighbor = find_neighbor_by_ID(remote_endpoint->accelerator);
+		thisneighbor = find_neighbor_by_ID(&remote_endpoint->accelerator);
 		deduplicate_V1(locate_tcp_data(ippacket), get_tcp_data_length(ippacket), &thisneighbor->blocks);
 	}
 
