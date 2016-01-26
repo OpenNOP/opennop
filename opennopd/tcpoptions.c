@@ -24,6 +24,36 @@ __u8 optlen(const __u8 *opt, __u8 offset){
 		return opt[offset+1];
 }
 
+__u16 get_tcp_data_length(__u8 *ippacket){
+	struct tcphdr *tcph;
+	struct iphdr *iph;
+	__u16 length = 0;
+
+	if(ippacket != NULL){
+		iph = (struct iphdr *)ippacket;
+		tcph = (struct tcphdr *) (((u_int32_t *)ippacket) + iph->ihl);
+		length = ntohs(iph->tot_len) - ((iph->ihl*4) + (tcph->doff*4));
+		return length;
+	}
+
+	return 0;
+}
+
+__u8 *locate_tcp_data(__u8 *ippacket){
+	struct tcphdr *tcph;
+	struct iphdr *iph;
+	__u8 *tcpdata = NULL;
+
+	if(ippacket != NULL){
+		iph = (struct iphdr *)ippacket;
+		tcph = (struct tcphdr *) (((u_int32_t *)ippacket) + iph->ihl);
+		tcpdata = (__u8*)tcph + (tcph->doff*4);
+		return tcpdata;
+	}
+
+	return NULL;
+}
+
 void remove_tcpopt_nop(__u8 *ippacket){
 	struct tcphdr *tcph;
 	struct iphdr *iph;
@@ -202,8 +232,8 @@ int add_tcpopt_addoff(__u8 *ippacket, __u8 addoff){
 
 		// Moving tcp data back to new location.
 		memmove(((opt + tcph->doff*4) - sizeof(struct tcphdr)) + addoff*4,
-			((opt + tcph->doff*4) - sizeof(struct tcphdr)),
-			((ntohs(iph->tot_len) - iph->ihl*4) - tcph->doff*4));
+		        ((opt + tcph->doff*4) - sizeof(struct tcphdr)),
+		        ((ntohs(iph->tot_len) - iph->ihl*4) - tcph->doff*4));
 
 		// Zero space between old, and new data offsets.
 		for (i = 0; i < addoff*4; i++) {
@@ -392,9 +422,9 @@ struct nodhdr *set_nod_header(__u8 *ippacket, const char *id){
 	//opt = get_tcpopt(tcph, NOD);
 
 	//if (opt == NULL) { //NOD Option not present.
-		//sprintf(message, "[NOD] No Option.\n");
-		//logger(LOG_INFO, message);
-		//logger2(LOGGING_ERROR,DEBUG_NOD,message);
+	//sprintf(message, "[NOD] No Option.\n");
+	//logger(LOG_INFO, message);
+	//logger2(LOGGING_ERROR,DEBUG_NOD,message);
 	//}
 
 	//get_tcpopt_addoff_needed(ippacket, 24);
@@ -562,8 +592,8 @@ void set_nod_header_data(__u8 *ippacket, const char *id, __u8 *header_data, __u8
 
 					memcpy((void*)headerdata, (void*)header_data, header_data_length);
 					//for(i=0; i<header_data_length; i++){
-						//headerdata[i] = header_data[i];
-						//headerdata[i] = 0;
+					//headerdata[i] = header_data[i];
+					//headerdata[i] = 0;
 					//}
 					//headerdata0] = 65;
 					//headerdata[header_data_length-1] = 90;
@@ -634,28 +664,28 @@ __u64 __get_tcp_option(__u8 *ippacket, __u8 tcpoptnum){
 	opt = (__u8 *)tcph + sizeof(struct tcphdr);
 
 	for (i = 0; i < tcph->doff*4 - sizeof(struct tcphdr); i += optlen(opt, i)) {
-		
+
 		if (opt[i] == tcpoptnum) {
 
 			tcpoptlen = opt[i+1]; // get option length.
 
 			if ((tcph->doff*4 - i >= tcpoptlen) &&
-				(opt[i+1] == tcpoptlen)) {
-					
+			        (opt[i+1] == tcpoptlen)) {
+
 				if (tcpoptlen == 2){ // TCP Option was found, but no data.
 					return 1;
 				}
 				else{
 					count = tcpoptlen - 2; // get option length,
-										  // and ignore header fields.
+					// and ignore header fields.
 					bytefield = 2;  // the first data byte is always at i+2.
 					tcpoptdata = 0; // initialize tcpoptdata for compiler.
 
 					while (count > 0){
 						count--;
-						
+
 						//if ((count) != 0) {
-							tcpoptdata += (opt[i+bytefield] << 8 * count);
+						tcpoptdata += (opt[i+bytefield] << 8 * count);
 						//}
 						//else {
 						//	tcpoptdata += opt[i+bytefield];
@@ -663,7 +693,7 @@ __u64 __get_tcp_option(__u8 *ippacket, __u8 tcpoptnum){
 
 						bytefield++;
 					}
-				return tcpoptdata;
+					return tcpoptdata;
 				}
 			}
 		}
@@ -678,7 +708,7 @@ __u64 __get_tcp_option(__u8 *ippacket, __u8 tcpoptnum){
  * any data into the tcp segment.
  */
 int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
- unsigned int tcpoptlen, u_int64_t tcpoptdata){
+                     unsigned int tcpoptlen, u_int64_t tcpoptdata){
 	struct tcphdr *tcph;
 	struct iphdr *iph;
 	__u16 tcplen;
@@ -690,54 +720,54 @@ int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
 	opt = (__u8 *)tcph + sizeof(struct tcphdr);
 
 	if (tcph->doff > 5){
-	
+
 		for (i = 0; i < tcph->doff*4 - sizeof(struct tcphdr); i += optlen(opt, i)) {
 
 			if ((opt[i] == tcpoptnum) && (tcph->doff*4 - i >= tcpoptlen) &&
-				(opt[i+1] == tcpoptlen)) { // TCP Option was found.
-			
+			        (opt[i+1] == tcpoptlen)) { // TCP Option was found.
+
 				count = tcpoptlen - 2; // Get option data length,
 				bytefield = 2;  // First data byte is always at i+2.
 
 				while (count > 0) {
-					count--;	
+					count--;
 					opt[i+bytefield] = (tcpoptdata  >> 8 * count);
 					bytefield++;
 				}
 
 				// Get the TCP length.
 				tcplen = ntohs(iph->tot_len) - iph->ihl*4;
-			
+
 				return 0;
 			}
 		}
- 	}
- 	
+	}
+
 	// TCP Option was not found!
 
 	optspace = 0;
 	if (tcph->doff > 5){
-			
-		
+
+
 		// Remove TCPOPT_NOP, and find any free space in opt field.
 		for (i = 0; i < tcph->doff*4 - sizeof(struct tcphdr); i += optlen(opt, i)) {
 
 			// While TCP option space = TCPOPT_NOP.
 			while (opt[i] == TCPOPT_NOP){
-					
+
 				// Move options forward to use TCPOPT_NOP space.
 				memmove(opt + i,opt +i + 1,(((tcph->doff*4) - sizeof(struct tcphdr)) -i) -1);
 				opt[(((tcph->doff*4)- sizeof(struct tcphdr)) -1)] = 0;
 			}
-				
+
 			// If TCP option = TCPOPT_EOL its the end of TCP options.
 			if (opt[i] == TCPOPT_EOL){
-					
+
 				optspace = ((tcph->doff*4) - sizeof(struct tcphdr)) -i;
 				break;
 			}
 			else{ // End of option space not found
-					
+
 				optspace = 0;
 			}
 		}
@@ -745,7 +775,7 @@ int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
 
 	addoff = 0;
 	spaceneeded = 0;
-	
+
 	if (optspace < tcpoptlen){
 
 		// Calculate the new space required to add this option.
@@ -764,27 +794,27 @@ int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
 	if (tcph->doff + addoff <= 15){
 
 		if (addoff != 0) {
-	
+
 			// Get old TCP length.
 			tcplen = ntohs(iph->tot_len) - iph->ihl*4;
-				
-				if (DEBUG_TCPOPTIONS == true){
-					sprintf(message, "TCP Options: The old tcp length is %d!\n",tcplen);
-					logger(LOG_INFO, message);
-				}
-				
-				if (DEBUG_TCPOPTIONS == true){
-					sprintf(message, "TCP Options: The addoff is %d!\n",addoff);
-					logger(LOG_INFO, message);
-				}
-			
-			
-			
+
+			if (DEBUG_TCPOPTIONS == true){
+				sprintf(message, "TCP Options: The old tcp length is %d!\n",tcplen);
+				logger(LOG_INFO, message);
+			}
+
+			if (DEBUG_TCPOPTIONS == true){
+				sprintf(message, "TCP Options: The addoff is %d!\n",addoff);
+				logger(LOG_INFO, message);
+			}
+
+
+
 
 			// Moving tcp data back to new location.
 			memmove(((opt + tcph->doff*4) - sizeof(struct tcphdr)) + addoff*4,
-				((opt + tcph->doff*4) - sizeof(struct tcphdr)),
-				((ntohs(iph->tot_len) - iph->ihl*4) - tcph->doff*4));
+			        ((opt + tcph->doff*4) - sizeof(struct tcphdr)),
+			        ((ntohs(iph->tot_len) - iph->ihl*4) - tcph->doff*4));
 
 			// Zero space between old, and new data offsets.
 			for (i = 0; i < addoff*4; i++) {
@@ -795,10 +825,10 @@ int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
 
 		// Moving options back to make room for new tcp option.
 		memmove(opt + tcpoptlen,
-				opt,
-				(tcph->doff*4 - sizeof(struct tcphdr)) - optspace);
+		        opt,
+		        (tcph->doff*4 - sizeof(struct tcphdr)) - optspace);
 
-		count = tcpoptlen - 2; // Get option data length.		
+		count = tcpoptlen - 2; // Get option data length.
 		bytefield = 2; // First data byte is always at i+2.
 
 		// Writing new option to freed space.
@@ -807,9 +837,9 @@ int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
 
 		while (count > 0){ //Writing TCP option data.
 			count--;
-				
+
 			//if ((count) != 0){
-				opt[bytefield] = (tcpoptdata  >> 8 * count);
+			opt[bytefield] = (tcpoptdata  >> 8 * count);
 			//}
 			//else{
 			//	opt[bytefield] = tcpoptdata; //& 0x00ff;
@@ -819,7 +849,7 @@ int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
 		}
 
 		if (addoff != 0){ // Fixing data offset.
-			tcph->doff += addoff; 
+			tcph->doff += addoff;
 		}
 
 		// Fix packet length.
@@ -827,27 +857,27 @@ int __set_tcp_option(__u8 *ippacket, unsigned int tcpoptnum,
 			sprintf(message, "TCP Options: Old IP packet length is %d!\n",ntohs(iph->tot_len));
 			logger(LOG_INFO, message);
 		}
-		
+
 		iph->tot_len = htons(ntohs(iph->tot_len) + addoff*4);
-		
+
 		if (DEBUG_TCPOPTIONS == true){
 			sprintf(message, "TCP Options: New IP packet length is %d!\n",ntohs(iph->tot_len));
 			logger(LOG_INFO, message);
 		}
 
-		
+
 		// Get new TCP length.
 		tcplen = ntohs(iph->tot_len) - iph->ihl*4;
 		if (DEBUG_TCPOPTIONS == true){
 			sprintf(message, "TCP Options: New TCP segment length is %d!\n",tcplen);
 			logger(LOG_INFO, message);
 		}
-		
+
 
 		return 0;
 	}
 	else{
-			
+
 		return -1;
 	}
 
