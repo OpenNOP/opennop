@@ -155,9 +155,9 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 
 			if(thisdedup_record != NULL){
 				//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
-				dedup_records_size += (thisdedup_record->length + 2);
+				dedup_records_size += thisdedup_record->length + 2;
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
-				thisdedup_record = (char *)thisdedup_record + thisdedup_record->length + 2;
+				thisdedup_record = (struct dedup_record *)(char *)thisdedup_record + (thisdedup_record->length + 2);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
 			}
 		}
@@ -168,7 +168,6 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 				remaining_data = length - (numblocks * 128);
 				thisdedup_record->length = remaining_data;
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Finish remaining data.\n");
-				i++;
 				memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 				dedup_records_size += (thisdedup_record->length + 2);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
