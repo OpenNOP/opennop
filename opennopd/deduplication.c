@@ -30,7 +30,7 @@ struct hash{
 struct dedup_record{
 	char type;		// (0 = uncompressed | 1 = compressed | 2 = deduplicated)
 	char length;	// How much data is in this record.
-	char data;		// Begining of actual data.
+	char data[128];		// Begining of actual data.
 };
 
 struct dedup_metrics{
@@ -87,9 +87,9 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 
 		// Allocate memory for deduplication.
 		if((length % 128) != 0){
-			dedup_records = calloc(numblocks + 1, 130);
+			dedup_records = calloc(numblocks + 1, sizeof(struct dedup_record));
 		}else{
-			dedup_records = calloc(numblocks, 130);
+			dedup_records = calloc(numblocks, sizeof(struct dedup_record));
 		}
 
 		if(dedup_records != NULL){
