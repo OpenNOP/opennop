@@ -166,11 +166,12 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 
 			if((length % 128) != 0){
 				remaining_data = length - (numblocks * 128);
+				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
+				thisdedup_record->type = 0;
 				sprintf(message, "[DEDUP] Remaining: %i.\n", remaining_data);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, message);
 				thisdedup_record->length = remaining_data;
-
-				memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
+				memcpy((char*)&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 				dedup_records_size += (thisdedup_record->length + 2);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
 				//binary_dump("[DEDUP] Last Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
