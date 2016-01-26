@@ -77,9 +77,13 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 	__u8 numblocks = 0;
 	DBT record_key, record_data;
 	int i = 0;
+	char message[LOGSZ];
 
 	if((data != NULL) && (length >= 128)){
 		numblocks = length / 128;
+
+		sprintf(message, "[DEDUP] %i blocks.\n", numblocks);
+		logger2(LOGGING_DEBUG, LOGGING_DEBUG, message);
 
 		// Allocate memory for deduplication.
 		if((length % 128) != 0){
@@ -94,69 +98,69 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 
 		tcpdatablock = data;
 
-			for(i=0;i<numblocks;i++){
-				SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&thishash);
+		for(i=0;i<numblocks;i++){
+			SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&thishash);
 
-				memset(&record_key, 0, sizeof(record_key));
-				memset(&record_data, 0, sizeof(record_data));
+			memset(&record_key, 0, sizeof(record_key));
+			memset(&record_data, 0, sizeof(record_data));
 
-				record_key.data = (unsigned char *)&thishash;
-				record_key.size = sizeof(struct hash);
+			record_key.data = (unsigned char *)&thishash;
+			record_key.size = sizeof(struct hash);
 
-				record_data.data = (unsigned char *)tcpdatablock[i].data;
-				record_data.size = sizeof(struct block);
+			record_data.data = (unsigned char *)tcpdatablock[i].data;
+			record_data.size = sizeof(struct block);
 
-				switch ((*dbp)->get(*dbp, NULL, &record_key, &record_data, DB_GET_BOTH)){
+			switch ((*dbp)->get(*dbp, NULL, &record_key, &record_data, DB_GET_BOTH)){
 
-					// Key and data don't exist or doesn't match.
-					case DB_NOTFOUND:
+				// Key and data don't exist or doesn't match.
+			case DB_NOTFOUND:
 
-						//Dedup miss.  Create uncompressed record and continue.
-						logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
-
-						if(thisdedup_record != NULL){
-							logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
-							thisdedup_record->type = 0;
-							logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Length: 128.\n");
-							thisdedup_record->length = 128;
-							logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
-							memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
-							logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
-						}
-						break;
-
-						// Key and data pair found in database.
-					case 0:
-
-						// Dedup Hit
-						logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Hit.\n");
-
-						if(thisdedup_record != NULL){
-							thisdedup_record->type = 2;
-							thisdedup_record->length = 64;
-							memcpy((char*)&thisdedup_record->data, (char*)&thishash, 64);
-						}
-						break;
-
-					// Invalid query?
-					case EINVAL:
-						logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
-						break;
-
-					// Unknown error in query.
-					default:
-						logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
-					exit(1);
-				}
+				//Dedup miss.  Create uncompressed record and continue.
+				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Miss.\n");
 
 				if(thisdedup_record != NULL){
-					//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
-					dedup_records_size += (thisdedup_record->length + 2);
-					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
-					thisdedup_record = (char*)thisdedup_record + (char)(thisdedup_record->length + 2);
-					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
+					thisdedup_record->type = 0;
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Length: 128.\n");
+					thisdedup_record->length = 128;
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
+					memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
 				}
+				break;
+
+				// Key and data pair found in database.
+			case 0:
+
+				// Dedup Hit
+				logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Hit.\n");
+
+				if(thisdedup_record != NULL){
+					thisdedup_record->type = 2;
+					thisdedup_record->length = 64;
+					memcpy((char*)&thisdedup_record->data, (char*)&thishash, 64);
+				}
+				break;
+
+				// Invalid query?
+			case EINVAL:
+				logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
+				break;
+
+				// Unknown error in query.
+			default:
+				logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
+				exit(1);
 			}
+
+			if(thisdedup_record != NULL){
+				//binary_dump("[DEDUP] Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
+				dedup_records_size += (thisdedup_record->length + 2);
+				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advance dedup_record.\n");
+				thisdedup_record = (char *)thisdedup_record + thisdedup_record->length + 2;
+				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Advanced dedup_record.\n");
+			}
+		}
 
 		if(thisdedup_record != NULL){
 
@@ -164,6 +168,7 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 				remaining_data = length - (numblocks * 128);
 				thisdedup_record->length = remaining_data;
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Finish remaining data.\n");
+				i++;
 				memcpy(&thisdedup_record->data,(char *)tcpdatablock[i].data, remaining_data);
 				dedup_records_size += (thisdedup_record->length + 2);
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
@@ -244,59 +249,59 @@ int create_dedup_blocks(__u8 *ippacket, DB **dbp){
 					switch ((*dbp)->get(*dbp, NULL, &key, &data, DB_GET_BOTH)){
 
 						// Key and data don't exist or doesn't match.
-						case DB_NOTFOUND:
-							metrics.misses++;
+					case DB_NOTFOUND:
+						metrics.misses++;
 
-							// Try inserting the key & data into the database.
-							switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
+						// Try inserting the key & data into the database.
+						switch ((*dbp)->put(*dbp, NULL, &key, &data, DB_NOOVERWRITE)){
 
-								// New key & data saved.
-								case 0:
-									metrics.newblocks++;
-									//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
-									break;
-
-								// An existing key exists with different data! (Collision needs resolved!)
-								// We hope this never happens!
-								case DB_KEYEXIST:
-									metrics.collisions++;
-									/**
-									 * @todo: Need to write a process for block collision resolution.
-									 */
-									//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
-									break;
-
-								// Failed to create key & data record in database.
-								case EINVAL:
-									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid record.\n");
-									break;
-
-								case ENOSPC:
-									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Btree depth exceeded.\n");
-									break;
-
-								// Something bad happened.
-								default:
-									logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
-									exit(1);
-							}
-							break;
-
-						// Key and data pair found in database.
+							// New key & data saved.
 						case 0:
-							metrics.hits++;
-
+							metrics.newblocks++;
+							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
 							break;
 
-						// Invalid query?
+							// An existing key exists with different data! (Collision needs resolved!)
+							// We hope this never happens!
+						case DB_KEYEXIST:
+							metrics.collisions++;
+							/**
+							 * @todo: Need to write a process for block collision resolution.
+							 */
+							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Duplicate block.\n");
+							break;
+
+							// Failed to create key & data record in database.
 						case EINVAL:
-							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
+							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid record.\n");
 							break;
 
-						// Unknown error in query.
+						case ENOSPC:
+							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Btree depth exceeded.\n");
+							break;
+
+							// Something bad happened.
 						default:
 							logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
 							exit(1);
+						}
+						break;
+
+						// Key and data pair found in database.
+					case 0:
+						metrics.hits++;
+
+						break;
+
+						// Invalid query?
+					case EINVAL:
+						logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Invalid query.\n");
+						break;
+
+						// Unknown error in query.
+					default:
+						logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Unknown error!\n");
+						exit(1);
 					}
 				}
 			}
@@ -313,23 +318,23 @@ int rehydration(__u8 *ippacket, DB **dbp){
 
 struct commandresult cli_show_dedup_stats(int client_fd, char **parameters, int numparameters, void *data) {
 	struct commandresult result  = { 0 };
-    char msg[MAX_BUFFER_SIZE] = { 0 };
-    char message[LOGSZ];
+	char msg[MAX_BUFFER_SIZE] = { 0 };
+	char message[LOGSZ];
 
-    sprintf(msg,"Dedup Hits: %i\n",metrics.hits);
-    cli_send_feedback(client_fd, msg);
-    sprintf(msg,"Dedup Misses: %i\n",metrics.misses);
-    cli_send_feedback(client_fd, msg);
-    sprintf(msg,"Dedup New Blocks: %i\n",metrics.newblocks);
-    cli_send_feedback(client_fd, msg);
-    sprintf(msg,"Dedup Collisions: %i\n",metrics.collisions);
-    cli_send_feedback(client_fd, msg);
+	sprintf(msg,"Dedup Hits: %i\n",metrics.hits);
+	cli_send_feedback(client_fd, msg);
+	sprintf(msg,"Dedup Misses: %i\n",metrics.misses);
+	cli_send_feedback(client_fd, msg);
+	sprintf(msg,"Dedup New Blocks: %i\n",metrics.newblocks);
+	cli_send_feedback(client_fd, msg);
+	sprintf(msg,"Dedup Collisions: %i\n",metrics.collisions);
+	cli_send_feedback(client_fd, msg);
 
-    result.finished = 0;
-    result.mode = NULL;
-    result.data = NULL;
+	result.finished = 0;
+	result.mode = NULL;
+	result.data = NULL;
 
-    return result;
+	return result;
 }
 
 struct commandresult cli_deduplication_enable(int client_fd, char **parameters, int numparameters, void *data) {
@@ -339,11 +344,11 @@ struct commandresult cli_deduplication_enable(int client_fd, char **parameters, 
 	sprintf(msg, "deduplication enabled\n");
 	cli_send_feedback(client_fd, msg);
 
-    result.finished = 0;
-    result.mode = NULL;
-    result.data = NULL;
+	result.finished = 0;
+	result.mode = NULL;
+	result.data = NULL;
 
-    return result;
+	return result;
 }
 
 struct commandresult cli_deduplication_disable(int client_fd, char **parameters, int numparameters, void *data) {
@@ -353,11 +358,11 @@ struct commandresult cli_deduplication_disable(int client_fd, char **parameters,
 	sprintf(msg, "deduplication disabled\n");
 	cli_send_feedback(client_fd, msg);
 
-    result.finished = 0;
-    result.mode = NULL;
-    result.data = NULL;
+	result.finished = 0;
+	result.mode = NULL;
+	result.data = NULL;
 
-    return result;
+	return result;
 }
 
 struct commandresult cli_show_deduplication(int client_fd, char **parameters, int numparameters, void *data) {
@@ -371,11 +376,11 @@ struct commandresult cli_show_deduplication(int client_fd, char **parameters, in
 	}
 	cli_send_feedback(client_fd, msg);
 
-    result.finished = 0;
-    result.mode = NULL;
-    result.data = NULL;
+	result.finished = 0;
+	result.mode = NULL;
+	result.data = NULL;
 
-    return result;
+	return result;
 }
 
 int dbp_initialize(DB **dbp, char *database){
@@ -404,9 +409,9 @@ int init_deduplication(){
 	metrics.misses = 0;
 	metrics.newblocks = 0;
 
-    register_command(NULL, "deduplication enable", cli_deduplication_enable, false, false);
-    register_command(NULL, "deduplication disable", cli_deduplication_disable, false, false);
-    register_command(NULL, "show deduplication", cli_show_deduplication, false, false);
+	register_command(NULL, "deduplication enable", cli_deduplication_enable, false, false);
+	register_command(NULL, "deduplication disable", cli_deduplication_disable, false, false);
+	register_command(NULL, "show deduplication", cli_show_deduplication, false, false);
 	register_command(NULL, "show dedup stats", cli_show_dedup_stats, false, false);
 
 	if(db_env_create(&dedup_db_environment, 0) != 0){

@@ -154,7 +154,7 @@ void *worker_thread(void *dummyPtr) {
                                  */
                                 deduplicate((__u8 *)iph, ntohs(iph->tot_len), &me->blocks);
 
-                                tcp_compress((__u8 *)iph, me->lzbuffer,state_compress);
+                                tcp_compress((__u8 *)iph, me->lzbuffer, state_compress);
                             } else {
 
                             	 updateseq(largerIP, iph, tcph, thissession);
