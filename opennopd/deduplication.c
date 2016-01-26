@@ -72,7 +72,7 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 	struct hash thishash; // hash values for each block
 	struct dedup_record *thisdedup_record = NULL;
 	struct block *tcpdatablock = NULL;
-	__u16 dedup_records_size = 0;
+	__u32 dedup_records_size = 0;
 	__u8 remaining_data = 0;
 	__u8 numblocks = 0;
 	DBT record_key, record_data;
@@ -80,6 +80,10 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 	char message[LOGSZ];
 
 	if((data != NULL) && (length >= 128)){
+
+		sprintf(message, "[DEDUP] Original Length: %i.\n", length);
+		logger2(LOGGING_DEBUG, LOGGING_DEBUG, message);
+
 		numblocks = length / 128;
 
 		sprintf(message, "[DEDUP] %i blocks.\n", numblocks);
@@ -176,6 +180,9 @@ int deduplicate(__u8 *data, __u32 length, DB **dbp){
 				logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] All done.\n");
 				//binary_dump("[DEDUP] Last Record", (char*)&thisdedup_record->type, thisdedup_record->length + 2);
 			}
+
+			sprintf(message, "[DEDUP] Deduped Length: %i.\n", dedup_records_size);
+			logger2(LOGGING_DEBUG, LOGGING_DEBUG, message);
 		}
 
 		if(dedup_records != NULL){
