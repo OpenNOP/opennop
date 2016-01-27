@@ -31,9 +31,9 @@ struct hash{
 };
 
 struct dedup_record{
-	char type;		// (0 = uncompressed | 1 = compressed | 2 = deduplicated)
-	char length;	// How much data is in this record.
-	char data[128];		// Begining of actual data.
+	__u8 type;		// (0 = uncompressed | 1 = compressed | 2 = deduplicated)
+	__u8 length;	// How much data is in this record.
+	__u8 data[128];		// Begining of actual data.
 };
 
 struct dedup_metrics{
