@@ -71,7 +71,7 @@ int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
 */
 
 int deduplicate_V1(__u8 *data, __u32 length, DB **dbp){
-	char *dedup_records = NULL; // Memory where working deduplication records are stored.
+	__u8 *dedup_records = NULL; // Memory where working deduplication records are stored.
 	struct hash thishash; // hash values for each block
 	struct dedup_record *thisdedup_record = NULL;
 	struct block *tcpdatablock = NULL;
@@ -100,10 +100,10 @@ int deduplicate_V1(__u8 *data, __u32 length, DB **dbp){
 		}
 
 		if(dedup_records != NULL){
-			thisdedup_record = dedup_records;
+			thisdedup_record = (struct dedup_record *)dedup_records;
 		}
 
-		tcpdatablock = data;
+		tcpdatablock = (struct block *)data;
 
 		for(i=0;i<numblocks;i++){
 			SHA512((unsigned char *)tcpdatablock[i].data, 128, (unsigned char *)&thishash);
