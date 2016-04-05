@@ -10,7 +10,7 @@ sbin_PROGRAMS = opennopd/opennopd
 
 opennop_opennop_SOURCES = \
 	opennop/opennop.c
-opennop_opennop_LDADD = -lpthread
+opennop_opennop_LDADD = -lpthread -lreadline
 
 opennopd_opennopd_SOURCES = \
 	lib/quicklz.c \
