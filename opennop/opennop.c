@@ -70,8 +70,9 @@ int main(void) {
 
 		input = readline("");
 
-       		if (!input)
+       		if (!input) {
 	            break;		
+		}
 
 		add_history(input);
 
