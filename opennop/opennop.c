@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #include "clisocket.h"
 
@@ -38,8 +40,8 @@ int main(void) {
 	int client_fd;
 	int length;
 	struct sockaddr_un server;
-	char client_message[MAX_BUFFER_SIZE] = { 0 };
 	pthread_t t_fromserver;
+	char* input;
 
 	if ((client_fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		perror("[cli_client]: socket");
@@ -61,13 +63,27 @@ int main(void) {
 	pthread_create(&t_fromserver, NULL, fromserver_handler, (void *)&client_fd);
 
 	// printf("\n opennopd# ");
-	while (2) {
-		fgets(client_message, MAX_BUFFER_SIZE - 1, stdin);
 
-		if (send(client_fd, client_message, strlen(client_message), 0) == -1) {
+	rl_bind_key('\t',rl_abort);//disable auto-complet
+
+	while (2) {
+
+		input = readline("");
+
+ 		if (!input) {
+			break;		
+		}
+
+		add_history(input);
+
+		strcat(input,"\n");;
+
+		if (send(client_fd, input, strlen(input), 0) == -1) {
 			perror("[cli_client]: send");
 			exit(1);
 		}
+
+		free(input);
 
 	}
 
