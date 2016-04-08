@@ -12,13 +12,13 @@ enum {
 /* attribute policy: defines which attribute has which type (e.g int, char * etc)
  * possible values defined in net/netlink.h 
  */
-static struct nla_policy opennop_policy[OPENNOP_A_MAX + 1] = {
+static struct nla_policy opennop_nl_policy[OPENNOP_A_MAX + 1] = {
 	[OPENNOP_A_MSG] = { .type = NLA_NUL_STRING },
 };
 
 #define VERSION_NR 1
 /* family definition */
-static struct genl_family opennop_family = {
+static struct genl_family opennop_nl_family = {
 	.id = GENL_ID_GENERATE,         //genetlink should generate an id
 	.hdrsize = 0,
 	.name = "OPENNOP",        //the name of this family, used by userspace application
@@ -98,9 +98,9 @@ int opennop_echo(struct sk_buff *skb_2, struct genl_info *info)
          
 		/* Rewritten for kernel < and >= 2.6.20 */
 		#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
-			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, opennop_family.id, 0, 0, OPENNOP_C_ECHO, opennop_family.version);
+			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, opennop_nl_family.id, 0, 0, OPENNOP_C_ECHO, opennop_nl_family.version);
  		#else
- 			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, &opennop_family, 0, OPENNOP_C_ECHO);
+ 			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, &opennop_nl_family, 0, OPENNOP_C_ECHO);
 		#endif
  
 	if (msg_head == NULL) {
@@ -204,19 +204,20 @@ int opennop_hb(struct sk_buff *skb_2, struct genl_info *info)
 
 
 /* commands: mapping between the command enumeration and the actual function*/
-struct genl_ops opennop_ops_echo = {
-	.cmd = OPENNOP_C_ECHO,
-	.flags = 0,
-	.policy = opennop_policy,
-	.doit = opennop_echo,
-	.dumpit = NULL,
-};
-
-struct genl_ops opennop_ops_hb = {
-	.cmd = OPENNOP_C_HB,
-	.flags = 0,
-	.policy = opennop_policy,
-	.doit = opennop_hb,
-	.dumpit = NULL,
+static const struct genl_ops opennop_nl_ops[] = {
+		{
+				.cmd = OPENNOP_C_ECHO,
+				.flags = 0,
+				.policy = opennop_nl_policy,
+				.doit = opennop_echo,
+				.dumpit = NULL,
+		},
+		{
+				.cmd = OPENNOP_C_HB,
+				.flags = 0,
+				.policy = opennop_nl_policy,
+				.doit = opennop_hb,
+				.dumpit = NULL,
+		},
 };
 

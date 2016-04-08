@@ -167,23 +167,23 @@ opennopdrv_init(void){
 	
 
 	#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 12, 0))
+	err = genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops)
 
+	if (err != 0){
+		return err;
+	}
 	#else
-		err = genl_register_family(&opennop_family);
+		err = genl_register_family(&opennop_nl_family);
 
 		if (err != 0){
 			return err;
 		}
-		err = genl_register_ops(&opennop_family, &opennop_ops_echo);
+		err = genl_register_ops(&opennop_nl_family, (struct genl_ops *)opennop_nl_ops);
 
-			if (err != 0){
-				return err;
-			}
-			err = genl_register_ops(&opennop_family, &opennop_ops_hb);
+		if (err != 0){
+			return err;
+		}
 
-			if (err != 0){
-				return err;
-			}
 	#endif
 
 	if (strcmp(mode, "bridged") == 0) {
@@ -208,7 +208,7 @@ opennopdrv_init(void){
 
 static void __exit 
 opennopdrv_exit(void){
-	genl_unregister_family(&opennop_family);
+	genl_unregister_family(&opennop_nl_family);
 	nf_unregister_hook(&opennop_hook);
 	del_timer_sync(&daemonmonitor);
 }
