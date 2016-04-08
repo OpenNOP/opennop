@@ -165,18 +165,26 @@ opennopdrv_init(void){
 	
 	timespan = hbintervals * HBINTERVAL;
 	
-	err = genl_register_family(&opennop_family);
-	if (err != 0){
-		return err;
-	}
-	err = genl_register_ops(&opennop_family, &opennop_ops_echo);
+
+	#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 12, 0))
+
+	#else
+		err = genl_register_family(&opennop_family);
+
 		if (err != 0){
-		return err;
-	}
-	err = genl_register_ops(&opennop_family, &opennop_ops_hb);
-		if (err != 0){
-		return err;
-	}
+			return err;
+		}
+		err = genl_register_ops(&opennop_family, &opennop_ops_echo);
+
+			if (err != 0){
+				return err;
+			}
+			err = genl_register_ops(&opennop_family, &opennop_ops_hb);
+
+			if (err != 0){
+				return err;
+			}
+	#endif
 
 	if (strcmp(mode, "bridged") == 0) {
 		//printk(KERN_ALERT "[OpenNOPDrv]: Switching to bridged mode. \n");
