@@ -30,16 +30,60 @@ static struct genl_family opennop_nl_family = {
  * used by userspace application to identify command to be ececuted
  */
 enum {
-	OPENNOP_C_UNSPEC,
-	OPENNOP_C_ECHO,
-	OPENNOP_C_HB,
-	__OPENNOP_C_MAX,
+	OPENNOP_CMD_NOOP,
+	OPENNOP_CMD_ECHO,
+	OPENNOP_CMD_HB,
+	__OPENNOP_CMD_MAX,
 };
-#define OPENNOP_C_MAX (__OPENNOP_C_MAX - 1)
+#define OPENNOP_CMD_MAX (__OPENNOP_CMD_MAX - 1)
 
+static int opennop_nl_cmd_noop(struct sk_buff *skb, struct genl_info *info)
+{
+	struct sk_buff *msg;
+	void *hdr;
+	int ret = -ENOBUFS;
+
+	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+
+	if (!msg) {
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 6, 11))
+		hdr = genlmsg_put(msg, info->snd_portid, info->snd_seq, &opennop_nl_family, 0, OPENNOP_CMD_NOOP);
+	#elif (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
+		hdr = genlmsg_put(msg, info->snd_pid, info->snd_seq, opennop_nl_family.id, 0, 0, OPENNOP_CMD_NOOP, opennop_nl_family.version);
+	#else
+		hdr = genlmsg_put(msg, info->snd_pid, info->snd_seq, &opennop_nl_family, 0, OPENNOP_CMD_NOOP);
+	#endif
+
+
+
+	if (!hdr) {
+		ret = -EMSGSIZE;
+		goto err_out;
+	}
+
+	genlmsg_end(msg, hdr);
+
+#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 6, 11))
+	return genlmsg_unicast(genl_info_net(info), msg, info->snd_portid);
+#elif (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
+	return genlmsg_unicast(msg, info->snd_pid);
+#else
+	return genlmsg_unicast(genl_info_net(info), msg, info->snd_pid);
+#endif
+
+err_out:
+	nlmsg_free(msg);
+
+out:
+	return ret;
+}
 
 /* an echo command, receives a message, prints it and sends another message back */
-int opennop_echo(struct sk_buff *skb_2, struct genl_info *info)
+int opennop_nl_cmd_echo(struct sk_buff *skb_2, struct genl_info *info)
 {
 	struct nlattr *na;
 	struct sk_buff *skb;
@@ -98,9 +142,9 @@ int opennop_echo(struct sk_buff *skb_2, struct genl_info *info)
          
 		/* Rewritten for kernel < and >= 2.6.20 */
 		#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
-			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, opennop_nl_family.id, 0, 0, OPENNOP_C_ECHO, opennop_nl_family.version);
+			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, opennop_nl_family.id, 0, 0, OPENNOP_CMD_ECHO, opennop_nl_family.version);
  		#else
- 			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, &opennop_nl_family, 0, OPENNOP_C_ECHO);
+ 			msg_head = genlmsg_put(skb, 0, info->snd_seq+1, &opennop_nl_family, 0, OPENNOP_CMD_ECHO);
 		#endif
  
 	if (msg_head == NULL) {
@@ -137,7 +181,7 @@ int opennop_echo(struct sk_buff *skb_2, struct genl_info *info)
 
 
 /* an heartbeat command, receives a message, prints it and sends another message back */
-int opennop_hb(struct sk_buff *skb_2, struct genl_info *info)
+int opennop_nl_cmd_hb(struct sk_buff *skb_2, struct genl_info *info)
 {
 	struct nlattr *na;
 	struct timeval tv_now; // current time.
@@ -205,19 +249,25 @@ int opennop_hb(struct sk_buff *skb_2, struct genl_info *info)
 
 /* commands: mapping between the command enumeration and the actual function*/
 static const struct genl_ops opennop_nl_ops[] = {
-		{
-				.cmd = OPENNOP_C_ECHO,
-				.flags = 0,
-				.policy = opennop_nl_policy,
-				.doit = opennop_echo,
-				.dumpit = NULL,
-		},
-		{
-				.cmd = OPENNOP_C_HB,
-				.flags = 0,
-				.policy = opennop_nl_policy,
-				.doit = opennop_hb,
-				.dumpit = NULL,
-		},
+	{
+			.cmd = OPENNOP_CMD_NOOP,
+			.doit = opennop_nl_cmd_noop,
+			.policy = opennop_nl_policy,
+			/* can be retrieved by unprivileged users */
+	},
+	{
+			.cmd = OPENNOP_CMD_ECHO,
+			.flags = 0,
+			.policy = opennop_nl_policy,
+			.doit = opennop_nl_cmd_echo,
+			.dumpit = NULL,
+	},
+	{
+			.cmd = OPENNOP_CMD_HB,
+			.flags = 0,
+			.policy = opennop_nl_policy,
+			.doit = opennop_nl_cmd_hb,
+			.dumpit = NULL,
+	},
 };
 
