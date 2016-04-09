@@ -158,39 +158,42 @@ struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
 	.priority = NF_IP_PRI_FIRST, // My hook executes first.
 };
 
-static __s32 __init 
-opennopdrv_init(void){
-	int err;
+static int opennopdrv_init(void){
+	int err, i;
 	int timespan;
+	size_t n_ops;
+	struct genl_ops *ops;
 	
 	timespan = hbintervals * HBINTERVAL;
 	
-	#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 1, 8))
-	err = genl_register_family_with_ops(&opennop_nl_family, (struct genl_ops *)opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
+	#if (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 0, 0))
+		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.0.0 \n");
+		return = genl_register_family_with_ops(&opennop_nl_family, (struct genl_ops *)opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
 
-	if (err != 0){
-		return err;
-	}
+		if (err != 0){
+			return err;
+		}
 
-	#elif ((LINUX_VERSION_CODE > KERNEL_VERSION (3, 1, 2)) && (LINUX_VERSION_CODE <= KERNEL_VERSION (3, 1, 8)))
-	err = genl_register_family_with_ops(&opennop_nl_family, (struct genl_ops *)opennop_nl_ops);
-
-	if (err != 0){
-		return err;
-	}
-
-	#elif (LINUX_VERSION_CODE <= KERNEL_VERSION (3, 1, 2))
+	#elif (LINUX_VERSION_CODE < KERNEL_VERSION (3, 0, 0))
+		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version < 3.0.0 \n");
 		err = genl_register_family(&opennop_nl_family);
 
 		if (err != 0){
 			return err;
 		}
-		err = genl_register_ops(&opennop_nl_family, (struct genl_ops *)opennop_nl_ops);
 
-		if (err != 0){
-			return err;
+		n_ops = ARRAY_SIZE(opennop_nl_ops);
+		ops = (struct genl_ops *)opennop_nl_ops;
+
+		for (i = 0; i < n_ops; ++i, ++ops) {
+			err = genl_register_ops(&opennop_nl_family, ops);
+
+			if (err != 0){
+				return err;
+			}
 		}
 	#else
+		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version ERROR.\n");
 		return -1;
 	#endif
 
@@ -214,8 +217,7 @@ opennopdrv_init(void){
 	return 0;
 } 
 
-static void __exit 
-opennopdrv_exit(void){
+static void opennopdrv_exit(void){
 	genl_unregister_family(&opennop_nl_family);
 	nf_unregister_hook(&opennop_hook);
 	del_timer_sync(&daemonmonitor);
