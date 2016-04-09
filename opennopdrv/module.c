@@ -165,14 +165,21 @@ opennopdrv_init(void){
 	
 	timespan = hbintervals * HBINTERVAL;
 	
-
-	#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 12, 0))
-	err = genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops)
+	#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 1, 8))
+	err = genl_register_family_with_ops(&opennop_nl_family, (struct genl_ops *)opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
 
 	if (err != 0){
 		return err;
 	}
-	#else
+
+	#elif ((LINUX_VERSION_CODE > KERNEL_VERSION (3, 1, 2)) && (LINUX_VERSION_CODE <= KERNEL_VERSION (3, 1, 8)))
+	err = genl_register_family_with_ops(&opennop_nl_family, (struct genl_ops *)opennop_nl_ops);
+
+	if (err != 0){
+		return err;
+	}
+
+	#elif (LINUX_VERSION_CODE <= KERNEL_VERSION (3, 1, 2))
 		err = genl_register_family(&opennop_nl_family);
 
 		if (err != 0){
@@ -183,7 +190,8 @@ opennopdrv_init(void){
 		if (err != 0){
 			return err;
 		}
-
+	#else
+		return -1;
 	#endif
 
 	if (strcmp(mode, "bridged") == 0) {
