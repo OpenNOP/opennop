@@ -168,6 +168,7 @@ static int opennopdrv_init(void){
 	
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 0, 0))
 		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.0.0 \n");
+		printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
 		return genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
 
 	#elif (LINUX_VERSION_CODE < KERNEL_VERSION (3, 0, 0))
@@ -178,6 +179,7 @@ static int opennopdrv_init(void){
 			return err;
 		}
 
+		printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
 		n_ops = ARRAY_SIZE(opennop_nl_ops);
 		ops = (struct genl_ops *)opennop_nl_ops;
 

@@ -43,7 +43,11 @@ static int opennop_nl_cmd_noop(struct sk_buff *skb, struct genl_info *info)
 	void *hdr;
 	int ret = -ENOBUFS;
 
-	msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+	#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
+		msg = nlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+	#else
+		msg = genlmsg_new(NLMSG_DEFAULT_SIZE, GFP_KERNEL);
+	#endif
 
 	if (!msg) {
 		ret = -ENOMEM;
