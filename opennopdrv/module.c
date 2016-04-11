@@ -165,8 +165,13 @@ static int opennopdrv_init(void){
 	struct genl_ops *ops;
 	
 	timespan = hbintervals * HBINTERVAL;
+
+	#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 1, 2))
+	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.1.2 \n");
+	printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
+	return genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops);
 	
-	#if (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 0, 0))
+	#elif (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 0, 0))
 		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.0.0 \n");
 		printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
 		return genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
