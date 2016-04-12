@@ -6,7 +6,7 @@ MODULE_EXT	:= ko
 $(MODULE)-y	:= $(OBJS)
 
 obj-m	:= $(MODULE).o
-KDIR    := $(DESTDIR)/lib/modules/$(shell uname -r)/build
+KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
 
 
@@ -17,5 +17,5 @@ clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
 	
 install:
-	$(MAKE) -C $(KDIR) M=$(PWD) modules_install
+	$(MAKE) -C $(KDIR) M=$(PWD) modules_install INSTALL_MOD_PATH=$(DESTDIR)
 	
