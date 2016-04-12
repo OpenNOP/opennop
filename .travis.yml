@@ -27,7 +27,7 @@ before_install:
  - sudo apt-get install -qq pkg-config
  - sudo apt-get install -qq uuid-dev
  - sudo apt-get install -qq linux-headers-generic
- - sudo apt-get install -qq readline-devel
+ - sudo apt-get install -qq libreadline-dev
  - sudo apt-get install -qq build-essential
 
 script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make ; fi
