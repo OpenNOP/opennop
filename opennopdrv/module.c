@@ -145,7 +145,7 @@ static unsigned int
 	return NF_ACCEPT;
 }
 
-struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
+static struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
 	.hook = queue_function, // Function that executes.
 	
 	/* Rewritten for kernel < and >= 2.6.20 */
@@ -158,7 +158,7 @@ struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
 	.priority = NF_IP_PRI_FIRST, // My hook executes first.
 };
 
-static int opennopdrv_init(void){
+static int __init opennopdrv_init(void){
 	int err, i;
 	int timespan;
 	size_t n_ops;
@@ -220,7 +220,7 @@ static int opennopdrv_init(void){
 	return 0;
 } 
 
-static void opennopdrv_exit(void){
+static void __exit opennopdrv_exit(void){
 	genl_unregister_family(&opennop_nl_family);
 	nf_unregister_hook(&opennop_hook);
 	del_timer_sync(&daemonmonitor);
