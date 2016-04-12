@@ -32,4 +32,4 @@ before_install:
  - sudo apt-get install -qq linux-kernel-headers
  - sudo apt-get install -qq linux-image-`uname -r`
 
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make ; fi
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && sudo make ; fi
