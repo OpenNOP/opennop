@@ -7,6 +7,7 @@ AM_CFLAGS   = -Wall -Wextra -Wcast-align -Wcast-qual -DVERSION=\"$(GIT_VERSION)\
 
 bin_PROGRAMS = opennop/opennop
 sbin_PROGRAMS = opennopd/opennopd
+SUBDIRS = opennopdrv
 
 opennop_opennop_SOURCES = \
 	opennop/opennop.c
@@ -37,6 +38,5 @@ opennopd_opennopd_SOURCES = \
 	opennopd/subsystems/clicommands.c \
 	opennopd/subsystems/ipc.c \
 	opennopd/subsystems/wccpv2.c
-	
 opennopd_opennopd_LDADD = \
 	-lcrypt -lcrypto -ldl -lpthread -luuid -lrt ${libnetfilter_queue_LIBS}

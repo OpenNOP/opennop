@@ -8,7 +8,16 @@ Release:		0
 Epoch:			0
 Source:			opennop-%{version}.tar.gz
 BuildRoot:		%{_tmppath}/%{name}-%{version}-build
+%define kernel_version %(uname -r)
+
+%if 0%{?suse_version}
 ExcludeArch:	s390 s390x
+%else
+BuildArch:		noarch
+%endif
+
+%if 0%{?suse_version}
+%suse_kernel_module_package -n %{name}  -p %{SOURCE98} xen um
 BuildRequires:	pkgconfig
 BuildRequires:	gettext
 BuildRequires:	automake
@@ -20,11 +29,33 @@ BuildRequires:	libnetfilter_queue-devel
 BuildRequires:	libnfnetlink-devel
 BuildRequires:	ncurses-devel
 BuildRequires:	git
+BuildRequires:  binutils
+BuildRequires:	readline-devel
+BuildRequires:	kernel-headers
+BuildRequires:	kernel-devel
+BuildRequires:	%kernel_module_package_buildreqs
+
+%if 0%{?mdkversion}
+Requires: dkms-minimal
+%endif
+
+%if 0%{?suse_version} == 0 && 0%{?mdkversion} == 0
+Requires: dkms
+%endif
+
 %if 0%{?suse_version}
 BuildRequires:	libnfnetlink-devel
 BuildRequires:	libopenssl-devel
+BuildRequires:	kernel-default-devel
 %else
 BuildRequires:	openssl-devel
+%endif
+
+%if 0%{?suse_version} > 1140
+Requires:		libnl-1_1
+Requires:		libnfnetlink 
+%else
+Requires:		libnl
 %endif
 
 
@@ -45,6 +76,7 @@ Requires:		make
 Requires:		binutils
 Requires:		ncurses
 Requires:		openssl
+Requires:		readline
 
 %description
 OpenNOP is an open source Linux based network accelerator. It's designed to optimize network traffic over point-to-point, partially-meshed and full-meshed IP networks.
