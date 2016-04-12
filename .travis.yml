@@ -36,4 +36,4 @@ before_install:
 script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make ; fi
 
 after_success:
- - 'RESULT=$(test $TRAVIS_PULL_REQUEST == "false" && test $TRAVIS_BRANCH == "master" && curl -X POST -H "Authorization: Token ${network_opennop_devel_token}" "https://api.opensuse.org/trigger/runservice?project=network:opennop:devel&package=opennop")'
+ - 'test $TRAVIS_PULL_REQUEST == "false" && test $TRAVIS_BRANCH == "master" && curl -X POST -H "Authorization: Token ${network_opennop_devel_token}" "https://api.opensuse.org/trigger/runservice?project=network:opennop:devel&package=opennop"'
