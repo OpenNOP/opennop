@@ -39,7 +39,6 @@ BuildRequires:	readline-devel
 BuildRequires:	kernel-headers
 BuildRequires:	kernel-devel
 BuildRequires:	%kernel_module_package_buildreqs
-BuildRequires:	kernel-default
 
 %if 0%{?mdkversion}
 Requires: dkms-minimal
@@ -55,7 +54,6 @@ BuildRequires:	libopenssl-devel
 BuildRequires:	kernel-default-devel
 %else
 BuildRequires:	openssl-devel
-
 %endif
 
 %if 0%{?suse_version} > 1140
