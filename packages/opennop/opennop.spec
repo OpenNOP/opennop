@@ -39,7 +39,6 @@ BuildRequires:	readline-devel
 BuildRequires:	kernel-headers
 BuildRequires:	kernel-devel
 BuildRequires:	%kernel_module_package_buildreqs
-BuildRequires:	kernel-devel-%(uname -r)
 
 %if 0%{?mdkversion}
 Requires: dkms-minimal
