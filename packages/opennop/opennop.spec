@@ -9,7 +9,6 @@ Epoch:			0
 Source:			opennop-%{version}.tar.gz
 BuildRoot:		%{_tmppath}/%{name}-%{version}-build
 %define kernel_version %(uname -r)
-%define _unpackaged_files_terminate_build 0
 
 
 %if 0%{?suse_version}
@@ -92,6 +91,7 @@ make
 %install
 rm -rf ${RPM_BUILD_ROOT}
 make install DESTDIR=${RPM_BUILD_ROOT} INSTALL_MOD_PATH=${RPM_BUILD_ROOT}
+rm -rf ${RPM_BUILD_ROOT}/lib
 install -d ${RPM_BUILD_ROOT}/etc/init.d
 install -v ${RPM_SOURCE_DIR}/opennop ${RPM_BUILD_ROOT}/etc/init.d/opennop
 install -d ${RPM_BUILD_ROOT}/usr/src/opennop
