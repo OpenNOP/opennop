@@ -18,6 +18,7 @@ BuildArch:		noarch
 
 %if 0%{?suse_version}
 %suse_kernel_module_package -n %{name}  -p %{SOURCE98} xen um
+%endif
 BuildRequires:	pkgconfig
 BuildRequires:	gettext
 BuildRequires:	automake
