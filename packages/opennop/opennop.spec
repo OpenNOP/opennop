@@ -7,9 +7,6 @@ Version:		0.5.0.0
 Release:		0
 Epoch:			0
 Source:			opennop-%{version}.tar.gz
-%if 0%{?suse_version}
-Source98:       preamble
-%endif
 BuildRoot:		%{_tmppath}/%{name}-%{version}-build
 %define kernel_version %(uname -r)
 
@@ -17,10 +14,6 @@ BuildRoot:		%{_tmppath}/%{name}-%{version}-build
 ExcludeArch:	s390 s390x
 %else
 BuildArch:		noarch
-%endif
-
-%if 0%{?suse_version}
-%suse_kernel_module_package -n %{name}  -p %{SOURCE98} xen um
 %endif
 
 BuildRequires:	pkgconfig
@@ -96,7 +89,7 @@ make
 
 %install
 rm -rf ${RPM_BUILD_ROOT}
-make install DESTDIR=${RPM_BUILD_ROOT}
+make install DESTDIR=${RPM_BUILD_ROOT} INSTALL_MOD_PATH=${RPM_BUILD_ROOT}
 install -d ${RPM_BUILD_ROOT}/etc/init.d
 install -v ${RPM_SOURCE_DIR}/opennop ${RPM_BUILD_ROOT}/etc/init.d/opennop
 install -d ${RPM_BUILD_ROOT}/usr/src/opennop

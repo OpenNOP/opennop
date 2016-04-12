@@ -17,5 +17,5 @@ clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
 	
 install:
-	$(MAKE) -C $(KDIR) M=$(PWD) modules_install INSTALL_MOD_PATH=$(DESTDIR)
+	$(MAKE) -C $(KDIR) M=$(PWD) modules_install
 	
