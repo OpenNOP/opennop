@@ -7,6 +7,9 @@ Version:		0.5.0.0
 Release:		0
 Epoch:			0
 Source:			opennop-%{version}.tar.gz
+%if 0%{?suse_version}
+Source98:       preamble
+%endif
 BuildRoot:		%{_tmppath}/%{name}-%{version}-build
 %define kernel_version %(uname -r)
 
@@ -19,6 +22,7 @@ BuildArch:		noarch
 %if 0%{?suse_version}
 %suse_kernel_module_package -n %{name}  -p %{SOURCE98} xen um
 %endif
+
 BuildRequires:	pkgconfig
 BuildRequires:	gettext
 BuildRequires:	automake
