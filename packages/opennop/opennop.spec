@@ -9,6 +9,8 @@ Epoch:			0
 Source:			opennop-%{version}.tar.gz
 BuildRoot:		%{_tmppath}/%{name}-%{version}-build
 %define kernel_version %(uname -r)
+%define _unpackaged_files_terminate_build 0
+
 
 %if 0%{?suse_version}
 ExcludeArch:	s390 s390x
