@@ -42,7 +42,7 @@ int selectedmode = ROUTED;
 /* Debug Variables */ 
 int DEBUG_HEARTBEAT = FALSE;
 
-#include "netlink.h"
+#include "opennop_netlink.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Justin Yaple <yaplej@gmail.com>");
@@ -145,7 +145,7 @@ static unsigned int
 	return NF_ACCEPT;
 }
 
-struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
+static struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
 	.hook = queue_function, // Function that executes.
 	
 	/* Rewritten for kernel < and >= 2.6.20 */
@@ -158,25 +158,47 @@ struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
 	.priority = NF_IP_PRI_FIRST, // My hook executes first.
 };
 
-static __s32 __init 
-opennopdrv_init(void){
-	int err;
+static int __init opennopdrv_init(void){
+	int err, i;
 	int timespan;
+	size_t n_ops;
+	struct genl_ops *ops;
 	
 	timespan = hbintervals * HBINTERVAL;
+
+	#if (LINUX_VERSION_CODE > KERNEL_VERSION (3, 1, 2))
+	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.1.2 \n");
+	printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
+	return genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops);
 	
-	err = genl_register_family(&opennop_family);
-	if (err != 0){
-		return err;
-	}
-	err = genl_register_ops(&opennop_family, &opennop_ops_echo);
+	#elif (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 0, 0))
+		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.0.0 \n");
+		printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
+		return genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
+
+	#elif (LINUX_VERSION_CODE < KERNEL_VERSION (3, 0, 0))
+		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version < 3.0.0 \n");
+		err = genl_register_family(&opennop_nl_family);
+
 		if (err != 0){
-		return err;
-	}
-	err = genl_register_ops(&opennop_family, &opennop_ops_hb);
-		if (err != 0){
-		return err;
-	}
+			return err;
+		}
+
+		printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
+		n_ops = ARRAY_SIZE(opennop_nl_ops);
+		ops = (struct genl_ops *)opennop_nl_ops;
+
+		for (i = 0; i < n_ops; ++i, ++ops) {
+			err = genl_register_ops(&opennop_nl_family, ops);
+
+			if (err != 0){
+				return err;
+			}
+		}
+	#else
+		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version ERROR.\n");
+		return -1;
+	#endif
 
 	if (strcmp(mode, "bridged") == 0) {
 		//printk(KERN_ALERT "[OpenNOPDrv]: Switching to bridged mode. \n");
@@ -198,9 +220,8 @@ opennopdrv_init(void){
 	return 0;
 } 
 
-static void __exit 
-opennopdrv_exit(void){
-	genl_unregister_family(&opennop_family);
+static void __exit opennopdrv_exit(void){
+	genl_unregister_family(&opennop_nl_family);
 	nf_unregister_hook(&opennop_hook);
 	del_timer_sync(&daemonmonitor);
 }
