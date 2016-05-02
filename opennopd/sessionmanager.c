@@ -456,9 +456,9 @@ struct commandresult cli_show_sessionss(int client_fd, char **parameters, int nu
 
 					binary_dump("sessionmanager.c Larger ID: ", (char*)&currentsession->larger.accelerator, OPENNOP_IPC_ID_LENGTH);
 					binary_dump("sessionmanager.c Smaller ID: ", (char*)&currentsession->smaller.accelerator, OPENNOP_IPC_ID_LENGTH);
-
-					currentsession = currentsession->next;
 				}
+
+				currentsession = currentsession->next;
 			}
 		}
 
