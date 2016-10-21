@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Justin Yaple <yaplej@gmail.com>
 Standards-Version: 0.5.0.0
-Build-Depends: debhelper (>= 4.1.16), gettext, automake, autoconf, libtool, libnetfilter-queue-dev, libnfnetlink-dev, libnl-dev | libnl-3-dev, libncurses5-dev, libssl-dev, uuid-dev, libdb-dev, git, pkg-config, linux-headers-generic, libreadline-dev, build-essential, linux-kernel-headers, linux-headers
+Build-Depends: debhelper (>= 4.1.16), gettext, automake, autoconf, libtool, libnetfilter-queue-dev, libnfnetlink-dev, libnl-dev | libnl-3-dev, libncurses5-dev, libssl-dev, uuid-dev, libdb-dev, git, pkg-config, libreadline-dev, build-essential, linux-kernel-headers, linux-headers
 
 Package: opennop
 Architecture: any
