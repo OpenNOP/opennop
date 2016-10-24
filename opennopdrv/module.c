@@ -207,17 +207,6 @@ static int __init opennopdrv_init(void){
 	return -1;
 #endif
 
-	#if (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 13, 0))
-
-	#elif (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 11, 0))
-
-
-	#elif (LINUX_VERSION_CODE < KERNEL_VERSION (3, 0, 0))
-
-	#else
-
-	#endif
-
 	if (strcmp(mode, "bridged") == 0) {
 		//printk(KERN_ALERT "[OpenNOPDrv]: Switching to bridged mode. \n");
 		/* Rewritten for kernel < and >= 2.6.30 */
