@@ -7,6 +7,7 @@ AM_CFLAGS   = -Wall -Wextra -Wcast-align -Wcast-qual -DVERSION=\"$(GIT_VERSION)\
 
 bin_PROGRAMS = opennop/opennop
 sbin_PROGRAMS = opennopd/opennopd
+SUBDIRS = opennopdrv
 
 opennop_opennop_SOURCES = \
 	opennop/opennop.c
