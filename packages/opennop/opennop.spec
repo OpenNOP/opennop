@@ -14,7 +14,7 @@ BuildRoot:		%{_tmppath}/%{name}-%{version}-build
 %if 0%{?suse_version}
 ExcludeArch:	s390 s390x
 %else
-BuildArch:		noarch
+ExcludeArch:	s390 s390x
 %endif
 
 BuildRequires:	pkgconfig
