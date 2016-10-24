@@ -166,46 +166,56 @@ static int __init opennopdrv_init(void){
 	
 	timespan = hbintervals * HBINTERVAL;
 
+
+#if (__MY_NL_VERSION__ == __MY_NL_NEWEST__)
+	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.13.0 \n");
+	printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
+	err = genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops);
+
+	if (err != 0){
+		return err;
+	}
+#elif (__MY_NL_VERSION__ == __MY_NL_NEWER__)
+	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.11.0 \n");
+	printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
+	err = genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
+
+	if (err != 0){
+		return err;
+	}
+#elif (__MY_NL_VERSION__ == __MY_NL_OLDEST__)
+	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version < 3.0.0 \n");
+	err = genl_register_family(&opennop_nl_family);
+
+	if (err != 0){
+		return err;
+	}
+
+	printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
+	n_ops = ARRAY_SIZE(opennop_nl_ops);
+	ops = (struct genl_ops *)opennop_nl_ops;
+
+	for (i = 0; i < n_ops; ++i, ++ops) {
+		err = genl_register_ops(&opennop_nl_family, ops);
+
+		if (err != 0){
+			return err;
+		}
+	}
+#else
+	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version ERROR.\n");
+	return -1;
+#endif
+
 	#if (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 13, 0))
-		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.13.0 \n");
-		printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
-		err = genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops);
 
-		if (err != 0){
-			return err;
-		}
-	
 	#elif (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 11, 0))
-		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.11.0 \n");
-		printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
-		err = genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
 
-		if (err != 0){
-			return err;
-		}
 
 	#elif (LINUX_VERSION_CODE < KERNEL_VERSION (3, 0, 0))
-		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version < 3.0.0 \n");
-		err = genl_register_family(&opennop_nl_family);
 
-		if (err != 0){
-			return err;
-		}
-
-		printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
-		n_ops = ARRAY_SIZE(opennop_nl_ops);
-		ops = (struct genl_ops *)opennop_nl_ops;
-
-		for (i = 0; i < n_ops; ++i, ++ops) {
-			err = genl_register_ops(&opennop_nl_family, ops);
-
-			if (err != 0){
-				return err;
-			}
-		}
 	#else
-		printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version ERROR.\n");
-		return -1;
+
 	#endif
 
 	if (strcmp(mode, "bridged") == 0) {
