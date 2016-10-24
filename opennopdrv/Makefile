@@ -9,11 +9,14 @@ obj-m	:= $(MODULE).o
 KDIR    := /lib/modules/$(shell uname -r)/build
 PWD     := $(shell pwd)
 
-gennl_header := /usr/src/kernels/$(shell uname -r)/include/net/genetlink.h
+genl_header := $(strip \
+	$(shell if [ -f "/usr/src/kernels/`uname -r`/include/net/genetlink.h" ]; then echo "/usr/src/kernels/`uname -r`/include/net/genetlink.h"; fi) \
+	$(shell if [ -f "/usr/src/linux/include/net/genetlink.h" ]; then echo "/usr/src/linux/include/net/genetlink.h"; fi))
+
 genl_version := $(strip \
-  $(shell grep -q "define genl_register_family_with_ops" $(gennl_header) && echo __MY_NL_NEWEST__) \
-  $(shell grep -q "extern int genl_register_family_with_ops" $(gennl_header) && echo __MY_NL_NEWER__) \
-  $(shell grep -q "extern int genl_register_ops" $(gennl_header) && echo __MY_NL_OLDEST__))
+  $(shell grep -q "define genl_register_family_with_ops" $(genl_header) && echo __MY_NL_NEWEST__) \
+  $(shell grep -q "extern int genl_register_family_with_ops" $(genl_header) && echo __MY_NL_NEWER__) \
+  $(shell grep -q "extern int genl_register_ops" $(genl_header) && echo __MY_NL_OLDEST__))
 ifeq ($(genl_version),)
   $(error "error")
 endif
