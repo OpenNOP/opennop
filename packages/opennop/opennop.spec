@@ -29,6 +29,7 @@ BuildRequires:	libnfnetlink-devel
 BuildRequires:	ncurses-devel
 BuildRequires:	git
 BuildRequires:  binutils
+BuildRequires:  findutils
 BuildRequires:	readline-devel
 BuildRequires:	kernel-headers
 BuildRequires:	kernel-devel
