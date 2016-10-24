@@ -10,7 +10,7 @@ addons:
       name: OpenNOP/opennop
     build_command_prepend: ./autogen.sh
     build_command_prepend: ./configure
-    build_command: make && cd opennopdrv && make
+    script: make && cd opennopdrv && make
     branch_pattern: coverity_scan
 
 language: c
