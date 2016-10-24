@@ -167,7 +167,7 @@ static int __init opennopdrv_init(void){
 	timespan = hbintervals * HBINTERVAL;
 
 
-#if (__MY_NL_VERSION__ == __MY_NL_NEWEST__)
+#if defined HAVE_GENL_WITH_OPS_AUTOLEN
 	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.13.0 \n");
 	printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
 	err = genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops);
@@ -175,7 +175,7 @@ static int __init opennopdrv_init(void){
 	if (err != 0){
 		return err;
 	}
-#elif (__MY_NL_VERSION__ == __MY_NL_NEWER__)
+#elif defined HAVE_GENL_WITH_OPS
 	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version >= 3.11.0 \n");
 	printk(KERN_ALERT "[OpenNOPDrv]: opennop_nl_ops %lu\n", ARRAY_SIZE(opennop_nl_ops));
 	err = genl_register_family_with_ops(&opennop_nl_family, opennop_nl_ops, ARRAY_SIZE(opennop_nl_ops));
@@ -183,7 +183,7 @@ static int __init opennopdrv_init(void){
 	if (err != 0){
 		return err;
 	}
-#elif (__MY_NL_VERSION__ == __MY_NL_OLDEST__)
+#elif defined HAVE_GENL
 	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version < 3.0.0 \n");
 	err = genl_register_family(&opennop_nl_family);
 
@@ -203,6 +203,7 @@ static int __init opennopdrv_init(void){
 		}
 	}
 #else
+#  error No genl_* function detected
 	printk(KERN_ALERT "[OpenNOPDrv]: Kernel Version ERROR.\n");
 	return -1;
 #endif
