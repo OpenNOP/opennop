@@ -33,7 +33,7 @@ before_install:
  - sudo apt-get install -qq linux-image-`uname -r`
  - sudo apt-get install -qq linux-headers-$(uname -r)
 
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make ; fi
+script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make && cd opennopdrv && make ; fi
 
 after_success:
  - 'test $TRAVIS_PULL_REQUEST == "false" && test $TRAVIS_BRANCH == "master" && curl -X POST -H "Authorization: Token ${network_opennop_devel_token}" "https://api.opensuse.org/trigger/runservice?project=network:opennop:devel&package=opennop"'
