@@ -48,7 +48,6 @@ BuildRequires:	openssl-devel
 
 %if 0%{?suse_version} > 1140
 Requires:		libnl-1_1
-Requires:		libnfnetlink 
 %else
 Requires:		libnl
 %endif
