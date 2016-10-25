@@ -6,7 +6,13 @@ MODULE_EXT	:= ko
 $(MODULE)-y	:= $(OBJS)
 
 obj-m	:= $(MODULE).o
-KDIR    := /lib/modules/$(shell uname -r)/build
+
+K_PATH	:= $(shell \
+	moddir=`find /lib/modules -maxdepth 1 -type d -regex '.*[0-9]\.*' -print -quit`; \
+	if [ -d "/lib/modules/`uname -r`" ]; then echo "/lib/modules/`uname -r`"; \
+	elif [ -d "$moddir" ]; then echo "$moddir"; \
+	fi)
+KDIR 	:= $(K_PATH)/build
 PWD     := $(shell pwd)
 
 genl_header := $(firstword $(wildcard \
