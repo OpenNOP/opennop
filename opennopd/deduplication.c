@@ -105,7 +105,8 @@ int deduplicate_V1(__u8 *data, __u32 length, DB **dbp, __u8 *buffer){
 		dedup_records = buffer;
 
 		if(dedup_records != NULL){
-			thisdedup_record = (struct dedup_record *)dedup_records;
+			//thisdedup_record = (struct dedup_record *)dedup_records;
+			thisdedup_record = dedup_records;
 		}
 
 		tcpdatablock = (struct block *)data;
@@ -134,15 +135,15 @@ int deduplicate_V1(__u8 *data, __u32 length, DB **dbp, __u8 *buffer){
 				 * This piece is very broken.
 				 * Seems to break on "thisdedup_record->type = 0;"
 				 */
-				//if(thisdedup_record != NULL){
-				//	logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
-				//	thisdedup_record->type = 0;
-				//	logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Length: 128.\n");
-				//	thisdedup_record->length = 128;
-				//	logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
-				//	memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
-				//	logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
-				//}
+				if(thisdedup_record != NULL){
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Type: Uncompressed.\n");
+					thisdedup_record->type = 0;
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Length: 128.\n");
+					thisdedup_record->length = 128;
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copy data.\n");
+					memcpy((char*)&thisdedup_record->data, (char*)&tcpdatablock[i].data, 128);
+					logger2(LOGGING_DEBUG, LOGGING_DEBUG, "[DEDUP] Copied data.\n");
+				}
 				break;
 
 				// Key and data pair found in database.
