@@ -106,7 +106,7 @@ int deduplicate_V1(__u8 *data, __u32 length, DB **dbp, __u8 *buffer){
 
 		if(dedup_records != NULL){
 			//thisdedup_record = (struct dedup_record *)dedup_records;
-			thisdedup_record = dedup_records;
+			thisdedup_record = (struct dedup_record*)buffer;
 		}
 
 		tcpdatablock = (struct block *)data;
