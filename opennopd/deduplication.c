@@ -70,7 +70,7 @@ int calculate_sha512(unsigned char *data, int length ,unsigned char *result){
 }
 */
 
-int deduplicate_V1(__u8 *data, __u32 length, DB **dbp){
+int deduplicate_V1(__u8 *data, __u32 length, DB **dbp, __u8 *buffer){
 	__u8 *dedup_records = NULL; // Memory where working deduplication records are stored.
 	struct hash thishash; // hash values for each block
 	struct dedup_record *thisdedup_record = NULL;
@@ -93,11 +93,16 @@ int deduplicate_V1(__u8 *data, __u32 length, DB **dbp){
 		logger2(LOGGING_DEBUG, LOGGING_DEBUG, message);
 
 		// Allocate memory for deduplication.
-		if((length % 128) != 0){
-			dedup_records = calloc(numblocks + 1, sizeof(struct dedup_record));
-		}else{
-			dedup_records = calloc(numblocks, sizeof(struct dedup_record));
-		}
+		//if((length % 128) != 0){
+		//	dedup_records = calloc(numblocks + 1, sizeof(struct dedup_record));
+		//}else{
+		//	dedup_records = calloc(numblocks, sizeof(struct dedup_record));
+		//}
+
+		/**
+		 * Using the buffer allocated to the worker for compression.
+		 */
+		dedup_records = buffer;
 
 		if(dedup_records != NULL){
 			thisdedup_record = (struct dedup_record *)dedup_records;
@@ -188,15 +193,18 @@ int deduplicate_V1(__u8 *data, __u32 length, DB **dbp){
 			logger2(LOGGING_DEBUG, LOGGING_DEBUG, message);
 		}
 
-		if(dedup_records != NULL){
-			free(dedup_records);
-			dedup_records = NULL;
-		}
+		/**
+		 * We are now using the a buffer allocated to the worker so we must not free it.
+		 */
+		//if(dedup_records != NULL){
+		//	free(dedup_records);
+		//	dedup_records = NULL;
+		//}
 	}
 	return 0;
 }
 
-int deduplicate_tcp_data_V1(struct session *thissession, __u8 *ippacket){
+int deduplicate_tcp_data_V1(__u8 *ippacket, __u8 *lzbuffer, struct session *thissession){
 	//struct iphdr *iph = NULL;
 	//struct tcphdr *tcph = NULL;
 	struct endpoint *remote_endpoint = NULL;
@@ -210,7 +218,7 @@ int deduplicate_tcp_data_V1(struct session *thissession, __u8 *ippacket){
 	if((thissession != NULL) && ippacket != NULL){
 		remote_endpoint = get_remote_endpoint(thissession, ippacket);
 		thisneighbor = find_neighbor_by_ID((char*)&remote_endpoint->accelerator);
-		deduplicate_V1(locate_tcp_data(ippacket), get_tcp_data_length(ippacket), &thisneighbor->blocks);
+		deduplicate_V1(locate_tcp_data(ippacket), get_tcp_data_length(ippacket), &thisneighbor->blocks, lzbuffer);
 	}
 
 	return 0;
