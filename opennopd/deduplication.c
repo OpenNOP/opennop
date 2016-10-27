@@ -307,6 +307,11 @@ int create_dedup_blocks(__u8 *ippacket, DB **dbp, char *neighborID){
 							// New key & data saved.
 						case 0:
 							metrics.newblocks++;
+
+							if((*dbp)->sync(*dbp, NULL) != 0){
+								logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Error: failed to sync database!\n");
+								exit(1);
+							}
 							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
 
 							if (neighborID != NULL){
