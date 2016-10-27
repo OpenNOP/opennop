@@ -145,7 +145,7 @@ void *worker_thread(void *dummyPtr) {
                                  * @todo
                                  * Testing hashing performance impact.
                                  */
-                                create_dedup_blocks((__u8 *)iph, &me->blocks);
+                                create_dedup_blocks((__u8 *)iph, &me->blocks, NULL);
 
                                 /**
                                  * @todo
@@ -208,7 +208,7 @@ void *worker_thread(void *dummyPtr) {
                             	/*
                             	 * Creates dedupliation blocks on receiving side.
                             	 */
-                            	create_dedup_blocks((__u8 *)iph, &me->blocks);
+                            	create_dedup_blocks((__u8 *)iph, &me->blocks, remoteID);
                             }
                             /*
                              * End of what should be the deoptimize function.

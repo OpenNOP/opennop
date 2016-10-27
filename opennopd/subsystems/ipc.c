@@ -23,11 +23,14 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 
+#include <db.h>
+
 #include "ipc.h"
 #include "clicommands.h"
 #include "logger.h"
 #include "sockets.h"
 #include "utility.h"
+#include "deduplication.h"
 
 typedef int (*t_neighbor_command)(int, __u32, char *);
 

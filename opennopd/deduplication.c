@@ -230,6 +230,9 @@ int deduplicate_tcp_data_V1(__u8 *ippacket, __u8 *lzbuffer, struct session *this
 	return 0;
 }
 
+int map_block_to_neighbor(char *neighborID, unsigned char *hash){
+	logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Map dedup record to neighbor.\n");
+}
 
 /** @brief Calculate hash values
  *
@@ -238,7 +241,7 @@ int deduplicate_tcp_data_V1(__u8 *ippacket, __u8 *lzbuffer, struct session *this
  * @param *ippacket [in] The IP packet containing data to be hashed.
  * @return int 0 = success -1 = failed
  */
-int create_dedup_blocks(__u8 *ippacket, DB **dbp){
+int create_dedup_blocks(__u8 *ippacket, DB **dbp, char *neighborID){
 	//* @todo Don't copy the data here.  No point.
 	//struct block blocks[12] = {0}; // 12 * 128 byte blocks = 1536 large enough for any standard size IP packet.
 	struct hash hashes[DEDUP_MAXBLOCKS]; // hash values for each block
@@ -305,6 +308,10 @@ int create_dedup_blocks(__u8 *ippacket, DB **dbp){
 						case 0:
 							metrics.newblocks++;
 							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
+
+							if (neighborID != NULL){
+								map_block_to_neighbor(neighborID, (unsigned char *)&hashes[i]);
+							}
 							break;
 
 							// An existing key exists with different data! (Collision needs resolved!)
@@ -337,6 +344,9 @@ int create_dedup_blocks(__u8 *ippacket, DB **dbp){
 					case 0:
 						metrics.hits++;
 
+						if (neighborID != NULL){
+							map_block_to_neighbor(neighborID, (unsigned char *)&hashes[i]);
+						}
 						break;
 
 						// Invalid query?
