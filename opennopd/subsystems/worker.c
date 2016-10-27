@@ -177,10 +177,8 @@ void *worker_thread(void *dummyPtr) {
                             saveacceleratorid(largerIP, remoteID, iph, thissession);
 
                             if (((iph->saddr == largerIP) &&
-                                    //(thissession->smaller.accelerator == localID)) ||
                             		(compare_opennopid((char*)&thissession->smaller.accelerator, (char*)get_opennop_id()) == 1))||
                                     ((iph->saddr == smallerIP) &&
-                                    //(thissession->larger.accelerator == localID))) {
                                     (compare_opennopid((char*)&thissession->larger.accelerator, (char*)get_opennop_id()) == 1))) {
 
                                 if (__get_tcp_option((__u8 *)iph,31) != 0) { // Packet is flagged as compressed.
@@ -207,6 +205,10 @@ void *worker_thread(void *dummyPtr) {
 
                             if(thispacket != NULL){
                             	rehydration((__u8 *)iph, &me->blocks);
+                            	/*
+                            	 * Creates dedupliation blocks on receiving side.
+                            	 */
+                            	create_dedup_blocks((__u8 *)iph, &me->blocks);
                             }
                             /*
                              * End of what should be the deoptimize function.

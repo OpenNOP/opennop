@@ -33,7 +33,7 @@ struct hash{
 struct dedup_record{
 	__u8 type;		// (0 = uncompressed | 1 = compressed | 2 = deduplicated)
 	__u8 length;	// How much data is in this record.
-	__u8 data[128];		// Begining of actual data.
+	__u8 data[128];		// Beginning of actual data.  Could be less than 128 bytes.
 };
 
 struct dedup_metrics{
