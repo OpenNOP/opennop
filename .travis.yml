@@ -1,8 +1,10 @@
 env:
   global:
     - secure: "bqsXP5tYfoNAi/B9RfxNodaZJh8GgtY5iLlhGJH5RFXKEDqUa/rVgCrNxHoU8UUzvk42QGcXPrJPmV66B5Yby9O8NmqCBBBs9OPWTDhTfg1pMaTdKUxljCr/LoyTEFg/bEzIlUAHaW3pYU/1EcggSgCiu3HlNTN7yemR7BMmK1ZdyVTNEdyMJH8zFMm6+Cj7Vw8DT39jYX6QvayDuAhcWjkHXkyd3OQFl6vePqhYMyHdz52KeMeNKyjDbel/02ytsfUP0giq9WkYPwrzi6W18r9snhTBGs7x6QNSbJi5rUVyOJusQsvhjmXjrrunnF2/kiMrWdfiqQXWQU89NsrSCxmLyrCg4AHmtyLe3jW70kAArVQjyIb9SoQOfQWluSkrAi8KsdvwhBUZtyhPrG7NtIsCNQKsahmsv6PVoHtwhDqrVV+tnddW4dXgdR2Kbv4Z46RzB8KPIxb7L38pPiXGQVZT/xd/BvRDxK3FhSXFGY6OhzbC8SJZBsMuRlU69v5oTz7LrMhaUvwcL89s2fghUVDpJpsn6XdT5zUQGv4W0EiKNjTHQwu6kP5wp6LAQML94GM+c7IxgPFXYRCeP7rYcXuuKCqYiMLDvLi0pS5xbfMcHnqfSJ7K6GppmHW/n2A1PdDG6IueUlhyOOqIdA2K8J6VLmgnF+1N2eG+bP/FnAQ="
+    - secure: "fjgTcfz1jxv6W96Nm/i+eIt+YtUY9OeGtm4D+cW4khbHLKbbAhl5CDCmAx22vZXE+QVR9624Tc8iAVC+cYB7N88c8pULRfyWlM+ST6In9QpPsGuuNViRBnkJl+eKJcT6ErvbWzw+8aKyqHnDVHSmRg8dNGtJD0xqNsLy0RQNSwvDCnUW+4F/+bG5rmcjWtnIY9aB7pjXQCTuVgoTvRhbzxWBKBFKhe0GfP0s61g7qWLq4pQotKeHXZpPjE9F1EU/keJupp3VYBfGFWF7p33oVZHz1+IXvqNz2U+/DDdEg+8JF1l3XFjmdh5Zxa4NULB8ogvBPylpYCGAV61DKm3ROzWs9jfKD8r1ruI9okfrkBxIEiVrB1I7X5fhUt5NWwJZBHkM5hk0l8nThqv8rH63jrFbG/LB2TZW+8wMzKKMJ8PFgXQNnV4+b5E2XHYJK0qQLuw8jU0F2AKVlnjSy3/wfI/2HO9mwk6UC8zXGGcKRqRmLTuulO0wge8wnc1Ba06K8l808ZH4Pq6ELcZ2jx0yADYZex6QU7M6z99+AP05dH7l4VgacwLMm/AQcRyeVs6oVDlU6Udz8Li85vjO+Vgzov209g9oZUHd2fZNWB+MUKIfPcL+gTqDFaD0gJgWdq/KE7N5f5IybGSLlbTcukGZmWO9P5YtsGf75dtoo06Q530="
 
 addons:
+  sonarqube: true
   coverity_scan:
     # GitHub project metadata
     # ** specific to your project **
@@ -33,7 +35,9 @@ before_install:
  - sudo apt-get install -qq linux-image-`uname -r`
  - sudo apt-get install -qq linux-headers-$(uname -r)
 
-script: if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make && cd opennopdrv && make ; fi
+script:
+ - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make && cd opennopdrv && make ; fi
+ - sonar-scanner -Dsonar.login=$SONAR_TOKEN
 
 after_success:
  - 'test $TRAVIS_PULL_REQUEST == "false" && test $TRAVIS_BRANCH == "master" && curl -X POST -H "Authorization: Token ${network_opennop_devel_token}" "https://api.opensuse.org/trigger/runservice?project=network:opennop:devel&package=opennop"'
