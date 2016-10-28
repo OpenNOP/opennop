@@ -36,7 +36,7 @@ before_install:
  - sudo apt-get install -qq linux-headers-$(uname -r)
 
 script:
- - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make && cd opennopdrv && make ; fi
+ - if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then ./autogen.sh && ./configure && make && cd opennopdrv && make && cd ..; fi
  - ./autogen.sh && ./configure && build-wrapper --out-dir bw-outputs make && sonar-scanner -Dsonar.login=$SONAR_TOKEN
 
 after_success:
