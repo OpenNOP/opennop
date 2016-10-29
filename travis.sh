@@ -12,4 +12,5 @@ if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then
   ./autogen.sh && ./configure && make && cd opennopdrv && make && cd ..; 
 fi
 
+build-wrapper-linux-x86-64 --out-dir bw-outputs make clean all
 sonar-scanner -Dsonar.login=$SONAR_TOKEN
