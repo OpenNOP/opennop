@@ -48,11 +48,13 @@ Contributing
 
 Build Status
 =======================
-[![Build Status](https://travis-ci.org/OpenNOP/opennop.svg)](https://travis-ci.org/OpenNOP/opennop)
-<a href="https://scan.coverity.com/projects/opennop">
-  <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/809/badge.svg"/>
-</a>
+|       |       |
+| ----: | :---- |
+| Open Hub | [![Open Hub project report](https://www.openhub.net/p/opennop/widgets/project_thin_badge.gif)](https://www.openhub.net/p/libxtl) |
+| Travis-CI | [![Build Status](https://travis-ci.org/OpenNOP/opennop.svg)](https://travis-ci.org/OpenNOP/opennop) |
+| Technical Debt | [![SonarQube Tech Debt](https://img.shields.io/sonar/https/sonarqube.com/opennop/tech_debt.svg)](https://sonarqube.com/overview?id=xtl) |
+| Code Quality | [![SonarQube Quality Gate](https://sonarqube.com/api/badges/gate?key=opennop&blinking=true)](https://sonarqube.com/overview?id=opennop) |
+| Coverity Scan | <a href="https://scan.coverity.com/projects/opennop"><img alt="Coverity Scan Build Status" src="https://scan.coverity.com/projects/809/badge.svg"/></a> |
 
 [OpenNOP]:                                   http://www.opennop.org/
 [Sign the Contributor License Agreement]:    https://cla-assistant.io/OpenNOP/opennop
