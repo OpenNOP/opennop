@@ -2,8 +2,6 @@ env:
   global:
     - secure: "bqsXP5tYfoNAi/B9RfxNodaZJh8GgtY5iLlhGJH5RFXKEDqUa/rVgCrNxHoU8UUzvk42QGcXPrJPmV66B5Yby9O8NmqCBBBs9OPWTDhTfg1pMaTdKUxljCr/LoyTEFg/bEzIlUAHaW3pYU/1EcggSgCiu3HlNTN7yemR7BMmK1ZdyVTNEdyMJH8zFMm6+Cj7Vw8DT39jYX6QvayDuAhcWjkHXkyd3OQFl6vePqhYMyHdz52KeMeNKyjDbel/02ytsfUP0giq9WkYPwrzi6W18r9snhTBGs7x6QNSbJi5rUVyOJusQsvhjmXjrrunnF2/kiMrWdfiqQXWQU89NsrSCxmLyrCg4AHmtyLe3jW70kAArVQjyIb9SoQOfQWluSkrAi8KsdvwhBUZtyhPrG7NtIsCNQKsahmsv6PVoHtwhDqrVV+tnddW4dXgdR2Kbv4Z46RzB8KPIxb7L38pPiXGQVZT/xd/BvRDxK3FhSXFGY6OhzbC8SJZBsMuRlU69v5oTz7LrMhaUvwcL89s2fghUVDpJpsn6XdT5zUQGv4W0EiKNjTHQwu6kP5wp6LAQML94GM+c7IxgPFXYRCeP7rYcXuuKCqYiMLDvLi0pS5xbfMcHnqfSJ7K6GppmHW/n2A1PdDG6IueUlhyOOqIdA2K8J6VLmgnF+1N2eG+bP/FnAQ="
     - secure: "fjgTcfz1jxv6W96Nm/i+eIt+YtUY9OeGtm4D+cW4khbHLKbbAhl5CDCmAx22vZXE+QVR9624Tc8iAVC+cYB7N88c8pULRfyWlM+ST6In9QpPsGuuNViRBnkJl+eKJcT6ErvbWzw+8aKyqHnDVHSmRg8dNGtJD0xqNsLy0RQNSwvDCnUW+4F/+bG5rmcjWtnIY9aB7pjXQCTuVgoTvRhbzxWBKBFKhe0GfP0s61g7qWLq4pQotKeHXZpPjE9F1EU/keJupp3VYBfGFWF7p33oVZHz1+IXvqNz2U+/DDdEg+8JF1l3XFjmdh5Zxa4NULB8ogvBPylpYCGAV61DKm3ROzWs9jfKD8r1ruI9okfrkBxIEiVrB1I7X5fhUt5NWwJZBHkM5hk0l8nThqv8rH63jrFbG/LB2TZW+8wMzKKMJ8PFgXQNnV4+b5E2XHYJK0qQLuw8jU0F2AKVlnjSy3/wfI/2HO9mwk6UC8zXGGcKRqRmLTuulO0wge8wnc1Ba06K8l808ZH4Pq6ELcZ2jx0yADYZex6QU7M6z99+AP05dH7l4VgacwLMm/AQcRyeVs6oVDlU6Udz8Li85vjO+Vgzov209g9oZUHd2fZNWB+MUKIfPcL+gTqDFaD0gJgWdq/KE7N5f5IybGSLlbTcukGZmWO9P5YtsGf75dtoo06Q530="
-  jdk: oraclejdk8
-  language: java
 
 addons:
   sonarqube: true
@@ -19,6 +17,7 @@ addons:
 
 language: c
 before_install:
+ - mkdir -p      $TRAVIS_BUILD_DIR/3rdparty
  - sudo apt-get update -qq 
  - sudo apt-get install -qq autoconf
  - sudo apt-get install -qq automake 
@@ -36,7 +35,12 @@ before_install:
  - sudo apt-get install -qq linux-kernel-headers
  - sudo apt-get install -qq linux-image-`uname -r`
  - sudo apt-get install -qq linux-headers-$(uname -r)
-
+ - cd $TRAVIS_BUILD_DIR/3rdparty
+ - wget https://sonarqube.com/static/cpp/build-wrapper-linux-x86.zip
+ - unzip build-wrapper-linux-x86.zip
+ - export PATH=$PWD/build-wrapper-linux-x86-64:$PATH
+ - cd $TRAVIS_BUILD_DIR/
+ 
 script: "./travis.sh"
 
 after_success:
