@@ -11,17 +11,13 @@ configureTravis
 if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then 
   build-wrapper-linux-x86-64 --out-dir build ./build.sh
   
-  if [ "${TRAVIS_BRANCH}" == 'master' ]; then
-    
-    if [ "${TRAVIS_PULL_REQUEST}" != 'false' ]; then
-  	  sonar-scanner -Dsonar.analysis.mode=preview \
-              -Dsonar.github.pullRequest=$TRAVIS_PULL_REQUEST \
-              -Dsonar.github.oauth=$GITHUB_TOKEN \
-              -Dsonar.login=$SONAR_TOKEN
-    else
-  	  sonar-scanner -e -X -Dsonar.login=$SONAR_TOKEN
-    fi
-    
+  if [ "${TRAVIS_BRANCH}" == 'master' ] && [ "${TRAVIS_PULL_REQUEST}" == 'false' ]; then
+  	sonar-scanner -e -X -Dsonar.login=$SONAR_TOKEN
+  else
+   sonar-scanner -Dsonar.analysis.mode=preview \
+            -Dsonar.github.pullRequest=$TRAVIS_PULL_REQUEST \
+            -Dsonar.github.oauth=$GITHUB_TOKEN \
+            -Dsonar.login=$SONAR_TOKEN
   fi
   
 fi
