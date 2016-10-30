@@ -9,7 +9,6 @@ configureTravis
 . installJDK8
 
 if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then 
-  ./autogen.sh && ./configure && make && cd opennopdrv && make && cd ..; 
+  build-wrapper-linux-x86-64 --out-dir build ./build.sh
+  sonar-scanner -e -X -Dsonar.login=$SONAR_TOKEN
 fi
-build-wrapper-linux-x86-64 --out-dir build make clean all
-sonar-scanner -e -X -Dsonar.login=$SONAR_TOKEN

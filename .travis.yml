@@ -10,9 +10,7 @@ addons:
     # ** specific to your project **
     project:
       name: OpenNOP/opennop
-    build_command_prepend: ./autogen.sh
-    build_command_prepend: ./configure
-    build_command: make
+    build_command: ./build.sh
     branch_pattern: coverity_scan
 
 language: c
