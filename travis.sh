@@ -15,7 +15,7 @@ if [ "${COVERITY_SCAN_BRANCH}" != 1 ]; then
     sonar-scanner -e -X -Dsonar.login=$SONAR_TOKEN
   else
     
-    if [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then   
+    if [ "${TRAVIS_PULL_REQUEST}" == "false" ]; then   
       sonar-scanner -e -X -Dsonar.analysis.mode=preview \
             -Dsonar.github.pullRequest=$TRAVIS_COMMIT \
             -Dsonar.github.repository=$TRAVIS_REPO_SLUG \
