@@ -66,7 +66,6 @@ void start_cli_server() {
                            (void*) new_sock) < 0) {
             perror("could not create thread");
 	    free(new_sock);
-	    new_sock = NULL;
             exit(1);
         }
 
