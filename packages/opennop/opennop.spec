@@ -10,12 +10,7 @@ Source:			opennop-%{version}.tar.gz
 BuildRoot:		%{_tmppath}/%{name}-%{version}-build
 %define kernel_version %(uname -r)
 
-
-%if 0%{?suse_version}
 ExcludeArch:	s390 s390x
-%else
-BuildArch:		noarch
-%endif
 
 BuildRequires:	pkgconfig
 BuildRequires:	gettext
@@ -29,6 +24,7 @@ BuildRequires:	libnfnetlink-devel
 BuildRequires:	ncurses-devel
 BuildRequires:	git
 BuildRequires:  binutils
+BuildRequires:  findutils
 BuildRequires:	readline-devel
 BuildRequires:	kernel-headers
 BuildRequires:	kernel-devel
@@ -52,7 +48,6 @@ BuildRequires:	openssl-devel
 
 %if 0%{?suse_version} > 1140
 Requires:		libnl-1_1
-Requires:		libnfnetlink 
 %else
 Requires:		libnl
 %endif

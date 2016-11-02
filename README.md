@@ -2,24 +2,59 @@
 ===========
 [OpenNOP][] is an open source Linux based network accelerator. It's designed to optimize network traffic over point-to-point, partially-meshed and full-meshed IP networks.
 
-Installing OpenNOP
+Installing
 ==================
 You can install [OpenNOP][] from the [OpenNOP Repositories][] or [OpenNOP Development Repositories][].
 
-Building OpenNOP
+Building
 ================
-coming soon
+Prerequisites:
 
-Contributing to OpenNOP
+* autoconf
+* automake
+* openssl
+* ncurses-devel
+* libnfnetlink-devel
+* libnetfilter_queue-devel
+* libnl-devel
+* readline-devel
+* openssl-devel
+* libuuid-devel
+* uuid-devel
+* pkg-config
+
+Compiling:
+
+1. Clone the repository.
+ 1. `git clone https://github.com/OpenNOP/opennop.git`
+2. Go to source folder.
+ 1. `cd opennop`
+3. Build binaries.
+ 1. `./autogen.sh`
+ 2. `./configure`
+ 3. `make`
+4. Start OpenNOP Daemon.
+ 1. `./opennopd/opennopd`
+5. Enter OpenNOP CLI
+ 1. `./opennop/opennop`
+
+
+Contributing
 =======================
 [Sign the Contributor License Agreement][]
 
+[![CLA assistant](https://cla-assistant.io/readme/badge/OpenNOP/opennop)](https://cla-assistant.io/OpenNOP/opennop)
+[![Code Triagers Badge](https://www.codetriage.com/opennop/opennop/badges/users.svg)](https://www.codetriage.com/opennop/opennop)
 
-[![Build Status](https://travis-ci.org/OpenNOP/opennop.svg)](https://travis-ci.org/OpenNOP/opennop)
-<a href="https://scan.coverity.com/projects/opennop">
-  <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/809/badge.svg"/>
-</a>
+Build Status
+=======================
+|       |       |
+| ----: | :---- |
+| Open Hub | [![Open Hub project report](https://www.openhub.net/p/opennop/widgets/project_thin_badge.gif)](https://www.openhub.net/p/opennop) |
+| Travis-CI | [![Build Status](https://travis-ci.org/OpenNOP/opennop.svg)](https://travis-ci.org/OpenNOP/opennop) |
+| Technical Debt | [![SonarQube Tech Debt](https://img.shields.io/sonar/https/sonarqube.com/opennop/tech_debt.svg)](https://sonarqube.com/overview?id=opennop) |
+| Code Quality | [![SonarQube Quality Gate](https://sonarqube.com/api/badges/gate?key=opennop&blinking=true)](https://sonarqube.com/overview?id=opennop) |
+| Coverity Scan | <a href="https://scan.coverity.com/projects/opennop"><img alt="Coverity Scan Build Status" src="https://scan.coverity.com/projects/809/badge.svg"/></a> |
 
 [OpenNOP]:                                   http://www.opennop.org/
 [Sign the Contributor License Agreement]:    https://cla-assistant.io/OpenNOP/opennop

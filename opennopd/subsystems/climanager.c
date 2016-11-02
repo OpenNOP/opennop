@@ -65,6 +65,7 @@ void start_cli_server() {
         if (pthread_create(&sniffer_thread, NULL, client_handler,
                            (void*) new_sock) < 0) {
             perror("could not create thread");
+	    free(new_sock);
             exit(1);
         }
 

@@ -243,7 +243,7 @@ struct wccp_router_assignment_element{
 struct wccp_assignment_info{
 	__u16 type;
 	__u16 length;
-	struct wccp_assignment_key_element assignment_key
+	struct wccp_assignment_key_element assignment_key;
 	/* __u32 number_of_routers */
 	/* [n] wccp_router_assignment_element */
 	/* __u32 number_of_webcaches */
