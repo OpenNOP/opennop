@@ -229,11 +229,10 @@ void *worker_thread(void *dummyPtr) {
                 me->metrics.packets++;
             } /* End NULL packet check. */
         } /* End working loop. */
-        free(me->lzbuffer);
-        free(state_compress);
-        free(state_decompress);
-        me->lzbuffer = NULL;
     }
+    free(me->lzbuffer);
+    free(state_compress);
+    free(state_decompress);
     return NULL;
 }
 
