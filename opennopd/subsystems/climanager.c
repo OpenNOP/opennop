@@ -19,8 +19,12 @@
  * http://troydhanson.github.io/misc/Unix_domain_sockets.html
  */
 void start_cli_server() {
-    int socket_desc, client_sock, c, *new_sock, length;
-    struct sockaddr_un server, client;
+    int socket_desc;
+    int client_sock;
+    int c;
+    int length;
+    struct sockaddr_un server;
+    struct sockaddr_un client;
 
     //Create socket
     socket_desc = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -59,13 +63,10 @@ void start_cli_server() {
         puts("Connection accepted");
 
         pthread_t sniffer_thread;
-        new_sock = malloc(sizeof(int));
-        *new_sock = client_sock;
 
         if (pthread_create(&sniffer_thread, NULL, client_handler,
-                           (void*) new_sock) < 0) {
+                           (void*) &client_sock) < 0) {
             perror("could not create thread");
-	    free(new_sock);
             exit(1);
         }
 
@@ -123,8 +124,6 @@ void *client_handler(void *socket_desc) {
             perror("recv failed");
         }
     }
-    //Free the socket pointer
-    free(socket_desc);
 
     sprintf(message, "Closing cli connection.\n");
     logger(LOG_INFO, message);
