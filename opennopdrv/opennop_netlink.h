@@ -157,9 +157,9 @@ int opennop_nl_cmd_echo(struct sk_buff *skb_2, struct genl_info *info)
 	}
 	/* add a DOC_EXMPL_A_MSG attribute (actual value to be sent) */
 	rc = nla_put_string(skb, OPENNOP_A_MSG, "hello world from kernel space");
-	if (rc != 0)
+	if (rc != 0){
 		goto out;
-	
+	}
 		/* finalize the message */
 		genlmsg_end(skb, msg_head);
 
@@ -173,8 +173,9 @@ int opennop_nl_cmd_echo(struct sk_buff *skb_2, struct genl_info *info)
 			rc = genlmsg_unicast(NULL,skb,info->snd_pid );
 		#endif
 			
-	if (rc != 0)
+	if (rc != 0){
 		goto out;
+	}
 	return 0;
 
  out:
@@ -194,9 +195,9 @@ int opennop_nl_cmd_hb(struct sk_buff *skb_2, struct genl_info *info)
 	//void *msg_head;
 	char * mydata;
 	
-	if (info == NULL)
+	if (info == NULL){
 		goto out;
-  
+	}
 	/*for each attribute there is an index in info->attrs which points to a nlattr structure
 	*in this structure the data is given
 	*/
