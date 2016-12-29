@@ -15,7 +15,7 @@ PWD     := $(shell pwd)
 
 genl_header := $(firstword $(wildcard \
   /usr/src/kernels/$(shell uname -r)/include/net/genetlink.h \
-  /usr/src/linux/include/net/genetlink.h
+  /usr/src/linux/include/net/genetlink.h \
   /usr/src/linux-headers-$(shell uname -r)/include/net/genetlink.h))
   
 genl_version := $(strip \
