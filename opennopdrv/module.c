@@ -88,19 +88,24 @@ mod_timer(&daemonmonitor, jiffies + (hbintervals * HBINTERVAL) * HZ); // Update 
 
 /* Rewritten for kernel < and >= 2.6.20 */
 #if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
-static unsigned int
-	queue_function(unsigned int hooknum, 
-	struct sk_buff **skb,
-	const struct net_device *in, 
-	const struct net_device *out, 
-	int (*okfn)(struct sk_buff *)){
+static unsigned int queue_function(unsigned int hooknum,
+	                               struct sk_buff **skb,
+	                               const struct net_device *in,
+	                               const struct net_device *out,
+	                               int (*okfn)(struct sk_buff *)){
+
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 1, 3))
+static unsigned int queue_function(const struct nf_hook_ops *ops,
+			                                 struct sk_buff *skb,
+			                                 const struct net_device *in,
+			                                 const struct net_device *out,
+			                                 int (*okfn)(struct sk_buff *)){
 #else
-static unsigned int
-	queue_function(unsigned int hooknum, 
-	struct sk_buff *skb,
-	const struct net_device *in, 
-	const struct net_device *out, 
-	int (*okfn)(struct sk_buff *)){
+static unsigned int queue_function(unsigned int hooknum,
+				   	               struct sk_buff *skb,
+	                               const struct net_device *in,
+	                               const struct net_device *out,
+	                               int (*okfn)(struct sk_buff *)){
 #endif
 
 	struct iphdr *iph = NULL;
@@ -145,9 +150,16 @@ static unsigned int
 	return NF_ACCEPT;
 }
 
-static struct nf_hook_ops opennop_hook = { // This is a netfilter hook.
-	.hook = queue_function, // Function that executes.
-	
+// This is a netfilter hook.
+static struct nf_hook_ops opennop_hook = {
+	// Function that executes.
+	/**
+	 * For some reason this method no longer works.
+	 * .hook = queue_function,
+	 * I hate to cast it to the correct type.
+	 */
+	.hook = (nf_hookfn *)queue_function,
+
 	/* Rewritten for kernel < and >= 2.6.20 */
 	#if (LINUX_VERSION_CODE < KERNEL_VERSION (2, 6, 20))
 		.hooknum = NF_IP_FORWARD, // For routed traffic only.
