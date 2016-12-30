@@ -485,6 +485,17 @@ int add_hello_message(struct opennop_ipc_header *opennop_msg_header) {
 	return 0;
 }
 
+int ipc_add_dedup_map_message(struct opennop_ipc_header *opennop_msg_header, struct hash *thishash){
+	struct ipc_message_dedup_map *message;
+	message = (char*)opennop_msg_header + opennop_msg_header->length;
+	message->header.type = OPENNOP_IPC_DEDUP_MAP;
+	message->header.length = sizeof(struct ipc_message_dedup_map);
+	memcpy((void*)&message->hash, (void*)thishash, sizeof(struct hash));
+	opennop_msg_header->length += message->header.length;
+
+	return 0;
+}
+
 int set_opennop_message_security(struct opennop_ipc_header *opennop_msg_header) {
 	char message[LOGSZ] = {0};
 
@@ -637,6 +648,45 @@ int ipc_send_message(int socket, OPENNOP_IPC_MSG_TYPE messagetype) {
 
 	return ipc_tx_message(socket,opennop_msg_header);
 
+}
+
+/**
+ * @todo This is similar to ipc_send_message()
+ */
+int map_block_to_neighbor(char *neighborID, struct hash *thishash){
+	struct neighbor *thisneighbor = NULL;
+	struct opennop_header_data data;
+	struct opennop_ipc_header *opennop_msg_header;
+	char buf[IPC_MAX_MESSAGE_SIZE] = {0};
+	int error;
+	char message[LOGSZ] = {0};
+
+	opennop_msg_header = (struct opennop_ipc_header *)&buf;
+	initialize_opennop_ipc_header(opennop_msg_header);
+
+	get_header_data(opennop_msg_header, &data);
+
+	/**
+	 * @todo Send IPC message to neighbor to map dedup hash.
+	 *
+	 */
+	thisneighbor = find_neighbor_by_ID(neighborID);
+
+	if(thisneighbor != NULL){
+		logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Neighbor found.  Send OPENNOP_IPC_DEDUP_MAP message.\n");
+
+		if(thisneighbor->state == UP){
+			ipc_add_dedup_map_message(opennop_msg_header, thishash);
+
+			if(opennop_msg_header->security == 1) {
+				calculate_hmac_sha256(opennop_msg_header, (char *)&key, data.securitydata);
+			}
+
+			return ipc_tx_message(socket, opennop_msg_header);
+		}
+	}
+
+	return 0;
 }
 
 int hello_neighbors(struct epoller *this_epoller) {

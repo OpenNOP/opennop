@@ -98,6 +98,11 @@ struct ipc_message_i_see_you{
 	 */
 };
 
+struct ipc_message_dedup_map{
+	struct opennop_message_header header;
+	char hash[64]; // 64 byte (512 bit) hash for a block added to this neighbor.
+};
+
 typedef enum {
     OPENNOP_MSG_TYPE_IPC = 1,
     OPENNOP_MSG_TYPE_CLI,
@@ -132,6 +137,7 @@ __u8 *get_opennop_id();
 int compare_opennopid(char *first_opennopid, char *second_opennopid);
 int check_opennopid(char *opennopid);
 int save_opennopid(char *source, char *destination);
+//int map_block_to_neighbor(char *neighborID, struct hash *thishash);
 struct neighbor *find_neighbor_by_ID(char *neighborID);
 
 #endif

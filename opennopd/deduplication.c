@@ -22,14 +22,6 @@
 #include "tcpoptions.h"
 #include "ipc.h"
 
-struct block{
-	char data[128];
-};
-
-struct hash{
-	char hash[64];
-};
-
 struct dedup_record{
 	__u8 type;		// (0 = uncompressed | 1 = compressed | 2 = deduplicated)
 	__u8 length;	// How much data is in this record.
@@ -230,10 +222,6 @@ int deduplicate_tcp_data_V1(__u8 *ippacket, __u8 *lzbuffer, struct session *this
 	return 0;
 }
 
-int map_block_to_neighbor(char *neighborID, unsigned char *hash){
-	logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Map dedup record to neighbor.\n");
-}
-
 /** @brief Calculate hash values
  *
  * This function is just a test to determine performance impact of deduplication by hashing each block of data in a packet.
@@ -315,7 +303,7 @@ int create_dedup_blocks(__u8 *ippacket, DB **dbp, char *neighborID){
 							//logger2(LOGGING_DEBUG,LOGGING_DEBUG,"[DEDUP] Created new block.\n");
 
 							if (neighborID != NULL){
-								map_block_to_neighbor(neighborID, (unsigned char *)&hashes[i]);
+								map_block_to_neighbor(neighborID, &hashes[i]);
 							}
 							break;
 
@@ -350,7 +338,7 @@ int create_dedup_blocks(__u8 *ippacket, DB **dbp, char *neighborID){
 						metrics.hits++;
 
 						if (neighborID != NULL){
-							map_block_to_neighbor(neighborID, (unsigned char *)&hashes[i]);
+							map_block_to_neighbor(neighborID, &hashes[i]);
 						}
 						break;
 

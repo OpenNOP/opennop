@@ -3,6 +3,14 @@
 
 #define DEDUP_BLOCKS "blocks.db"
 
+struct block{
+	char data[128];
+};
+
+struct hash{
+	char hash[64];
+};
+
 int init_deduplication();
 int deduplicate_V1(__u8 *data, __u32 length, DB **dbp, __u8 *lzbuffer);
 int deduplicate_tcp_data_V1(__u8 *ippacket, __u8 *lzbuffer, struct session *thissession);
