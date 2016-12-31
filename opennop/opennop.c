@@ -30,7 +30,8 @@ void *fromserver_handler(void *dummyPtr) {
 				perror("[cli_client]: recv");
 			else
 				//fprintf(stdout, "server closed connection\n");
-			exit(1);
+				break;
+			//exit(1);
 		}
 	}
 	return 0;
@@ -80,7 +81,9 @@ int main(void) {
 
 		if (send(client_fd, input, strlen(input), 0) == -1) {
 			perror("[cli_client]: send");
-			exit(1);
+			//exit(1);
+			free(input);
+			break;
 		}
 
 		free(input);
