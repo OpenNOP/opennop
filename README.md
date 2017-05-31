@@ -52,7 +52,7 @@ Build Status
 | ----: | :---- |
 | Open Hub | [![Open Hub project report](https://www.openhub.net/p/opennop/widgets/project_thin_badge.gif)](https://www.openhub.net/p/opennop) |
 | Travis-CI | [![Build Status](https://travis-ci.org/OpenNOP/opennop.svg)](https://travis-ci.org/OpenNOP/opennop) |
-| Technical Debt | [![SonarQube Tech Debt](https://img.shields.io/sonar/https/sonarqube.com/opennop/tech_debt.svg)](https://sonarqube.com/overview?id=opennop) |
+| Technical Debt | [![SonarQube Tech Debt](https://sonarqube.com/api/badges/measure?key=opennop&metric=sqale_debt_ratio)](https://sonarqube.com/component_measures/metric/sqale_debt_ratio/list?id=opennop) |
 | Code Quality | [![SonarQube Quality Gate](https://sonarqube.com/api/badges/gate?key=opennop&blinking=true)](https://sonarqube.com/overview?id=opennop) |
 | Coverity Scan | <a href="https://scan.coverity.com/projects/opennop"><img alt="Coverity Scan Build Status" src="https://scan.coverity.com/projects/809/badge.svg"/></a> |
 
