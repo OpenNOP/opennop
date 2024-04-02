@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <ifaddrs.h> // for getting ip addresses
 #include <netdb.h>
+#include <inttypes.h>
 
 #include <sys/types.h>
 #include <linux/types.h>

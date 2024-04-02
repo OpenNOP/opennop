@@ -165,15 +165,14 @@ struct neighbor *find_neighbor_by_socket(int fd) {
  */
 int calculate_hmac_sha256(struct opennop_ipc_header *data, char *key, char *result) {
     unsigned int result_len = 32;
-    HMAC_CTX ctx;
+    HMAC_CTX *ctx = HMAC_CTX_new();
 
     ENGINE_load_builtin_engines();
     ENGINE_register_all_complete();
-    HMAC_CTX_init(&ctx);
-    HMAC_Init_ex(&ctx, key, 64, EVP_sha256(), NULL);
-    HMAC_Update(&ctx, (unsigned char*)data, data->length);
-    HMAC_Final(&ctx, (unsigned char*)result, &result_len);
-    HMAC_CTX_cleanup(&ctx);
+    HMAC_Init_ex(ctx, key, 64, EVP_sha256(), NULL);
+    HMAC_Update(ctx, (unsigned char*)data, data->length);
+    HMAC_Final(ctx, (unsigned char*)result, &result_len);
+    HMAC_CTX_free(ctx);
     return 0;
 }
 
